@@ -8,39 +8,76 @@ const corsHeaders = {
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
-// Função para enviar PDF diretamente para ChatGPT sem nenhuma interferência
-async function analyzeResumeDirectly(base64Data: string, fileName: string) {
+// Função para converter PDF para imagem usando API externa
+async function convertPDFToImage(base64Data: string): Promise<string> {
+  try {
+    console.log('🔄 Convertendo PDF para imagem...');
+    
+    // Usar API gratuita do PDF.co para converter PDF para imagem
+    const response = await fetch('https://api.pdf.co/v1/pdf/convert/to/png', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': 'demo' // Usar chave demo por enquanto
+      },
+      body: JSON.stringify({
+        file: `data:application/pdf;base64,${base64Data}`,
+        pages: '1', // Primeira página apenas
+        async: false
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Erro na conversão: ${response.status}`);
+    }
+
+    const result = await response.json();
+    
+    if (result.error) {
+      throw new Error(`Erro PDF.co: ${result.message}`);
+    }
+
+    console.log('✅ PDF convertido para imagem');
+    return result.url; // URL da imagem gerada
+    
+  } catch (error) {
+    console.error('❌ Erro na conversão PDF→Imagem:', error);
+    throw error;
+  }
+}
+
+// Função para analisar imagem com ChatGPT Vision
+async function analyzeImageWithChatGPT(imageUrl: string, fileName: string) {
   if (!openAIApiKey) {
     throw new Error('OpenAI API key não configurada');
   }
 
-  console.log('📄 Enviando PDF diretamente para ChatGPT:', fileName);
+  console.log('👁️ Enviando imagem para ChatGPT Vision...');
 
-  const prompt = `Analise este arquivo PDF de currículo e extraia as seguintes informações:
+  const prompt = `Analise esta imagem de currículo e extraia exatamente estas informações:
 
-**Nome Completo **
-**Email **
-**Telefone **
+**Nome Completo**
+**Email** 
+**Telefone**
 **Observações Iniciais**
 
-INSTRUÇÕES:
-- Leia TODAS as páginas do PDF
-- Extraia o nome completo da pessoa
-- Extraia o email (formato: xxx@xxx.xxx)
-- Extraia o telefone (formato brasileiro com DDD)
-- Faça um resumo de 2-3 linhas da experiência profissional
+INSTRUÇÕES DETALHADAS:
+- Procure pelo NOME da pessoa (geralmente em destaque no topo)
+- Procure pelo EMAIL (formato: xxx@xxx.com)
+- Procure pelo TELEFONE brasileiro (formato: (11) 99999-9999 ou +55 11 99999-9999)
+- Faça um RESUMO de 2-3 linhas da experiência profissional
 
-IMPORTANTE:
-- Se não encontrar alguma informação, deixe o campo vazio
+MUITO IMPORTANTE:
+- Se não conseguir encontrar alguma informação, deixe o campo vazio
 - NÃO invente dados
-- Seja preciso e cuidadoso
+- Seja muito preciso com email e telefone
 
-Retorne APENAS este JSON (sem markdown):
+Retorne APENAS este JSON:
 {
-  "name": "Nome completo",
+  "name": "Nome completo encontrado",
   "email": "email@encontrado.com",
-  "phone": "telefone",
-  "observations": "Resumo da experiência"
+  "phone": "telefone encontrado", 
+  "observations": "Resumo da experiência profissional"
 }`;
 
   try {
@@ -54,6 +91,10 @@ Retorne APENAS este JSON (sem markdown):
         model: 'gpt-4o',
         messages: [
           {
+            role: 'system',
+            content: 'Você é um especialista em análise de currículos. Analise a imagem do currículo com extrema precisão e extraia nome, email, telefone e observações.'
+          },
+          {
             role: 'user',
             content: [
               {
@@ -63,7 +104,7 @@ Retorne APENAS este JSON (sem markdown):
               {
                 type: 'image_url',
                 image_url: {
-                  url: `data:application/pdf;base64,${base64Data}`,
+                  url: imageUrl,
                   detail: 'high'
                 }
               }
@@ -76,81 +117,26 @@ Retorne APENAS este JSON (sem markdown):
     });
 
     if (!response.ok) {
-      // Se GPT-4O não funcionar, tentar com GPT-4O-mini
-      console.log('❌ GPT-4O falhou, tentando GPT-4O-mini...');
-      
-      const fallbackResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openAIApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [
-            {
-              role: 'system',
-              content: 'Você é um especialista em análise de currículos. Analise o PDF enviado e extraia nome, email, telefone e observações com máxima precisão.'
-            },
-            {
-              role: 'user',
-              content: `Analise este currículo e extraia: Nome Completo, Email, Telefone e Observações Iniciais.
-
-ARQUIVO: ${fileName}
-
-Retorne apenas JSON:
-{
-  "name": "Nome",
-  "email": "email@dominio.com", 
-  "phone": "telefone",
-  "observations": "resumo experiência"
-}`
-            }
-          ],
-          temperature: 0.1,
-          max_tokens: 800
-        }),
-      });
-
-      if (!fallbackResponse.ok) {
-        const errorText = await fallbackResponse.text();
-        throw new Error(`Erro OpenAI: ${fallbackResponse.status} - ${errorText}`);
-      }
-
-      const fallbackData = await fallbackResponse.json();
-      const fallbackResult = fallbackData.choices[0].message.content.trim();
-      
-      console.log('🤖 Resposta GPT-4O-mini:', fallbackResult);
-      return parseAIResponse(fallbackResult);
+      const errorText = await response.text();
+      console.error('❌ Erro OpenAI:', response.status, errorText);
+      throw new Error(`Erro ChatGPT Vision: ${response.status}`);
     }
 
     const data = await response.json();
     const aiResponse = data.choices[0].message.content.trim();
     
-    console.log('🤖 Resposta GPT-4O:', aiResponse);
-    return parseAIResponse(aiResponse);
+    console.log('🤖 Resposta ChatGPT Vision:', aiResponse);
     
-  } catch (error) {
-    console.error('❌ Erro na análise:', error);
-    throw error;
-  }
-}
-
-// Função para fazer parse da resposta da IA
-function parseAIResponse(aiResponse: string) {
-  try {
-    // Limpar resposta
-    let cleanResponse = aiResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-    
-    // Extrair JSON
-    const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
+    // Parse JSON
+    const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      throw new Error('IA não retornou JSON válido');
+      console.error('❌ Resposta sem JSON:', aiResponse);
+      throw new Error('ChatGPT não retornou JSON válido');
     }
     
     const result = JSON.parse(jsonMatch[0]);
     
-    // Validar e limpar dados
+    // Validar dados
     const finalData = {
       name: (result.name && typeof result.name === 'string') ? result.name.trim() : '',
       email: (result.email && typeof result.email === 'string' && result.email.includes('@')) 
@@ -160,13 +146,109 @@ function parseAIResponse(aiResponse: string) {
                     ? result.observations.trim() : ''
     };
 
-    console.log('✅ Dados extraídos:', finalData);
+    console.log('✅ Dados extraídos pelo ChatGPT Vision:', finalData);
     return finalData;
     
   } catch (error) {
-    console.error('❌ Erro no parse:', error);
+    console.error('❌ Erro ChatGPT Vision:', error);
+    throw error;
+  }
+}
+
+// Função de fallback usando extração simples + ChatGPT normal
+async function fallbackTextAnalysis(base64Data: string) {
+  try {
+    console.log('🔄 Usando análise de texto como fallback...');
     
-    // Fallback: retornar estrutura vazia
+    const binaryString = atob(base64Data);
+    
+    // Buscar apenas padrões específicos
+    const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+    const phonePattern = /(\+55\s*)?(?:\(?\d{2}\)?\s*)?\d{4,5}[-\s]?\d{4}/g;
+    
+    const emails = binaryString.match(emailPattern) || [];
+    const phones = binaryString.match(phonePattern) || [];
+    
+    // Extrair texto simples
+    const textPattern = /\(([^)]{2,50})\)/g;
+    const texts = [];
+    let match;
+    
+    while ((match = textPattern.exec(binaryString)) !== null) {
+      const text = match[1].replace(/[^\w\s\u00C0-\u017F@.-]/g, ' ').trim();
+      if (text.length > 2 && /[a-zA-ZÀ-ÿ]/.test(text)) {
+        texts.push(text);
+      }
+    }
+    
+    const extractedText = [...emails, ...phones, ...texts].join(' ');
+    
+    console.log('📄 Texto extraído para fallback:', extractedText.substring(0, 500));
+    
+    if (extractedText.length < 20) {
+      throw new Error('Texto insuficiente para análise');
+    }
+    
+    // Analisar com ChatGPT normal
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'Analise este texto de currículo e extraia nome, email, telefone e observações.'
+          },
+          {
+            role: 'user',
+            content: `Texto do currículo: ${extractedText}
+
+Extraia:
+- Nome completo
+- Email (deve conter @)
+- Telefone brasileiro
+- Observações sobre experiência
+
+JSON:
+{
+  "name": "",
+  "email": "",
+  "phone": "",
+  "observations": ""
+}`
+          }
+        ],
+        temperature: 0.1,
+        max_tokens: 800
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Erro ChatGPT: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const aiResponse = data.choices[0].message.content.trim();
+    
+    const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const result = JSON.parse(jsonMatch[0]);
+      return {
+        name: result.name || '',
+        email: result.email || '',
+        phone: result.phone || '',
+        observations: result.observations || ''
+      };
+    }
+    
+    throw new Error('Fallback falhou');
+    
+  } catch (error) {
+    console.error('❌ Erro no fallback:', error);
     return {
       name: '',
       email: '',
@@ -183,20 +265,28 @@ serve(async (req) => {
 
   try {
     const { pdfData, fileName } = await req.json();
-    console.log('🚀 Processando currículo:', fileName || 'documento.pdf');
+    console.log('🚀 Processando:', fileName || 'documento.pdf');
 
     if (!pdfData) {
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'PDF não fornecido' 
-        }),
+        JSON.stringify({ success: false, error: 'PDF não fornecido' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
 
-    // Enviar PDF DIRETAMENTE para ChatGPT - SEM EXTRAÇÃO MANUAL
-    const candidateInfo = await analyzeResumeDirectly(pdfData, fileName || 'resume.pdf');
+    let candidateInfo;
+    
+    try {
+      // Método 1: PDF → Imagem → ChatGPT Vision
+      const imageUrl = await convertPDFToImage(pdfData);
+      candidateInfo = await analyzeImageWithChatGPT(imageUrl, fileName || 'resume.pdf');
+      
+    } catch (visionError) {
+      console.log('❌ ChatGPT Vision falhou, usando fallback:', visionError.message);
+      
+      // Método 2: Extração simples + ChatGPT normal
+      candidateInfo = await fallbackTextAnalysis(pdfData);
+    }
     
     // Calcular confiança
     let confidence = 0;
@@ -217,7 +307,7 @@ serve(async (req) => {
     
     if (candidateInfo.observations && candidateInfo.observations.length > 10) {
       confidence += 5;
-      console.log('✅ Observações:', candidateInfo.observations.substring(0, 100) + '...');
+      console.log('✅ Observações encontradas');
     }
 
     console.log('🎯 Confiança final:', confidence + '%');
@@ -227,7 +317,7 @@ serve(async (req) => {
         success: true,
         data: candidateInfo,
         confidence: confidence,
-        method: 'PDF → ChatGPT Direto (sem extração manual)'
+        method: 'PDF → Imagem → ChatGPT Vision'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
