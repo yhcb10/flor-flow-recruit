@@ -1,20 +1,32 @@
 import { useState, useRef } from 'react';
-import { Upload, FileText, X, CheckCircle } from 'lucide-react';
+import { Upload, FileText, X, CheckCircle, Brain } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useResumeExtraction } from '@/hooks/useResumeExtraction';
+
+interface ExtractedData {
+  name: string;
+  email: string;
+  phone: string;
+  experience: string;
+  skills: string[];
+  education: string;
+}
 
 interface ResumeUploadProps {
   candidateId?: string;
   onUploadComplete?: (url: string, fileName: string) => void;
+  onDataExtracted?: (data: ExtractedData) => void;
   maxSizeMB?: number;
 }
 
 export function ResumeUpload({ 
   candidateId, 
-  onUploadComplete, 
+  onUploadComplete,
+  onDataExtracted,
   maxSizeMB = 10 
 }: ResumeUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
@@ -23,6 +35,7 @@ export function ResumeUpload({
   const [uploadedFile, setUploadedFile] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { extractResumeData, isExtracting } = useResumeExtraction();
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -82,9 +95,20 @@ export function ResumeUpload({
     setUploadProgress(0);
 
     try {
-      // Gerar nome único para o arquivo
+      // Função para remover acentos e caracteres especiais
+      const sanitizeFileName = (fileName: string) => {
+        return fileName
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+          .replace(/[^a-zA-Z0-9.-]/g, '_') // Substitui caracteres especiais por underscore
+          .replace(/_+/g, '_') // Remove underscores duplicados
+          .toLowerCase();
+      };
+
+      // Gerar nome único e sanitizado para o arquivo
       const timestamp = Date.now();
-      const fileName = `${candidateId || 'temp'}_${timestamp}_${file.name}`;
+      const sanitizedFileName = sanitizeFileName(file.name);
+      const fileName = `${candidateId || 'temp'}_${timestamp}_${sanitizedFileName}`;
       const filePath = `curriculums/${fileName}`;
 
       // Upload para o Supabase Storage
@@ -113,6 +137,39 @@ export function ResumeUpload({
       });
 
       onUploadComplete?.(publicUrl, file.name);
+
+      // Extrair dados automaticamente se a callback foi fornecida
+      if (onDataExtracted) {
+        try {
+          toast({
+            title: "Processando currículo",
+            description: "Extraindo informações automaticamente...",
+          });
+
+          const result = await extractResumeData(file);
+          
+          if (result.success && result.confidence > 50) {
+            onDataExtracted(result.data);
+            toast({
+              title: "Dados extraídos",
+              description: `Informações extraídas com ${result.confidence}% de confiança.`,
+            });
+          } else {
+            toast({
+              title: "Extração parcial",
+              description: "Alguns dados foram extraídos. Verifique as informações.",
+              variant: "destructive",
+            });
+          }
+        } catch (error) {
+          console.error('Erro na extração:', error);
+          toast({
+            title: "Falha na extração",
+            description: "Não foi possível extrair dados automaticamente.",
+            variant: "destructive",
+          });
+        }
+      }
 
     } catch (error) {
       console.error('Erro no upload:', error);
@@ -148,7 +205,7 @@ export function ResumeUpload({
                 ? 'border-primary bg-primary/5' 
                 : 'border-muted-foreground/25 hover:border-primary/50'
               }
-              ${isUploading ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+              ${(isUploading || isExtracting) ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
             `}
             onClick={() => !isUploading && fileInputRef.current?.click()}
           >
@@ -163,11 +220,13 @@ export function ResumeUpload({
             <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
             
             <h3 className="text-lg font-semibold mb-2">
-              {isUploading ? 'Enviando currículo...' : 'Envie o currículo'}
+              {isUploading ? 'Enviando currículo...' : 
+               isExtracting ? 'Processando dados...' : 'Envie o currículo'}
             </h3>
             
             <p className="text-muted-foreground mb-4">
-              Arraste e solte o arquivo aqui ou clique para selecionar
+              {isExtracting ? 'Extraindo informações automaticamente...' :
+               'Arraste e solte o arquivo aqui ou clique para selecionar'}
             </p>
             
             <p className="text-sm text-muted-foreground">

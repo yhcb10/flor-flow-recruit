@@ -17,6 +17,15 @@ import { useToast } from '@/hooks/use-toast';
 import { Candidate } from '@/types/recruitment';
 import { ResumeUpload } from './ResumeUpload';
 
+interface ExtractedData {
+  name: string;
+  email: string;
+  phone: string;
+  experience: string;
+  skills: string[];
+  education: string;
+}
+
 interface NewCandidateModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -48,7 +57,29 @@ export function NewCandidateModal({ isOpen, onClose, onSubmit }: NewCandidateMod
     setResumeFileName(fileName);
     toast({
       title: "Currículo enviado",
-      description: "Agora preencha as informações do candidato.",
+      description: "Processando dados automaticamente...",
+    });
+  };
+
+  const handleDataExtracted = (extractedData: ExtractedData) => {
+    // Preencher automaticamente os campos com os dados extraídos
+    setFormData(prev => ({
+      ...prev,
+      name: extractedData.name || prev.name,
+      email: extractedData.email || prev.email,
+      phone: extractedData.phone || prev.phone,
+      notes: prev.notes + (extractedData.skills.length > 0 
+        ? `\nHabilidades identificadas: ${extractedData.skills.join(', ')}`
+        : '') + (extractedData.education 
+        ? `\nFormação: ${extractedData.education}`
+        : '') + (extractedData.experience 
+        ? `\nExperiência: ${extractedData.experience}`
+        : '')
+    }));
+
+    toast({
+      title: "Dados preenchidos automaticamente",
+      description: "Verifique as informações na aba 'Informações'.",
     });
   };
 
@@ -165,6 +196,7 @@ export function NewCandidateModal({ isOpen, onClose, onSubmit }: NewCandidateMod
                 <ResumeUpload
                   candidateId="temp"
                   onUploadComplete={handleResumeUpload}
+                  onDataExtracted={handleDataExtracted}
                 />
                 {resumeUrl && (
                   <div className="mt-4 p-3 bg-success/10 rounded-lg border border-success/20">
