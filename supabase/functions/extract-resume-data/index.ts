@@ -149,28 +149,55 @@ serve(async (req) => {
   }
 
   try {
-    const { resumeUrl, resumeText, pdfData, fileName } = await req.json();
+    const { pdfData, fileName } = await req.json();
 
-    console.log('Processing resume:', fileName || resumeUrl);
+    console.log('Processing resume:', fileName || 'unknown');
 
-    let textToAnalyze = resumeText || '';
-    
-    // Se temos dados do PDF, extrair o texto
-    if (pdfData) {
-      try {
-        textToAnalyze = await extractTextFromPDF(pdfData);
-        console.log('Texto extraído do PDF (primeiros 200 chars):', textToAnalyze.substring(0, 200));
-      } catch (error) {
-        console.error('Erro ao extrair texto do PDF:', error);
-        textToAnalyze = '';
-      }
-    }
-
-    if (!textToAnalyze.trim()) {
+    if (!pdfData) {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'Não foi possível extrair texto do currículo',
+          error: 'Dados do PDF não fornecidos',
+          confidence: 0
+        }),
+        { 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json' 
+          },
+          status: 400
+        }
+      );
+    }
+
+    // Extrair texto do PDF
+    let textToAnalyze = '';
+    try {
+      textToAnalyze = await extractTextFromPDF(pdfData);
+      console.log('Texto extraído (primeiros 300 chars):', textToAnalyze.substring(0, 300));
+    } catch (error) {
+      console.error('Erro ao extrair texto do PDF:', error);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Erro ao processar PDF',
+          confidence: 0
+        }),
+        { 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json' 
+          },
+          status: 400
+        }
+      );
+    }
+
+    if (!textToAnalyze || textToAnalyze.trim().length < 10) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Não foi possível extrair texto suficiente do currículo',
           confidence: 0
         }),
         { 
@@ -184,15 +211,37 @@ serve(async (req) => {
     }
 
     // Analisar com ChatGPT
-    const aiAnalysis = await analyzeResumeWithAI(textToAnalyze);
+    let aiAnalysis;
+    try {
+      aiAnalysis = await analyzeResumeWithAI(textToAnalyze);
+      console.log('Análise da IA concluída:', aiAnalysis);
+    } catch (error) {
+      console.error('Erro na análise da IA:', error);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Erro na análise inteligente do currículo',
+          confidence: 0
+        }),
+        { 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json' 
+          },
+          status: 500
+        }
+      );
+    }
     
     // Calcular confiança baseada nos campos preenchidos
     let confidence = 0;
-    if (aiAnalysis.name && aiAnalysis.name.trim()) confidence += 30;
+    if (aiAnalysis.name && aiAnalysis.name.trim() && aiAnalysis.name !== '') confidence += 30;
     if (aiAnalysis.email && aiAnalysis.email.includes('@')) confidence += 25;
-    if (aiAnalysis.phone && aiAnalysis.phone.trim()) confidence += 25;
-    if (aiAnalysis.experience && aiAnalysis.experience.trim()) confidence += 10;
+    if (aiAnalysis.phone && aiAnalysis.phone.trim() && aiAnalysis.phone !== '') confidence += 25;
+    if (aiAnalysis.experience && aiAnalysis.experience.trim() && aiAnalysis.experience !== '') confidence += 10;
     if (aiAnalysis.skills && aiAnalysis.skills.length > 0) confidence += 10;
+
+    console.log('Confiança calculada:', confidence);
 
     return new Response(
       JSON.stringify({
