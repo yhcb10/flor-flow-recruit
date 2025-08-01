@@ -21,6 +21,7 @@ export interface Candidate {
   positionId: string;
   resumeUrl?: string;
   resumeText?: string;
+  resumeFileName?: string;
   source: 'indeed' | 'manual' | 'referral';
   stage: CandidateStage;
   aiAnalysis?: AIAnalysis;

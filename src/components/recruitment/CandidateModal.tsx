@@ -18,6 +18,7 @@ import {
 import { Candidate } from '@/types/recruitment';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { ResumeUpload } from './ResumeUpload';
 
 interface CandidateModalProps {
   candidate: Candidate;
@@ -28,6 +29,16 @@ interface CandidateModalProps {
 
 export function CandidateModal({ candidate, isOpen, onClose, onUpdate }: CandidateModalProps) {
   const [newNote, setNewNote] = useState('');
+
+  const handleResumeUpload = (url: string, fileName: string) => {
+    const updatedCandidate = {
+      ...candidate,
+      resumeUrl: url,
+      resumeFileName: fileName,
+      updatedAt: new Date()
+    };
+    onUpdate(updatedCandidate);
+  };
 
   const getScoreColor = (score: number) => {
     if (score >= 8) return 'text-success';
@@ -142,19 +153,41 @@ export function CandidateModal({ candidate, isOpen, onClose, onUpdate }: Candida
               </Card>
             </div>
 
-            {candidate.resumeUrl && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Currículo</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Button variant="outline" size="sm">
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Visualizar Currículo
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Currículo</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {candidate.resumeUrl ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">
+                          {candidate.resumeFileName || 'curriculum.pdf'}
+                        </span>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(candidate.resumeUrl, '_blank')}
+                      >
+                        Visualizar
+                      </Button>
+                    </div>
+                    <ResumeUpload
+                      candidateId={candidate.id}
+                      onUploadComplete={handleResumeUpload}
+                    />
+                  </div>
+                ) : (
+                  <ResumeUpload
+                    candidateId={candidate.id}
+                    onUploadComplete={handleResumeUpload}
+                  />
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* AI Analysis Tab */}
