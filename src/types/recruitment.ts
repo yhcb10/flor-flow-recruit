@@ -11,6 +11,7 @@ export interface JobPosition {
   createdAt: Date;
   createdBy: string;
   targetHires: number;
+  aiAnalysisPrompt?: string;
 }
 
 export interface Candidate {

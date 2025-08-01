@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,17 +6,17 @@ import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
 import { Brain, Sparkles, Target, AlertCircle, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { JobPosition } from '@/types/recruitment';
 
-export function AIAnalysisPanel() {
+interface AIAnalysisPanelProps {
+  selectedPosition?: JobPosition;
+}
+
+export function AIAnalysisPanel({ selectedPosition }: AIAnalysisPanelProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisPrompt, setAnalysisPrompt] = useState(`Analise este currículo para a vaga de Florista Especializada na Coroa de Flores Nobre.
-
-Critérios de avaliação:
-1. Experiência em floricultura (peso 30%)
-2. Sensibilidade para trabalhar com famílias em luto (peso 25%)
-3. Habilidades manuais e criativas (peso 20%)
-4. Experiência em atendimento ao cliente (peso 15%)
-5. Disponibilidade para horários flexíveis (peso 10%)
+  const [analysisPrompt, setAnalysisPrompt] = useState(
+    selectedPosition?.aiAnalysisPrompt || 
+    `Analise este currículo com base nos critérios da vaga.
 
 Para cada critério, avalie de 0 a 10 e forneça:
 - Pontuação final (0-10)
@@ -25,7 +25,14 @@ Para cada critério, avalie de 0 a 10 e forneça:
 - Recomendação: Avançar, Revisar ou Rejeitar
 - Justificativa detalhada
 
-Mantenha tom respeitoso e profissional.`);
+Mantenha tom respeitoso e profissional.`
+  );
+  
+  useEffect(() => {
+    if (selectedPosition?.aiAnalysisPrompt) {
+      setAnalysisPrompt(selectedPosition.aiAnalysisPrompt);
+    }
+  }, [selectedPosition]);
   
   const { toast } = useToast();
 

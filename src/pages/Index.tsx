@@ -4,9 +4,11 @@ import { KanbanBoard } from '@/components/recruitment/KanbanBoard';
 import { RecruitmentDashboard } from '@/components/recruitment/RecruitmentDashboard';
 import { AIAnalysisPanel } from '@/components/recruitment/AIAnalysisPanel';
 import { useRecruitmentKanban } from '@/hooks/useRecruitmentKanban';
+import { mockJobPositions } from '@/data/mockData';
 
 const Index = () => {
   const { columns, moveCandidateToStage, updateCandidate, addCandidate, stats } = useRecruitmentKanban();
+  const [selectedPosition, setSelectedPosition] = useState(mockJobPositions[0]);
 
   return (
     <div className="min-h-screen bg-kanban-bg">
@@ -45,7 +47,7 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="ai" className="mt-6">
-            <AIAnalysisPanel />
+            <AIAnalysisPanel selectedPosition={selectedPosition} />
           </TabsContent>
         </Tabs>
       </div>
