@@ -8,21 +8,61 @@ const corsHeaders = {
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
-// Função para extrair texto básico de PDF
+// Função melhorada para extrair texto de PDF
 async function extractTextFromPDF(base64Data: string): Promise<string> {
   try {
     const binaryString = atob(base64Data);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
     
-    // Extração simples de texto procurando por padrões comuns em PDFs
-    const textRegex = /\(([^)]+)\)/g;
-    const matches = binaryString.match(textRegex) || [];
+    // Buscar por streams de texto no PDF
+    const text = binaryString;
     
-    const extractedText = matches
-      .map(match => match.replace(/[()]/g, ''))
-      .filter(text => text.length > 2 && /[a-zA-ZÀ-ÿ\s]/.test(text))
-      .join(' ');
-
-    return extractedText || binaryString.replace(/[^\x20-\x7E\u00C0-\u017F]/g, ' ').trim();
+    // Extrair texto entre parênteses e colchetes (comum em PDFs)
+    const textPatterns = [
+      /\(([^)]+)\)/g,           // Texto entre parênteses
+      /\[([^\]]+)\]/g,          // Texto entre colchetes  
+      /Tj\s*([^T]+)T/g,         // Operadores de texto PDF
+      /BT\s*([^E]+)ET/g,        // Blocos de texto PDF
+    ];
+    
+    let extractedText = '';
+    
+    for (const pattern of textPatterns) {
+      const matches = text.match(pattern) || [];
+      for (const match of matches) {
+        const cleanText = match
+          .replace(/[()[\]]/g, '')           // Remove parênteses e colchetes
+          .replace(/[^\x20-\x7E\u00C0-\u017F\u00A0-\u024F]/g, ' ') // Mantém apenas caracteres legíveis
+          .replace(/\s+/g, ' ')              // Normaliza espaços
+          .trim();
+        
+        if (cleanText.length > 2 && /[a-zA-ZÀ-ÿ]/.test(cleanText)) {
+          extractedText += cleanText + ' ';
+        }
+      }
+    }
+    
+    // Se não encontrou texto suficiente, tenta uma abordagem mais agressiva
+    if (extractedText.length < 50) {
+      const allText = binaryString
+        .replace(/[^\x20-\x7E\u00C0-\u017F\u00A0-\u024F]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      
+      // Extrai palavras que parecem ser texto legível
+      const words = allText.split(' ').filter(word => 
+        word.length > 2 && 
+        /[a-zA-ZÀ-ÿ]/.test(word) &&
+        !word.match(/^[0-9\.\-\+\*\/\=\<\>\!\@\#\$\%\^\&\(\)]+$/)
+      );
+      
+      extractedText = words.slice(0, 200).join(' '); // Limita a 200 palavras
+    }
+    
+    return extractedText.trim() || '';
   } catch (error) {
     console.error('Erro ao extrair texto do PDF:', error);
     return '';
