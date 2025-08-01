@@ -12,8 +12,16 @@ const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 async function extractRawTextFromPDF(base64Data: string): Promise<string> {
   try {
     const binaryString = atob(base64Data);
+    let allText = '';
     
-    // Método 1: Procurar por texto simples entre parênteses
+    // Método 1: Buscar diretamente por email e telefone no binário
+    const emailMatches = binaryString.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
+    const phoneMatches = binaryString.match(/\(\d{2}\)\s*\d{4,5}[-\s]?\d{4}/g) || [];
+    
+    console.log('📧 Emails encontrados no binário:', emailMatches);
+    console.log('📱 Telefones encontrados no binário:', phoneMatches);
+    
+    // Método 2: Extrair texto entre parênteses (formato PDF comum)
     const textPattern = /\(([^)]+)\)/g;
     const foundTexts: string[] = [];
     let match;
@@ -21,28 +29,18 @@ async function extractRawTextFromPDF(base64Data: string): Promise<string> {
     while ((match = textPattern.exec(binaryString)) !== null) {
       const text = match[1];
       
-      // Filtrar apenas texto que parece real (não metadados)
+      // Filtrar apenas texto que parece real
       if (text.length > 1 && 
-          /[a-zA-ZÀ-ÿ0-9@.]/.test(text) &&
-          !text.match(/^(obj|stream|endstream|BT|ET|Tj|TJ)$/i)) {
+          /[a-zA-ZÀ-ÿ0-9@.-]/.test(text) &&
+          !text.match(/^(obj|stream|endstream|BT|ET|Tj|TJ|Type|Font|Width|Height|Length|Filter|FormType|BBox|Resources|Group|Transparency|ProcSet|Image|ColorSpace|Interpolate)$/i)) {
         foundTexts.push(text);
       }
     }
     
-    // Método 2: Procurar por padrões específicos (email e telefone)
-    const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
-    const phonePattern = /\(\d{2}\)\s*\d{4,5}[-\s]?\d{4}/g;
+    // Combinar tudo
+    allText = [...emailMatches, ...phoneMatches, ...foundTexts].join(' ');
     
-    let emailMatch = binaryString.match(emailPattern);
-    let phoneMatch = binaryString.match(phonePattern);
-    
-    if (emailMatch) foundTexts.push(...emailMatch);
-    if (phoneMatch) foundTexts.push(...phoneMatch);
-    
-    // Juntar todo o texto encontrado
-    const allText = foundTexts.join(' ');
-    
-    console.log('Texto bruto extraído:', allText.substring(0, 500));
+    console.log('📄 Texto completo extraído:', allText.substring(0, 800));
     return allText;
     
   } catch (error) {
@@ -57,28 +55,34 @@ async function analyzeWithAI(textContent: string) {
     throw new Error('OpenAI API key não configurada');
   }
 
-  const prompt = `Analise este texto de currículo e extraia APENAS:
+  const prompt = `Você é um especialista em análise de currículos. Analise este texto e extraia as informações de contato.
 
-TEXTO:
+TEXTO COMPLETO DO CURRÍCULO:
 ${textContent}
 
-Procure especificamente por:
-1. NOME COMPLETO (ex: João Silva, Maria Santos)
-2. EMAIL (formato: xxx@xxx.com - procure por @)
-3. TELEFONE (formato brasileiro: (11) 99999-9999)
-4. OBSERVAÇÕES (resumo da experiência em 1-2 linhas)
+INSTRUÇÕES ESPECÍFICAS:
+1. PROCURE CUIDADOSAMENTE por email no formato xxx@xxx.com (pode estar em qualquer lugar)
+2. PROCURE por telefone brasileiro no formato (XX) XXXXX-XXXX 
+3. PROCURE pelo nome da pessoa (geralmente no início)
+4. Faça um resumo da experiência profissional
+
+EXEMPLO DO QUE VOCÊ DEVE ENCONTRAR:
+- Email: aurelio.sodre.ar@gmail.com
+- Telefone: (11) 97665-2685  
+- Nome: AURELIO RODRIGUES
 
 MUITO IMPORTANTE:
-- Se não encontrar email, retorne string vazia
-- Se não encontrar telefone, retorne string vazia
-- NÃO invente informações
+- Leia TODO o texto palavra por palavra
+- Procure especificamente por @ para encontrar email
+- Procure por números entre parênteses para telefone
+- Se não encontrar, retorne string vazia (não invente)
 
-Retorne apenas este JSON limpo:
+Retorne APENAS este JSON:
 {
   "name": "Nome encontrado",
   "email": "email@encontrado.com",
   "phone": "(XX) XXXXX-XXXX",
-  "observations": "Breve resumo da experiência"
+  "observations": "Resumo da experiência profissional"
 }`;
 
   try {
@@ -93,7 +97,7 @@ Retorne apenas este JSON limpo:
         messages: [
           {
             role: 'system',
-            content: 'Você extrai informações de currículos. Seja MUITO cuidadoso com emails e telefones. Se não tiver certeza, deixe vazio. Retorne apenas JSON limpo sem markdown.'
+            content: 'Você é um especialista em extrair informações de currículos. Seja EXTREMAMENTE cuidadoso ao procurar emails (com @) e telefones brasileiros. Leia palavra por palavra. Se não encontrar com certeza, deixe vazio. Retorne apenas JSON limpo.'
           },
           {
             role: 'user',
@@ -101,7 +105,8 @@ Retorne apenas este JSON limpo:
           }
         ],
         temperature: 0.0, // Zero criatividade
-        max_tokens: 800
+        max_tokens: 800,
+        top_p: 0.9
       }),
     });
 
@@ -112,7 +117,7 @@ Retorne apenas este JSON limpo:
     const data = await response.json();
     const aiResponse = data.choices[0].message.content.trim();
     
-    console.log('Resposta bruta da IA:', aiResponse);
+    console.log('🤖 Resposta bruta da IA:', aiResponse);
     
     // Extrair JSON da resposta
     const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
@@ -121,7 +126,18 @@ Retorne apenas este JSON limpo:
     }
     
     const result = JSON.parse(jsonMatch[0]);
-    console.log('Dados extraídos pela IA:', result);
+    console.log('✅ Dados finais extraídos:', result);
+    
+    // Validação extra - verificar se email tem @ e se telefone tem formato correto
+    if (result.email && !result.email.includes('@')) {
+      console.warn('⚠️ Email inválido detectado, removendo:', result.email);
+      result.email = '';
+    }
+    
+    if (result.phone && !/\(\d{2}\)/.test(result.phone)) {
+      console.warn('⚠️ Telefone com formato inválido:', result.phone);
+      // Não remover, apenas avisar
+    }
     
     return {
       name: result.name || '',
@@ -131,7 +147,7 @@ Retorne apenas este JSON limpo:
     };
     
   } catch (error) {
-    console.error('Erro na IA:', error);
+    console.error('❌ Erro na IA:', error);
     throw error;
   }
 }
