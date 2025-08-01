@@ -257,12 +257,40 @@ serve(async (req) => {
     // Analisar o texto extraído
     const candidateInfo = parseExtractedText(extractedText);
     
+    // Filtrar resultados de baixa qualidade
+    if (candidateInfo.name === 'Google Docs Renderer' || 
+        candidateInfo.name.includes('PDF') || 
+        candidateInfo.name.includes('Font') ||
+        candidateInfo.name.includes('Stream')) {
+      candidateInfo.name = '';
+    }
+
     // Calcular confiança
     let confidence = 0;
     if (candidateInfo.name && candidateInfo.name.length > 3) confidence += 30;
     if (candidateInfo.email && candidateInfo.email.includes('@')) confidence += 35;
     if (candidateInfo.phone && candidateInfo.phone.length > 8) confidence += 30;
     if (candidateInfo.observations && candidateInfo.observations.length > 10) confidence += 5;
+
+    // Se confiança muito baixa, tentar métodos alternativos
+    if (confidence < 50) {
+      console.log('🔄 Baixa confiança, tentando métodos alternativos...');
+      
+      // Tentar extrair nomes de formato brasileiro
+      const brazilianNamePattern = /([A-ZÁÉÍÓÚÂÊÎÔÛÀÈÌÒÙÃÕÇ][a-záéíóúâêîôûàèìòùãõç]+(?:\s+[A-ZÁÉÍÓÚÂÊÎÔÛÀÈÌÒÙÃÕÇ][a-záéíóúâêîôûàèìòùãõç]+){1,3})/g;
+      const brazilianNames = extractedText.match(brazilianNamePattern) || [];
+      
+      if (brazilianNames.length > 0 && !candidateInfo.name) {
+        const validName = brazilianNames.find(name => 
+          name.length > 5 && name.length < 50 && 
+          !/(PDF|Font|Type|Stream|Object|Page|Root|Info|Creator|Producer|Google|Docs|Renderer)/i.test(name)
+        );
+        if (validName) {
+          candidateInfo.name = validName;
+          confidence += 25;
+        }
+      }
+    }
 
     console.log('✅ Resultado final:', candidateInfo);
     console.log('🎯 Confiança:', confidence + '%');

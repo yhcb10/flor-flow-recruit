@@ -61,10 +61,30 @@ export function useResumeExtraction() {
       });
 
       if (error) {
+        console.error('Erro da edge function:', error);
         throw error;
       }
 
-      return data;
+      if (!data || !data.success) {
+        console.error('Resposta inválida:', data);
+        throw new Error(data?.error || 'Resposta inválida da extração');
+      }
+
+      // Transformar o formato da resposta
+      const result: ExtractionResult = {
+        success: data.success,
+        data: {
+          name: data.data?.name || '',
+          email: data.data?.email || '',
+          phone: data.data?.phone || '',
+          experience: data.data?.observations || '',
+          skills: [],
+          education: ''
+        },
+        confidence: data.confidence || 0
+      };
+
+      return result;
     } catch (error) {
       console.error('Erro na extração de dados:', error);
       throw new Error('Falha ao extrair dados do currículo');
