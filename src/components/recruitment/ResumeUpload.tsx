@@ -148,12 +148,28 @@ export function ResumeUpload({
 
           const result = await extractResumeData(file);
           
-          if (result.success && result.confidence > 50) {
-            onDataExtracted(result.data);
-            toast({
-              title: "Dados extraídos",
-              description: `Informações extraídas com ${result.confidence}% de confiança.`,
-            });
+          console.log('Resultado da extração:', result);
+          
+          if (result.success) {
+            // Verificar se temos dados válidos independente da confiança
+            const hasValidData = result.data.name || result.data.email || result.data.phone || 
+                                 result.data.experience || (result.data.skills && result.data.skills.length > 0);
+            
+            if (hasValidData) {
+              onDataExtracted(result.data);
+              toast({
+                title: "Dados extraídos",
+                description: result.confidence > 0 
+                  ? `Informações extraídas com ${result.confidence}% de confiança.`
+                  : "Informações extraídas automaticamente.",
+              });
+            } else {
+              toast({
+                title: "Extração parcial",
+                description: "Poucos dados foram extraídos. Verifique as informações.",
+                variant: "destructive",
+              });
+            }
           } else {
             toast({
               title: "Extração parcial",
