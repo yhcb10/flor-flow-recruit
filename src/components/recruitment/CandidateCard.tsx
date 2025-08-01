@@ -96,9 +96,9 @@ export function CandidateCard({ candidate, onClick, isDragging }: CandidateCardP
                 <span className="text-destructive">✗ Não recomendado</span>
               )}
             </div>
-            {candidate.aiAnalysis.strengths.length > 0 && (
+            {candidate.aiAnalysis.pontoFortes.length > 0 && (
               <div className="text-xs text-muted-foreground mt-1">
-                <strong>Destaque:</strong> {candidate.aiAnalysis.strengths[0]}
+                <strong>Destaque:</strong> {candidate.aiAnalysis.pontoFortes[0]}
               </div>
             )}
           </div>

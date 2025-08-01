@@ -155,17 +155,23 @@ export const mockCandidates: Candidate[] = [
     stage: 'analise_ia',
     aiAnalysis: {
       score: 8.5,
-      strengths: [
+      experienciaProfissional: 4,
+      habilidadesTecnicas: 2,
+      competenciasComportamentais: 1,
+      formacaoAcademica: 1,
+      diferenciaisRelevantes: 1,
+      pontoFortes: [
         'Experiência de 3 anos em floricultura',
         'Curso técnico em arranjos florais',
         'Experiência anterior em funerária'
       ],
-      weaknesses: [
+      pontosAtencao: [
         'Sem experiência em vendas',
         'Disponibilidade limitada aos fins de semana'
       ],
       recommendation: 'advance',
       reasoning: 'Candidata com perfil técnico sólido e experiência relevante no setor. A experiência anterior em funerária demonstra sensibilidade para o ambiente.',
+      recomendacaoFinal: 'aprovado',
       analyzedAt: new Date('2024-01-20')
     },
     notes: [
@@ -192,17 +198,23 @@ export const mockCandidates: Candidate[] = [
     stage: 'selecao_rh',
     aiAnalysis: {
       score: 7.2,
-      strengths: [
+      experienciaProfissional: 3,
+      habilidadesTecnicas: 2,
+      competenciasComportamentais: 1,
+      formacaoAcademica: 1,
+      diferenciaisRelevantes: 0,
+      pontoFortes: [
         'Formação em Design',
         'Experiência em atendimento ao cliente',
         'Portfólio criativo'
       ],
-      weaknesses: [
+      pontosAtencao: [
         'Sem experiência específica em floricultura',
         'Pouca experiência em ambientes sensíveis'
       ],
       recommendation: 'review',
       reasoning: 'Candidato criativo com bom potencial, mas necessita treinamento específico para o ambiente funerário.',
+      recomendacaoFinal: 'aprovado',
       analyzedAt: new Date('2024-01-19')
     },
     notes: [],
@@ -220,17 +232,23 @@ export const mockCandidates: Candidate[] = [
     stage: 'pre_entrevista',
     aiAnalysis: {
       score: 9.1,
-      strengths: [
+      experienciaProfissional: 4,
+      habilidadesTecnicas: 2,
+      competenciasComportamentais: 1,
+      formacaoAcademica: 1,
+      diferenciaisRelevantes: 2,
+      pontoFortes: [
         'Graduação em Biologia',
         '5 anos de experiência em floricultura',
         'Certificação em arranjos funerários',
         'Experiência prévia em ambiente hospitalar'
       ],
-      weaknesses: [
+      pontosAtencao: [
         'Mora longe da empresa'
       ],
       recommendation: 'advance',
       reasoning: 'Candidata excepcional com formação técnica sólida e experiência específica. Demonstra sensibilidade necessária para o ambiente.',
+      recomendacaoFinal: 'aprovado',
       analyzedAt: new Date('2024-01-16')
     },
     notes: [

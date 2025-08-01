@@ -51,21 +51,36 @@ Mantenha tom respeitoso e profissional.`
         await new Promise(resolve => setTimeout(resolve, 1000));
         
         // Atualiza o candidato com análise simulada
+        const experienciaProfissional = Math.floor(Math.random() * 5); // 0-4
+        const habilidadesTecnicas = Math.floor(Math.random() * 3); // 0-2
+        const competenciasComportamentais = Math.floor(Math.random() * 2); // 0-1
+        const formacaoAcademica = 1; // Sempre 1 se tem ensino médio
+        const diferenciaisRelevantes = Math.floor(Math.random() * 3); // 0-2
+        
+        const totalScore = experienciaProfissional + habilidadesTecnicas + competenciasComportamentais + formacaoAcademica + diferenciaisRelevantes;
+        const recommendation = totalScore >= 6.5 ? 'advance' : totalScore >= 4 ? 'review' : 'reject';
+        
         const updatedCandidate = {
           ...candidate,
           aiAnalysis: {
-            score: Math.round((Math.random() * 4 + 6) * 10) / 10, // Score entre 6.0 e 10.0
-            recommendation: Math.random() > 0.7 ? 'advance' : Math.random() > 0.4 ? 'review' : 'reject' as 'advance' | 'reject' | 'review',
-            strengths: [
-              "Experiência sólida na área",
-              "Boa comunicação",
-              "Proatividade demonstrada"
+            score: totalScore,
+            experienciaProfissional,
+            habilidadesTecnicas, 
+            competenciasComportamentais,
+            formacaoAcademica,
+            diferenciaisRelevantes,
+            recommendation: recommendation as 'advance' | 'reject' | 'review',
+            pontoFortes: [
+              "Experiência sólida com vendas por telefone",
+              "Boa comunicação e proatividade",
+              "Conhecimento em CRM e sistemas digitais"
             ],
-            weaknesses: [
-              "Localização pode ser um desafio",
-              "Pretensão salarial acima da média"
+            pontosAtencao: [
+              "Localização: verificar viabilidade logística",
+              "Pretensão salarial: confirmar expectativas"
             ],
-            reasoning: "Candidato com perfil adequado para a vaga, demonstrando experiência relevante e boas habilidades de comunicação.",
+            reasoning: "Candidato apresenta perfil adequado para a vaga, com experiência relevante em vendas e boa comunicação.",
+            recomendacaoFinal: (totalScore >= 6.5 ? 'aprovado' : 'nao_recomendado') as 'aprovado' | 'nao_recomendado',
             analyzedAt: new Date()
           }
         };

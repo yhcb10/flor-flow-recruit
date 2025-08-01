@@ -43,10 +43,16 @@ export type CandidateStage =
 
 export interface AIAnalysis {
   score: number; // 0-10
-  strengths: string[];
-  weaknesses: string[];
+  experienciaProfissional: number; // 0-4
+  habilidadesTecnicas: number; // 0-2
+  competenciasComportamentais: number; // 0-1
+  formacaoAcademica: number; // 0-1
+  diferenciaisRelevantes: number; // 0-2
+  pontoFortes: string[];
+  pontosAtencao: string[];
   recommendation: 'advance' | 'reject' | 'review';
   reasoning: string;
+  recomendacaoFinal: 'aprovado' | 'nao_recomendado';
   analyzedAt: Date;
 }
 

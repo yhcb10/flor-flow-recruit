@@ -230,10 +230,10 @@ export function CandidateModal({ candidate, isOpen, onClose, onUpdate }: Candida
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-2">
-                      {candidate.aiAnalysis.strengths.map((strength, index) => (
+                      {candidate.aiAnalysis.pontoFortes.map((pontoForte, index) => (
                         <li key={index} className="text-sm flex items-start gap-2">
                           <div className="w-2 h-2 bg-success rounded-full mt-2 flex-shrink-0" />
-                          {strength}
+                          {pontoForte}
                         </li>
                       ))}
                     </ul>
@@ -249,15 +249,69 @@ export function CandidateModal({ candidate, isOpen, onClose, onUpdate }: Candida
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-2">
-                      {candidate.aiAnalysis.weaknesses.map((weakness, index) => (
+                      {candidate.aiAnalysis.pontosAtencao.map((pontoAtencao, index) => (
                         <li key={index} className="text-sm flex items-start gap-2">
                           <div className="w-2 h-2 bg-warning rounded-full mt-2 flex-shrink-0" />
-                          {weakness}
+                          {pontoAtencao}
                         </li>
                       ))}
                     </ul>
                   </CardContent>
                 </Card>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-sm">🔍 Avaliação Detalhada</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span>Experiência Profissional:</span>
+                        <span className="font-bold">{candidate.aiAnalysis.experienciaProfissional}/4</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Habilidades Técnicas:</span>
+                        <span className="font-bold">{candidate.aiAnalysis.habilidadesTecnicas}/2</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Competências Comportamentais:</span>
+                        <span className="font-bold">{candidate.aiAnalysis.competenciasComportamentais}/1</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Formação Acadêmica:</span>
+                        <span className="font-bold">{candidate.aiAnalysis.formacaoAcademica}/1</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Diferenciais relevantes:</span>
+                        <span className="font-bold">{candidate.aiAnalysis.diferenciaisRelevantes}/2</span>
+                      </div>
+                      <hr className="my-2" />
+                      <div className="flex justify-between font-bold">
+                        <span>Total:</span>
+                        <span className={getScoreColor(candidate.aiAnalysis.score)}>{candidate.aiAnalysis.score}/10</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-sm">📌 Recomendação Final</CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-center">
+                      {candidate.aiAnalysis.recomendacaoFinal === 'aprovado' ? (
+                        <div className="text-success">
+                          <div className="text-2xl mb-1">✅</div>
+                          <div className="font-bold">Aprovado para entrevista</div>
+                        </div>
+                      ) : (
+                        <div className="text-destructive">
+                          <div className="text-2xl mb-1">❌</div>
+                          <div className="font-bold">Não recomendado neste momento</div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
 
                 <Card>
                   <CardHeader>
