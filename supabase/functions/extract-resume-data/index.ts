@@ -239,37 +239,38 @@ function cleanAndFilterText(text: string): string {
   return validWords.join(' ');
 }
 
-// Função para analisar currículo usando ChatGPT (melhorada)
+// Função para analisar currículo usando ChatGPT (IA como principal)
 async function analyzeResumeWithAI(resumeText: string) {
   if (!openAIApiKey) {
     throw new Error('OpenAI API key não configurada');
   }
 
-  // SEMPRE extrair informações básicas primeiro (como backup)
-  const basicInfo = extractBasicInfo(resumeText);
-  console.log('Informações básicas extraídas por regex:', basicInfo);
+  const prompt = `Você é um especialista em análise de currículos com IA. Analise minuciosamente o texto abaixo extraído de um currículo e extraia TODAS as informações disponíveis.
 
-  const prompt = `Analise o seguinte texto extraído de um currículo e extraia as informações disponíveis. 
-IMPORTANTE: Procure especialmente por emails (formato: xxx@xxx.xxx) e telefones (números com DDD, podem ter parênteses, traços ou espaços).
+INSTRUÇÕES ESPECÍFICAS:
+1. Leia TODO o texto cuidadosamente
+2. Identifique nome, email, telefone, experiências, habilidades e educação
+3. Para telefones: procure números com DDD brasileiro (padrões: (11) 99999-9999, 11 99999-9999, +55 11 99999-9999, 11999999999)
+4. Para emails: procure padrões xxx@yyy.zzz em qualquer lugar do texto
+5. Para experiência: resuma as experiências profissionais mencionadas
+6. Para habilidades: liste competências técnicas e soft skills mencionadas
+7. Para educação: identifique cursos, graduação, certificações
 
-Texto do currículo:
+TEXTO DO CURRÍCULO:
 ${resumeText}
 
-Procure por:
-- Email: padrões como "email@dominio.com", "contato@", "usuario@gmail.com", etc.
-- Telefone: números brasileiros com DDD como "(11) 99999-9999", "11999999999", "11 9999-9999", "+55 11 99999-9999"
-- Nome: geralmente no início do currículo
-- Experiência profissional e educação
-
-Retorne APENAS um JSON válido com esta estrutura exata:
+FORMATO DE RESPOSTA:
+Retorne APENAS um JSON válido com esta estrutura exata (sem markdown, sem explicações):
 {
-  "name": "Nome completo encontrado ou string vazia",
-  "email": "email@encontrado.com ou string vazia", 
-  "phone": "telefone encontrado ou string vazia",
-  "experience": "Resumo da experiência profissional ou string vazia",
-  "skills": ["lista", "de", "habilidades"] ou array vazio,
-  "education": "Formação educacional ou string vazia"
-}`;
+  "name": "Nome completo da pessoa ou string vazia se não encontrado",
+  "email": "email@dominio.com ou string vazia se não encontrado",
+  "phone": "telefone formatado ou string vazia se não encontrado",
+  "experience": "Resumo detalhado das experiências profissionais ou string vazia",
+  "skills": ["array", "de", "habilidades", "encontradas"] ou array vazio se nenhuma,
+  "education": "Formação educacional completa ou string vazia se não encontrada"
+}
+
+IMPORTANTE: Seja detalhado e minucioso. Não deixe passar nenhuma informação de contato.`;
 
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -283,76 +284,100 @@ Retorne APENAS um JSON válido com esta estrutura exata:
         messages: [
           {
             role: 'system',
-            content: 'Você é um especialista em análise de currículos. Seja minucioso ao procurar emails e telefones no texto. Procure por padrões como "@", números com DDD brasileiro, etc. Retorne apenas JSON válido.'
+            content: 'Você é um especialista em análise de currículos. Sua função é extrair TODAS as informações possíveis de currículos, sendo especialmente cuidadoso com emails e telefones. Sempre retorne JSON válido limpo, sem markdown.'
           },
           {
             role: 'user',
             content: prompt
           }
         ],
-        temperature: 0.1,
-        max_tokens: 1000
+        temperature: 0.1, // Baixa para mais consistência
+        max_tokens: 1500,
+        top_p: 0.9
       }),
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`);
+      const errorText = await response.text();
+      console.error('OpenAI API error details:', errorText);
+      throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
     const aiResponse = data.choices[0].message.content;
     
-    console.log('Resposta da IA:', aiResponse);
+    console.log('Resposta bruta da IA:', aiResponse);
     
-    // Parse mais robusto da resposta JSON
+    // Parse da resposta JSON (mais robusto)
     try {
-      // Remover markdown se presente
-      const cleanResponse = aiResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+      // Limpar qualquer markdown ou texto extra
+      let cleanResponse = aiResponse.trim();
       
+      // Remover blocos de código se existirem
+      cleanResponse = cleanResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+      cleanResponse = cleanResponse.replace(/```/g, '');
+      
+      // Encontrar o JSON no texto
       const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const extractedData = JSON.parse(jsonMatch[0]);
-        
-        // Combinar dados da IA com extração por regex (priorizar regex para email/phone se estiver vazio)
-        const finalData = {
-          name: extractedData.name || basicInfo.name || '',
-          email: extractedData.email || basicInfo.email || '',
-          phone: extractedData.phone || basicInfo.phone || '',
-          experience: extractedData.experience || '',
-          skills: Array.isArray(extractedData.skills) ? extractedData.skills : [],
-          education: extractedData.education || ''
-        };
-
-        console.log('Dados finais combinados:', finalData);
-        return finalData;
-      } else {
-        throw new Error('Resposta da IA não contém JSON válido');
+      
+      if (!jsonMatch) {
+        console.error('Nenhum JSON encontrado na resposta da IA');
+        throw new Error('IA não retornou JSON válido');
       }
+      
+      const jsonString = jsonMatch[0];
+      console.log('JSON extraído:', jsonString);
+      
+      const extractedData = JSON.parse(jsonString);
+      
+      // Validar e limpar os dados extraídos
+      const finalData = {
+        name: (extractedData.name && typeof extractedData.name === 'string') 
+               ? extractedData.name.trim() : '',
+        email: (extractedData.email && typeof extractedData.email === 'string') 
+               ? extractedData.email.trim() : '',
+        phone: (extractedData.phone && typeof extractedData.phone === 'string') 
+               ? extractedData.phone.trim() : '',
+        experience: (extractedData.experience && typeof extractedData.experience === 'string') 
+                    ? extractedData.experience.trim() : '',
+        skills: Array.isArray(extractedData.skills) 
+                ? extractedData.skills.filter(skill => skill && typeof skill === 'string' && skill.trim())
+                                     .map(skill => skill.trim()) 
+                : [],
+        education: (extractedData.education && typeof extractedData.education === 'string') 
+                   ? extractedData.education.trim() : ''
+      };
+
+      console.log('Dados finais processados pela IA:', finalData);
+      
+      // Verificar qualidade da extração
+      const hasContact = finalData.email || finalData.phone;
+      const hasContent = finalData.name || finalData.experience || finalData.skills.length > 0;
+      
+      if (!hasContact && !hasContent) {
+        console.warn('IA não extraiu informações significativas. Texto pode estar corrompido.');
+      }
+      
+      return finalData;
+      
     } catch (parseError) {
       console.error('Erro ao fazer parse da resposta da IA:', parseError);
+      console.error('Resposta que causou erro:', aiResponse);
       
-      // Fallback: usar informações básicas extraídas por regex
+      // Se a IA falhou completamente, retornar estrutura vazia
       return {
-        name: basicInfo.name || '',
-        email: basicInfo.email || '',
-        phone: basicInfo.phone || '',
+        name: '',
+        email: '',
+        phone: '',
         experience: '',
         skills: [],
         education: ''
       };
     }
-  } catch (error) {
-    console.error('Erro na análise com IA:', error);
     
-    // Fallback: usar informações básicas extraídas por regex
-    return {
-      name: basicInfo.name || '',
-      email: basicInfo.email || '',
-      phone: basicInfo.phone || '',
-      experience: '',
-      skills: [],
-      education: ''
-    };
+  } catch (error) {
+    console.error('Erro na comunicação com OpenAI:', error);
+    throw new Error(`Falha na análise inteligente: ${error.message}`);
   }
 }
 
@@ -528,24 +553,34 @@ serve(async (req) => {
       );
     }
 
-    // Analisar com ChatGPT
+    // Analisar com ChatGPT (IA como principal motor)
     let aiAnalysis;
     try {
       aiAnalysis = await analyzeResumeWithAI(textToAnalyze);
-      console.log('Análise da IA concluída:', aiAnalysis);
+      console.log('✅ Análise da IA concluída:', aiAnalysis);
     } catch (error) {
-      console.error('Erro na análise da IA:', error);
+      console.error('❌ Erro na análise da IA:', error);
       
-      // Fallback para extração básica
-      const basicInfo = extractBasicInfo(textToAnalyze);
-      aiAnalysis = {
-        name: basicInfo.name || '',
-        email: basicInfo.email || '',
-        phone: basicInfo.phone || '',
-        experience: '',
-        skills: [],
-        education: ''
-      };
+      // Se a IA falhar completamente, retornar erro
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Erro na análise inteligente do currículo: ' + error.message,
+          confidence: 0,
+          debug: {
+            extractedTextLength: textToAnalyze.length,
+            extractedTextSample: textToAnalyze.substring(0, 300),
+            errorDetails: error.message
+          }
+        }),
+        { 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json' 
+          },
+          status: 500
+        }
+      );
     }
     
     // Calcular confiança baseada nos campos preenchidos
@@ -565,9 +600,17 @@ serve(async (req) => {
         success: true,
         data: aiAnalysis,
         confidence: confidence,
-        debug: {
+        metadata: {
           extractedTextLength: textToAnalyze.length,
-          extractedTextSample: textToAnalyze.substring(0, 300)
+          processingMethod: 'AI-powered analysis',
+          fieldsFound: {
+            name: !!aiAnalysis.name,
+            email: !!aiAnalysis.email,
+            phone: !!aiAnalysis.phone,
+            experience: !!aiAnalysis.experience,
+            skills: aiAnalysis.skills.length > 0,
+            education: !!aiAnalysis.education
+          }
         }
       }),
       { 
