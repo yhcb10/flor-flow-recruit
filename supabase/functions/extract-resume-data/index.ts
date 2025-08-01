@@ -8,269 +8,78 @@ const corsHeaders = {
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
-// Função completamente reescrita para extrair texto de PDF
-async function extractTextFromPDF(base64Data: string): Promise<string> {
+// Função simplificada para extrair texto bruto do PDF
+async function extractRawTextFromPDF(base64Data: string): Promise<string> {
   try {
     const binaryString = atob(base64Data);
-    const bytes = new Uint8Array(binaryString.length);
     
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
+    // Método 1: Procurar por texto simples entre parênteses
+    const textPattern = /\(([^)]+)\)/g;
+    const foundTexts: string[] = [];
+    let match;
     
-    // Converter para string UTF-8 com fallback
-    let pdfString: string;
-    try {
-      pdfString = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
-    } catch {
-      pdfString = new TextDecoder('latin1').decode(bytes);
-    }
-    
-    console.log('PDF processado, tamanho:', pdfString.length);
-    
-    let extractedText = '';
-    
-    // Método 1: Buscar streams descomprimidos
-    const streamPattern = /stream\s*([\s\S]*?)\s*endstream/gi;
-    let streamMatch;
-    
-    while ((streamMatch = streamPattern.exec(pdfString)) !== null) {
-      const streamContent = streamMatch[1];
+    while ((match = textPattern.exec(binaryString)) !== null) {
+      const text = match[1];
       
-      // Verificar se o stream contém texto legível (não é binário comprimido)
-      if (streamContent && streamContent.length > 0) {
-        // Buscar por texto em comandos de texto PDF
-        const textInStream = extractTextFromStream(streamContent);
-        if (textInStream.length > 0) {
-          extractedText += textInStream + ' ';
-        }
+      // Filtrar apenas texto que parece real (não metadados)
+      if (text.length > 1 && 
+          /[a-zA-ZÀ-ÿ0-9@.]/.test(text) &&
+          !text.match(/^(obj|stream|endstream|BT|ET|Tj|TJ)$/i)) {
+        foundTexts.push(text);
       }
     }
     
-    // Método 2: Buscar texto fora de streams (texto inline)
-    const inlineText = extractInlineText(pdfString);
-    if (inlineText.length > 0) {
-      extractedText += inlineText + ' ';
-    }
+    // Método 2: Procurar por padrões específicos (email e telefone)
+    const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+    const phonePattern = /\(\d{2}\)\s*\d{4,5}[-\s]?\d{4}/g;
     
-    // Método 3: Buscar por padrões específicos de texto
-    const patternText = extractPatternText(pdfString);
-    if (patternText.length > 0) {
-      extractedText += patternText + ' ';
-    }
+    let emailMatch = binaryString.match(emailPattern);
+    let phoneMatch = binaryString.match(phonePattern);
     
-    // Limpeza final
-    const cleanedText = cleanAndFilterText(extractedText);
+    if (emailMatch) foundTexts.push(...emailMatch);
+    if (phoneMatch) foundTexts.push(...phoneMatch);
     
-    console.log('Texto limpo extraído (primeiros 500 chars):', cleanedText.substring(0, 500));
+    // Juntar todo o texto encontrado
+    const allText = foundTexts.join(' ');
     
-    return cleanedText;
+    console.log('Texto bruto extraído:', allText.substring(0, 500));
+    return allText;
     
   } catch (error) {
     console.error('Erro ao extrair texto do PDF:', error);
-    throw new Error('Falha ao processar PDF: ' + error.message);
+    return '';
   }
 }
 
-// Extrair texto de streams PDF
-function extractTextFromStream(streamContent: string): string {
-  let text = '';
-  
-  // Padrões de comandos de texto PDF
-  const textPatterns = [
-    // Tj - mostrar string de texto
-    /\(([^)]*)\)\s*Tj/gi,
-    // TJ - mostrar array de strings
-    /\[([^\]]*)\]\s*TJ/gi,
-    // Td, TD - mover posição e mostrar texto
-    /\(([^)]*)\)\s*T[dD]/gi,
-    // ' - mover para próxima linha e mostrar texto
-    /\(([^)]*)\)\s*'/gi
-  ];
-  
-  for (const pattern of textPatterns) {
-    let match;
-    while ((match = pattern.exec(streamContent)) !== null) {
-      let textContent = match[1];
-      
-      // Se for array TJ, extrair strings individuais
-      if (pattern.source.includes('TJ')) {
-        const stringMatches = textContent.match(/\(([^)]*)\)/g) || [];
-        textContent = stringMatches.map(s => s.replace(/[()]/g, '')).join(' ');
-      }
-      
-      // Decodificar caracteres especiais
-      textContent = decodeTextContent(textContent);
-      
-      if (textContent.trim().length > 0) {
-        text += textContent + ' ';
-      }
-    }
-  }
-  
-  return text;
-}
-
-// Extrair texto inline (fora de streams)
-function extractInlineText(pdfContent: string): string {
-  let text = '';
-  
-  // Procurar por blocos BT...ET (Begin Text...End Text)
-  const btPattern = /BT\s*([\s\S]*?)\s*ET/gi;
-  let btMatch;
-  
-  while ((btMatch = btPattern.exec(pdfContent)) !== null) {
-    const textBlock = btMatch[1];
-    const blockText = extractTextFromStream(textBlock);
-    if (blockText.trim().length > 0) {
-      text += blockText + ' ';
-    }
-  }
-  
-  return text;
-}
-
-// Extrair usando padrões gerais
-function extractPatternText(pdfContent: string): string {
-  let text = '';
-  
-  // Buscar strings entre parênteses que parecem ser texto real
-  const stringPattern = /\(([^)]{3,})\)/g;
-  let match;
-  
-  while ((match = stringPattern.exec(pdfContent)) !== null) {
-    const str = match[1];
-    
-    // Verificar se parece ser texto real (não metadados)
-    if (isLikelyText(str)) {
-      const decodedStr = decodeTextContent(str);
-      if (decodedStr.trim().length > 0) {
-        text += decodedStr + ' ';
-      }
-    }
-  }
-  
-  return text;
-}
-
-// Decodificar conteúdo de texto PDF
-function decodeTextContent(text: string): string {
-  return text
-    // Códigos octais (\123)
-    .replace(/\\([0-7]{3})/g, (match, octal) => {
-      try {
-        return String.fromCharCode(parseInt(octal, 8));
-      } catch {
-        return ' ';
-      }
-    })
-    // Códigos hexadecimais (\x41)
-    .replace(/\\x([0-9a-fA-F]{2})/g, (match, hex) => {
-      try {
-        return String.fromCharCode(parseInt(hex, 16));
-      } catch {
-        return ' ';
-      }
-    })
-    // Caracteres de escape comuns
-    .replace(/\\n/g, ' ')
-    .replace(/\\r/g, ' ')
-    .replace(/\\t/g, ' ')
-    .replace(/\\f/g, ' ')
-    .replace(/\\\\/g, '\\')
-    .replace(/\\\(/g, '(')
-    .replace(/\\\)/g, ')')
-    // Remover outros escapes
-    .replace(/\\./g, ' ');
-}
-
-// Verificar se uma string parece ser texto real
-function isLikelyText(str: string): boolean {
-  // Deve ter pelo menos 2 caracteres
-  if (str.length < 2) return false;
-  
-  // Deve conter pelo menos uma letra
-  if (!/[a-zA-ZÀ-ÿ]/.test(str)) return false;
-  
-  // Não deve ser apenas números ou símbolos
-  if (/^[0-9\s\.\-\+\*\/\=\<\>\!\@\#\$\%\^\&]+$/.test(str)) return false;
-  
-  // Não deve ser metadados conhecidos
-  const metadataPatterns = [
-    /^(obj|endobj|stream|endstream|xref|trailer)$/i,
-    /^(Type|Font|Encoding|Width|Height|Length|Filter)$/i,
-    /^(FormType|BBox|Resources|Group|Transparency)$/i,
-    /^(ProcSet|Image|ColorSpace|Interpolate)$/i,
-    /^[RF][0-9]+$/,  // Referências R1, F2, etc
-    /^[0-9\s]+$/     // Apenas números
-  ];
-  
-  for (const pattern of metadataPatterns) {
-    if (pattern.test(str.trim())) return false;
-  }
-  
-  return true;
-}
-
-// Limpar e filtrar texto final
-function cleanAndFilterText(text: string): string {
-  // Normalizar espaços
-  text = text.replace(/\s+/g, ' ').trim();
-  
-  // Dividir em palavras e filtrar
-  const words = text.split(' ');
-  const validWords = [];
-  const seenWords = new Set();
-  
-  for (const word of words) {
-    const cleanWord = word.trim();
-    
-    // Filtros de qualidade
-    if (cleanWord.length >= 2 && 
-        /[a-zA-ZÀ-ÿ]/.test(cleanWord) &&
-        !seenWords.has(cleanWord.toLowerCase()) &&
-        isLikelyText(cleanWord)) {
-      
-      seenWords.add(cleanWord.toLowerCase());
-      validWords.push(cleanWord);
-    }
-  }
-  
-  return validWords.join(' ');
-}
-
-// Função para analisar currículo usando ChatGPT (IA como principal)
-async function analyzeResumeWithAI(resumeText: string) {
+// Função super simples para IA analisar
+async function analyzeWithAI(textContent: string) {
   if (!openAIApiKey) {
     throw new Error('OpenAI API key não configurada');
   }
 
-  const prompt = `Você é um especialista em análise de currículos com IA. Analise minuciosamente o texto abaixo extraído de um currículo e extraia TODAS as informações disponíveis.
+  const prompt = `Analise este texto de currículo e extraia APENAS:
 
-INSTRUÇÕES ESPECÍFICAS:
-1. Leia TODO o texto cuidadosamente
-2. Identifique nome, email, telefone, experiências, habilidades e educação
-3. Para telefones: procure números com DDD brasileiro (padrões: (11) 99999-9999, 11 99999-9999, +55 11 99999-9999, 11999999999)
-4. Para emails: procure padrões xxx@yyy.zzz em qualquer lugar do texto
-5. Para experiência: resuma as experiências profissionais mencionadas
-6. Para habilidades: liste competências técnicas e soft skills mencionadas
-7. Para educação: identifique cursos, graduação, certificações
+TEXTO:
+${textContent}
 
-TEXTO DO CURRÍCULO:
-${resumeText}
+Procure especificamente por:
+1. NOME COMPLETO (ex: João Silva, Maria Santos)
+2. EMAIL (formato: xxx@xxx.com - procure por @)
+3. TELEFONE (formato brasileiro: (11) 99999-9999)
+4. OBSERVAÇÕES (resumo da experiência em 1-2 linhas)
 
-FORMATO DE RESPOSTA:
-Retorne APENAS um JSON válido com esta estrutura exata (sem markdown, sem explicações):
+MUITO IMPORTANTE:
+- Se não encontrar email, retorne string vazia
+- Se não encontrar telefone, retorne string vazia
+- NÃO invente informações
+
+Retorne apenas este JSON limpo:
 {
-  "name": "Nome completo da pessoa ou string vazia se não encontrado",
-  "email": "email@dominio.com ou string vazia se não encontrado",
-  "phone": "telefone formatado ou string vazia se não encontrado",
-  "experience": "Resumo detalhado das experiências profissionais ou string vazia",
-  "skills": ["array", "de", "habilidades", "encontradas"] ou array vazio se nenhuma,
-  "education": "Formação educacional completa ou string vazia se não encontrada"
-}
-
-IMPORTANTE: Seja detalhado e minucioso. Não deixe passar nenhuma informação de contato.`;
+  "name": "Nome encontrado",
+  "email": "email@encontrado.com",
+  "phone": "(XX) XXXXX-XXXX",
+  "observations": "Breve resumo da experiência"
+}`;
 
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -284,358 +93,111 @@ IMPORTANTE: Seja detalhado e minucioso. Não deixe passar nenhuma informação d
         messages: [
           {
             role: 'system',
-            content: 'Você é um especialista em análise de currículos. Sua função é extrair TODAS as informações possíveis de currículos, sendo especialmente cuidadoso com emails e telefones. Sempre retorne JSON válido limpo, sem markdown.'
+            content: 'Você extrai informações de currículos. Seja MUITO cuidadoso com emails e telefones. Se não tiver certeza, deixe vazio. Retorne apenas JSON limpo sem markdown.'
           },
           {
             role: 'user',
             content: prompt
           }
         ],
-        temperature: 0.1, // Baixa para mais consistência
-        max_tokens: 1500,
-        top_p: 0.9
+        temperature: 0.0, // Zero criatividade
+        max_tokens: 800
       }),
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('OpenAI API error details:', errorText);
-      throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+      throw new Error(`OpenAI error: ${response.status}`);
     }
 
     const data = await response.json();
-    const aiResponse = data.choices[0].message.content;
+    const aiResponse = data.choices[0].message.content.trim();
     
     console.log('Resposta bruta da IA:', aiResponse);
     
-    // Parse da resposta JSON (mais robusto)
-    try {
-      // Limpar qualquer markdown ou texto extra
-      let cleanResponse = aiResponse.trim();
-      
-      // Remover blocos de código se existirem
-      cleanResponse = cleanResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-      cleanResponse = cleanResponse.replace(/```/g, '');
-      
-      // Encontrar o JSON no texto
-      const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
-      
-      if (!jsonMatch) {
-        console.error('Nenhum JSON encontrado na resposta da IA');
-        throw new Error('IA não retornou JSON válido');
-      }
-      
-      const jsonString = jsonMatch[0];
-      console.log('JSON extraído:', jsonString);
-      
-      const extractedData = JSON.parse(jsonString);
-      
-      // Validar e limpar os dados extraídos
-      const finalData = {
-        name: (extractedData.name && typeof extractedData.name === 'string') 
-               ? extractedData.name.trim() : '',
-        email: (extractedData.email && typeof extractedData.email === 'string') 
-               ? extractedData.email.trim() : '',
-        phone: (extractedData.phone && typeof extractedData.phone === 'string') 
-               ? extractedData.phone.trim() : '',
-        experience: (extractedData.experience && typeof extractedData.experience === 'string') 
-                    ? extractedData.experience.trim() : '',
-        skills: Array.isArray(extractedData.skills) 
-                ? extractedData.skills.filter(skill => skill && typeof skill === 'string' && skill.trim())
-                                     .map(skill => skill.trim()) 
-                : [],
-        education: (extractedData.education && typeof extractedData.education === 'string') 
-                   ? extractedData.education.trim() : ''
-      };
-
-      console.log('Dados finais processados pela IA:', finalData);
-      
-      // Verificar qualidade da extração
-      const hasContact = finalData.email || finalData.phone;
-      const hasContent = finalData.name || finalData.experience || finalData.skills.length > 0;
-      
-      if (!hasContact && !hasContent) {
-        console.warn('IA não extraiu informações significativas. Texto pode estar corrompido.');
-      }
-      
-      return finalData;
-      
-    } catch (parseError) {
-      console.error('Erro ao fazer parse da resposta da IA:', parseError);
-      console.error('Resposta que causou erro:', aiResponse);
-      
-      // Se a IA falhou completamente, retornar estrutura vazia
-      return {
-        name: '',
-        email: '',
-        phone: '',
-        experience: '',
-        skills: [],
-        education: ''
-      };
+    // Extrair JSON da resposta
+    const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('IA não retornou JSON válido');
     }
     
+    const result = JSON.parse(jsonMatch[0]);
+    console.log('Dados extraídos pela IA:', result);
+    
+    return {
+      name: result.name || '',
+      email: result.email || '',
+      phone: result.phone || '',
+      observations: result.observations || ''
+    };
+    
   } catch (error) {
-    console.error('Erro na comunicação com OpenAI:', error);
-    throw new Error(`Falha na análise inteligente: ${error.message}`);
+    console.error('Erro na IA:', error);
+    throw error;
   }
-}
-
-// Extração básica por regex como fallback (melhorada)
-function extractBasicInfo(text: string) {
-  const info: any = {};
-  
-  console.log('Iniciando extração básica do texto:', text.substring(0, 300));
-  
-  // Email - padrões mais abrangentes
-  const emailPatterns = [
-    /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
-    /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g,
-    // Capturar emails que podem estar separados por espaços
-    /[a-zA-Z0-9._%+-]+\s*@\s*[a-zA-Z0-9.-]+\s*\.\s*[a-zA-Z]{2,}/g
-  ];
-  
-  for (const emailRegex of emailPatterns) {
-    const emailMatch = text.match(emailRegex);
-    if (emailMatch && emailMatch[0]) {
-      // Limpar espaços do email encontrado
-      info.email = emailMatch[0].replace(/\s/g, '');
-      console.log('Email encontrado:', info.email);
-      break;
-    }
-  }
-  
-  // Telefone brasileiro - padrões mais abrangentes
-  const phonePatterns = [
-    // Padrão completo: +55 (11) 99999-9999
-    /\+55\s*\(?\d{2}\)?\s*\d{4,5}[-\s]?\d{4}/g,
-    // Padrão com DDD: (11) 99999-9999
-    /\(\d{2}\)\s*\d{4,5}[-\s]?\d{4}/g,
-    // Padrão simples: 11 99999-9999
-    /\b\d{2}\s+\d{4,5}[-\s]?\d{4}\b/g,
-    // Padrão sem espaços: 11999999999
-    /\b\d{11}\b/g,
-    // Padrão com traços: 11-99999-9999
-    /\b\d{2}[-\s]?\d{4,5}[-\s]?\d{4}\b/g,
-    // Capturar números que podem estar espalhados
-    /\d{2}\s*\d{4,5}\s*\d{4}/g
-  ];
-  
-  for (const phoneRegex of phonePatterns) {
-    const phoneMatch = text.match(phoneRegex);
-    if (phoneMatch && phoneMatch[0]) {
-      let phone = phoneMatch[0].trim();
-      
-      // Validar se tem pelo menos 10 dígitos
-      const digitsOnly = phone.replace(/\D/g, '');
-      if (digitsOnly.length >= 10 && digitsOnly.length <= 13) {
-        info.phone = phone;
-        console.log('Telefone encontrado:', info.phone);
-        break;
-      }
-    }
-  }
-  
-  // Nome - buscar no início do texto ou por padrões específicos
-  const namePatterns = [
-    // Procurar por duas palavras em maiúscula no início
-    /^([A-ZÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ][a-zàáâãäåæçèéêëìíîïðñòóôõö]+\s+[A-ZÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ][a-zàáâãäåæçèéêëìíîïðñòóôõö]+)/,
-    // Procurar padrão "Nome: João Silva"
-    /(?:nome|name):\s*([A-ZÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ][a-zàáâãäåæçèéêëìíîïðñòóôõö]+(?:\s+[A-ZÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ][a-zàáâãäåæçèéêëìíîïðñòóôõö]+)+)/i,
-  ];
-  
-  const words = text.split(/\s+/);
-  
-  // Tentar padrões específicos primeiro
-  for (const nameRegex of namePatterns) {
-    const nameMatch = text.match(nameRegex);
-    if (nameMatch && nameMatch[1]) {
-      info.name = nameMatch[1].trim();
-      console.log('Nome encontrado por padrão:', info.name);
-      break;
-    }
-  }
-  
-  // Se não encontrou nome, procurar no início do texto
-  if (!info.name) {
-    for (let i = 0; i < Math.min(words.length - 1, 20); i++) {
-      const word1 = words[i];
-      const word2 = words[i + 1];
-      
-      if (word1 && word2 && 
-          word1.length > 2 && word2.length > 2 && 
-          /^[A-ZÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ]/.test(word1) &&
-          /^[A-ZÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ][a-zàáâãäåæçèéêëìíîïðñòóôõö]/.test(word2) &&
-          !/^(PDF|TYPE|FORM|STREAM|OBJ|CURRICULO|RESUME|CV)$/i.test(word1) &&
-          !/^(PDF|TYPE|FORM|STREAM|OBJ|CURRICULO|RESUME|CV)$/i.test(word2)) {
-        
-        info.name = `${word1} ${word2}`;
-        console.log('Nome encontrado no início:', info.name);
-        break;
-      }
-    }
-  }
-  
-  console.log('Informações básicas extraídas:', info);
-  return info;
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const { pdfData, fileName } = await req.json();
-
-    console.log('Processing resume:', fileName || 'unknown');
+    console.log('📄 Processando:', fileName);
 
     if (!pdfData) {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'Dados do PDF não fornecidos',
-          confidence: 0
+          error: 'PDF não fornecido' 
         }),
-        { 
-          headers: { 
-            ...corsHeaders, 
-            'Content-Type': 'application/json' 
-          },
-          status: 400
-        }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
 
-    // Extrair texto do PDF
-    let textToAnalyze = '';
-    try {
-      textToAnalyze = await extractTextFromPDF(pdfData);
-      console.log('Texto extraído (primeiros 500 chars):', textToAnalyze.substring(0, 500));
-      console.log('Tamanho total do texto extraído:', textToAnalyze.length);
-    } catch (error) {
-      console.error('Erro ao extrair texto do PDF:', error);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Erro ao processar PDF: ' + error.message,
-          confidence: 0
-        }),
-        { 
-          headers: { 
-            ...corsHeaders, 
-            'Content-Type': 'application/json' 
-          },
-          status: 400
-        }
-      );
-    }
-
-    if (!textToAnalyze || textToAnalyze.trim().length < 5) {
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Não foi possível extrair texto legível do currículo. O arquivo pode estar corrompido ou usar um formato não suportado.',
-          confidence: 0,
-          debug: {
-            extractedLength: textToAnalyze.length,
-            sample: textToAnalyze.substring(0, 200)
-          }
-        }),
-        { 
-          headers: { 
-            ...corsHeaders, 
-            'Content-Type': 'application/json' 
-          },
-          status: 400
-        }
-      );
-    }
-
-    // Analisar com ChatGPT (IA como principal motor)
-    let aiAnalysis;
-    try {
-      aiAnalysis = await analyzeResumeWithAI(textToAnalyze);
-      console.log('✅ Análise da IA concluída:', aiAnalysis);
-    } catch (error) {
-      console.error('❌ Erro na análise da IA:', error);
-      
-      // Se a IA falhar completamente, retornar erro
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Erro na análise inteligente do currículo: ' + error.message,
-          confidence: 0,
-          debug: {
-            extractedTextLength: textToAnalyze.length,
-            extractedTextSample: textToAnalyze.substring(0, 300),
-            errorDetails: error.message
-          }
-        }),
-        { 
-          headers: { 
-            ...corsHeaders, 
-            'Content-Type': 'application/json' 
-          },
-          status: 500
-        }
-      );
-    }
+    // Extrair texto bruto
+    const rawText = await extractRawTextFromPDF(pdfData);
     
-    // Calcular confiança baseada nos campos preenchidos
-    let confidence = 0;
-    if (aiAnalysis.name && aiAnalysis.name.trim() && aiAnalysis.name.length > 2) confidence += 30;
-    if (aiAnalysis.email && aiAnalysis.email.includes('@') && aiAnalysis.email.length > 5) confidence += 25;
-    if (aiAnalysis.phone && aiAnalysis.phone.trim() && aiAnalysis.phone.length > 3) confidence += 25;
-    if (aiAnalysis.experience && aiAnalysis.experience.trim() && aiAnalysis.experience.length > 5) confidence += 10;
-    if (aiAnalysis.skills && Array.isArray(aiAnalysis.skills) && aiAnalysis.skills.length > 0) confidence += 10;
-    if (aiAnalysis.education && aiAnalysis.education.trim() && aiAnalysis.education.length > 3) confidence += 5;
+    if (!rawText || rawText.length < 10) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Não foi possível extrair texto do PDF' 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
 
-    console.log('Dados extraídos:', aiAnalysis);
-    console.log('Confiança calculada:', confidence);
+    // Analisar com IA
+    const candidateInfo = await analyzeWithAI(rawText);
+    
+    // Calcular confiança simples
+    let confidence = 0;
+    if (candidateInfo.name) confidence += 25;
+    if (candidateInfo.email && candidateInfo.email.includes('@')) confidence += 35;
+    if (candidateInfo.phone && candidateInfo.phone.length > 8) confidence += 35;
+    if (candidateInfo.observations) confidence += 5;
+
+    console.log('✅ Resultado final:', candidateInfo);
+    console.log('📊 Confiança:', confidence + '%');
 
     return new Response(
       JSON.stringify({
         success: true,
-        data: aiAnalysis,
-        confidence: confidence,
-        metadata: {
-          extractedTextLength: textToAnalyze.length,
-          processingMethod: 'AI-powered analysis',
-          fieldsFound: {
-            name: !!aiAnalysis.name,
-            email: !!aiAnalysis.email,
-            phone: !!aiAnalysis.phone,
-            experience: !!aiAnalysis.experience,
-            skills: aiAnalysis.skills.length > 0,
-            education: !!aiAnalysis.education
-          }
-        }
+        data: candidateInfo,
+        confidence: confidence
       }),
-      { 
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        } 
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('Error processing resume:', error);
+    console.error('❌ Erro:', error);
     return new Response(
       JSON.stringify({ 
         success: false,
-        error: error.message || 'Failed to process resume',
-        confidence: 0
+        error: error.message 
       }),
-      { 
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        }, 
-        status: 500 
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
 });
