@@ -45,8 +45,8 @@ export function useRecruitmentKanban() {
       return acc;
     }, {} as Record<CandidateStage, number>);
 
-    const approved = byStage.aprovacao_final || 0;
-    const rejected = byStage.reprovado || 0;
+    const approved = byStage.aprovado || 0;
+    const rejected = byStage.nao_aprovado || 0;
     const inProcess = total - approved - rejected;
 
     return {

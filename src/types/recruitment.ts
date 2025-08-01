@@ -33,15 +33,12 @@ export interface Candidate {
 
 export type CandidateStage = 
   | 'nova_candidatura'
-  | 'criterios_definidos' 
   | 'analise_ia'
   | 'selecao_rh'
   | 'pre_entrevista'
   | 'entrevista_presencial'
-  | 'decisao_selecao'
-  | 'aprovacao_final'
-  | 'standby'
-  | 'reprovado';
+  | 'aprovado'
+  | 'nao_aprovado';
 
 export interface AIAnalysis {
   score: number; // 0-10

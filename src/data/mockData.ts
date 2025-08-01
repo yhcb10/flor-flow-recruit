@@ -154,15 +154,7 @@ export const kanbanColumns: KanbanColumn[] = [
     description: 'Candidatos recém inscritos',
     color: 'bg-status-new',
     candidates: [],
-    allowedTransitions: ['criterios_definidos', 'reprovado']
-  },
-  {
-    id: 'criterios_definidos',
-    title: 'Critérios Definidos',
-    description: 'Aguardando análise por IA',
-    color: 'bg-secondary',
-    candidates: [],
-    allowedTransitions: ['analise_ia']
+    allowedTransitions: ['analise_ia', 'nao_aprovado']
   },
   {
     id: 'analise_ia',
@@ -170,7 +162,7 @@ export const kanbanColumns: KanbanColumn[] = [
     description: 'Em avaliação automática',
     color: 'bg-status-analysis',
     candidates: [],
-    allowedTransitions: ['selecao_rh', 'reprovado']
+    allowedTransitions: ['selecao_rh', 'nao_aprovado']
   },
   {
     id: 'selecao_rh',
@@ -178,7 +170,7 @@ export const kanbanColumns: KanbanColumn[] = [
     description: 'Análise manual do RH',
     color: 'bg-accent',
     candidates: [],
-    allowedTransitions: ['pre_entrevista', 'reprovado']
+    allowedTransitions: ['pre_entrevista', 'nao_aprovado']
   },
   {
     id: 'pre_entrevista',
@@ -186,7 +178,7 @@ export const kanbanColumns: KanbanColumn[] = [
     description: 'Entrevista online agendada',
     color: 'bg-status-interview',
     candidates: [],
-    allowedTransitions: ['entrevista_presencial', 'reprovado']
+    allowedTransitions: ['entrevista_presencial', 'nao_aprovado']
   },
   {
     id: 'entrevista_presencial',
@@ -194,18 +186,10 @@ export const kanbanColumns: KanbanColumn[] = [
     description: 'Entrevista final presencial',
     color: 'bg-status-interview',
     candidates: [],
-    allowedTransitions: ['decisao_selecao']
+    allowedTransitions: ['aprovado', 'nao_aprovado']
   },
   {
-    id: 'decisao_selecao',
-    title: 'Decisão',
-    description: 'Aguardando decisão final',
-    color: 'bg-warning',
-    candidates: [],
-    allowedTransitions: ['aprovacao_final', 'standby', 'reprovado']
-  },
-  {
-    id: 'aprovacao_final',
+    id: 'aprovado',
     title: 'Aprovado',
     description: 'Candidatos selecionados',
     color: 'bg-status-approved',
@@ -213,16 +197,8 @@ export const kanbanColumns: KanbanColumn[] = [
     allowedTransitions: []
   },
   {
-    id: 'standby',
-    title: 'Standby',
-    description: 'Lista de espera',
-    color: 'bg-muted',
-    candidates: [],
-    allowedTransitions: ['aprovacao_final', 'reprovado']
-  },
-  {
-    id: 'reprovado',
-    title: 'Não Selecionado',
+    id: 'nao_aprovado',
+    title: 'Não Aprovado',
     description: 'Candidatos não selecionados',
     color: 'bg-status-rejected',
     candidates: [],
