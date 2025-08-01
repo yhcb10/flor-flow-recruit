@@ -158,7 +158,8 @@ function parseExtractedText(text: string) {
     name: '',
     email: '',
     phone: '',
-    observations: ''
+    observations: '',
+    fullText: ''
   };
   
   if (!text) return result;
@@ -256,6 +257,9 @@ serve(async (req) => {
 
     // Analisar o texto extraído
     const candidateInfo = parseExtractedText(extractedText);
+    
+    // Adicionar o texto completo para análise IA posterior
+    candidateInfo.fullText = extractedText;
     
     // Filtrar resultados de baixa qualidade
     if (candidateInfo.name === 'Google Docs Renderer' || 

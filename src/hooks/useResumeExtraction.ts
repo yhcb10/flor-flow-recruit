@@ -8,6 +8,7 @@ interface ExtractedData {
   experience: string;
   skills: string[];
   education: string;
+  resumeText?: string; // Adicionar texto completo do currículo
 }
 
 interface ExtractionResult {
@@ -80,10 +81,11 @@ export function useResumeExtraction() {
           phone: data.data?.phone || '',
           experience: data.data?.observations || '',
           skills: [],
-          education: ''
+          education: '',
+          resumeText: data.data?.fullText || data.debug?.extractedTextSample || ''
         },
         confidence: data.confidence || 0,
-        rawText: data.extractedText || '' // Incluir o texto bruto
+        rawText: data.data?.fullText || data.debug?.extractedTextSample || '' // Incluir o texto bruto
       };
 
       return result;
