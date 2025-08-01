@@ -8,80 +8,33 @@ const corsHeaders = {
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
-// Função simplificada para extrair texto bruto do PDF
-async function extractRawTextFromPDF(base64Data: string): Promise<string> {
-  try {
-    const binaryString = atob(base64Data);
-    let allText = '';
-    
-    // Método 1: Buscar diretamente por email e telefone no binário
-    const emailMatches = binaryString.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
-    const phoneMatches = binaryString.match(/\(\d{2}\)\s*\d{4,5}[-\s]?\d{4}/g) || [];
-    
-    console.log('📧 Emails encontrados no binário:', emailMatches);
-    console.log('📱 Telefones encontrados no binário:', phoneMatches);
-    
-    // Método 2: Extrair texto entre parênteses (formato PDF comum)
-    const textPattern = /\(([^)]+)\)/g;
-    const foundTexts: string[] = [];
-    let match;
-    
-    while ((match = textPattern.exec(binaryString)) !== null) {
-      const text = match[1];
-      
-      // Filtrar apenas texto que parece real
-      if (text.length > 1 && 
-          /[a-zA-ZÀ-ÿ0-9@.-]/.test(text) &&
-          !text.match(/^(obj|stream|endstream|BT|ET|Tj|TJ|Type|Font|Width|Height|Length|Filter|FormType|BBox|Resources|Group|Transparency|ProcSet|Image|ColorSpace|Interpolate)$/i)) {
-        foundTexts.push(text);
-      }
-    }
-    
-    // Combinar tudo
-    allText = [...emailMatches, ...phoneMatches, ...foundTexts].join(' ');
-    
-    console.log('📄 Texto completo extraído:', allText.substring(0, 800));
-    return allText;
-    
-  } catch (error) {
-    console.error('Erro ao extrair texto do PDF:', error);
-    return '';
-  }
-}
-
-// Função super simples para IA analisar
-async function analyzeWithAI(textContent: string) {
+// Função para converter PDF em imagens e enviar direto para ChatGPT Vision
+async function analyzeResumeDirectly(base64Data: string, fileName: string) {
   if (!openAIApiKey) {
     throw new Error('OpenAI API key não configurada');
   }
 
-  const prompt = `Você é um especialista em análise de currículos. Analise este texto e extraia as informações de contato.
+  console.log('📄 Enviando PDF diretamente para ChatGPT Vision:', fileName);
 
-TEXTO COMPLETO DO CURRÍCULO:
-${textContent}
+  const prompt = `Analise este currículo em PDF e extraia as seguintes informações:
 
 INSTRUÇÕES ESPECÍFICAS:
-1. PROCURE CUIDADOSAMENTE por email no formato xxx@xxx.com (pode estar em qualquer lugar)
-2. PROCURE por telefone brasileiro no formato (XX) XXXXX-XXXX 
-3. PROCURE pelo nome da pessoa (geralmente no início)
-4. Faça um resumo da experiência profissional
-
-EXEMPLO DO QUE VOCÊ DEVE ENCONTRAR:
-- Email: aurelio.sodre.ar@gmail.com
-- Telefone: (11) 97665-2685  
-- Nome: AURELIO RODRIGUES
+1. NOME COMPLETO: Procure o nome da pessoa (geralmente no topo)
+2. EMAIL: Procure email no formato xxx@xxx.xxx
+3. TELEFONE: Procure telefone brasileiro (pode ter DDD entre parênteses)
+4. OBSERVAÇÕES: Faça um resumo da experiência profissional em 2-3 linhas
 
 MUITO IMPORTANTE:
-- Leia TODO o texto palavra por palavra
-- Procure especificamente por @ para encontrar email
-- Procure por números entre parênteses para telefone
-- Se não encontrar, retorne string vazia (não invente)
+- Leia TODAS as páginas do PDF cuidadosamente
+- Se não encontrar email ou telefone, retorne string vazia
+- NÃO invente informações
+- Seja preciso com os dados de contato
 
-Retorne APENAS este JSON:
+Retorne APENAS este JSON (sem markdown):
 {
-  "name": "Nome encontrado",
+  "name": "Nome completo encontrado",
   "email": "email@encontrado.com",
-  "phone": "(XX) XXXXX-XXXX",
+  "phone": "telefone encontrado",
   "observations": "Resumo da experiência profissional"
 }`;
 
@@ -93,61 +46,70 @@ Retorne APENAS este JSON:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o', // Usando GPT-4O que tem capacidade de visão
         messages: [
           {
             role: 'system',
-            content: 'Você é um especialista em extrair informações de currículos. Seja EXTREMAMENTE cuidadoso ao procurar emails (com @) e telefones brasileiros. Leia palavra por palavra. Se não encontrar com certeza, deixe vazio. Retorne apenas JSON limpo.'
+            content: 'Você é um especialista em análise de currículos. Analise PDFs com extrema precisão. Extraia informações de contato de forma muito cuidadosa. Se não tiver certeza absoluta sobre email ou telefone, deixe vazio.'
           },
           {
             role: 'user',
-            content: prompt
+            content: [
+              {
+                type: 'text',
+                text: prompt
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:application/pdf;base64,${base64Data}`,
+                  detail: 'high' // Alta resolução para melhor leitura
+                }
+              }
+            ]
           }
         ],
         temperature: 0.0, // Zero criatividade
-        max_tokens: 800,
-        top_p: 0.9
+        max_tokens: 1000
       }),
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI error: ${response.status}`);
+      const errorText = await response.text();
+      console.error('❌ Erro OpenAI:', response.status, errorText);
+      throw new Error(`OpenAI error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
     const aiResponse = data.choices[0].message.content.trim();
     
-    console.log('🤖 Resposta bruta da IA:', aiResponse);
+    console.log('🤖 Resposta do ChatGPT Vision:', aiResponse);
     
     // Extrair JSON da resposta
     const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      throw new Error('IA não retornou JSON válido');
+      console.error('❌ Nenhum JSON encontrado na resposta');
+      throw new Error('ChatGPT não retornou JSON válido');
     }
     
     const result = JSON.parse(jsonMatch[0]);
-    console.log('✅ Dados finais extraídos:', result);
+    console.log('✅ Dados extraídos pelo ChatGPT:', result);
     
-    // Validação extra - verificar se email tem @ e se telefone tem formato correto
-    if (result.email && !result.email.includes('@')) {
-      console.warn('⚠️ Email inválido detectado, removendo:', result.email);
-      result.email = '';
-    }
-    
-    if (result.phone && !/\(\d{2}\)/.test(result.phone)) {
-      console.warn('⚠️ Telefone com formato inválido:', result.phone);
-      // Não remover, apenas avisar
-    }
-    
-    return {
-      name: result.name || '',
-      email: result.email || '',
-      phone: result.phone || '',
-      observations: result.observations || ''
+    // Validação final
+    const finalData = {
+      name: (result.name && typeof result.name === 'string') ? result.name.trim() : '',
+      email: (result.email && typeof result.email === 'string' && result.email.includes('@')) 
+             ? result.email.trim() : '',
+      phone: (result.phone && typeof result.phone === 'string') ? result.phone.trim() : '',
+      observations: (result.observations && typeof result.observations === 'string') 
+                    ? result.observations.trim() : ''
     };
+
+    console.log('📊 Dados finais validados:', finalData);
+    return finalData;
     
   } catch (error) {
-    console.error('❌ Erro na IA:', error);
+    console.error('❌ Erro na análise com ChatGPT Vision:', error);
     throw error;
   }
 }
@@ -159,7 +121,7 @@ serve(async (req) => {
 
   try {
     const { pdfData, fileName } = await req.json();
-    console.log('📄 Processando:', fileName);
+    console.log('🚀 Iniciando análise:', fileName || 'documento.pdf');
 
     if (!pdfData) {
       return new Response(
@@ -171,47 +133,50 @@ serve(async (req) => {
       );
     }
 
-    // Extrair texto bruto
-    const rawText = await extractRawTextFromPDF(pdfData);
+    // Enviar PDF diretamente para ChatGPT Vision
+    const candidateInfo = await analyzeResumeDirectly(pdfData, fileName || 'resume.pdf');
     
-    if (!rawText || rawText.length < 10) {
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Não foi possível extrair texto do PDF' 
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
+    // Calcular confiança baseada na qualidade dos dados
+    let confidence = 0;
+    if (candidateInfo.name && candidateInfo.name.length > 2) {
+      confidence += 30;
+      console.log('✅ Nome encontrado:', candidateInfo.name);
+    }
+    
+    if (candidateInfo.email && candidateInfo.email.includes('@')) {
+      confidence += 35;
+      console.log('✅ Email encontrado:', candidateInfo.email);
+    }
+    
+    if (candidateInfo.phone && candidateInfo.phone.length > 8) {
+      confidence += 30;
+      console.log('✅ Telefone encontrado:', candidateInfo.phone);
+    }
+    
+    if (candidateInfo.observations && candidateInfo.observations.length > 10) {
+      confidence += 5;
+      console.log('✅ Observações encontradas');
     }
 
-    // Analisar com IA
-    const candidateInfo = await analyzeWithAI(rawText);
-    
-    // Calcular confiança simples
-    let confidence = 0;
-    if (candidateInfo.name) confidence += 25;
-    if (candidateInfo.email && candidateInfo.email.includes('@')) confidence += 35;
-    if (candidateInfo.phone && candidateInfo.phone.length > 8) confidence += 35;
-    if (candidateInfo.observations) confidence += 5;
-
-    console.log('✅ Resultado final:', candidateInfo);
-    console.log('📊 Confiança:', confidence + '%');
+    console.log('🎯 Confiança final:', confidence + '%');
 
     return new Response(
       JSON.stringify({
         success: true,
         data: candidateInfo,
-        confidence: confidence
+        confidence: confidence,
+        method: 'ChatGPT Vision API - Análise direta do PDF'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('❌ Erro:', error);
+    console.error('💥 Erro geral:', error);
     return new Response(
       JSON.stringify({ 
         success: false,
-        error: error.message 
+        error: error.message,
+        method: 'ChatGPT Vision API'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
