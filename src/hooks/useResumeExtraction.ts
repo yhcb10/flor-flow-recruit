@@ -48,14 +48,15 @@ export function useResumeExtraction() {
     setIsExtracting(true);
     
     try {
-      // Extrair texto do PDF
-      const resumeText = await extractPdfText(file);
+      // Converter o arquivo PDF para base64 e enviar diretamente para a edge function
+      const arrayBuffer = await file.arrayBuffer();
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
       
-      // Chamar edge function para processar o texto
+      // Chamar edge function com o PDF em base64
       const { data, error } = await supabase.functions.invoke('extract-resume-data', {
         body: {
-          resumeText: resumeText,
-          resumeUrl: null
+          pdfData: base64,
+          fileName: file.name
         }
       });
 
