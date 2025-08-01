@@ -19,7 +19,7 @@ interface ExtractedData {
 interface ResumeUploadProps {
   candidateId?: string;
   onUploadComplete?: (url: string, fileName: string) => void;
-  onDataExtracted?: (data: ExtractedData) => void;
+  onDataExtracted?: (data: ExtractedData, fullText?: string) => void;
   maxSizeMB?: number;
 }
 
@@ -156,7 +156,7 @@ export function ResumeUpload({
                                  result.data.experience || (result.data.skills && result.data.skills.length > 0);
             
             if (hasValidData) {
-              onDataExtracted(result.data);
+              onDataExtracted(result.data, result.rawText);
               toast({
                 title: "Dados extraídos",
                 description: result.confidence > 0 

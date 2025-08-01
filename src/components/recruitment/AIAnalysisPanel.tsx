@@ -6,6 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
 import { Brain, Sparkles, Target, AlertCircle, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { JobPosition, Candidate } from '@/types/recruitment';
 
 interface AIAnalysisPanelProps {
@@ -43,58 +44,89 @@ Mantenha tom respeitoso e profissional.`
   const analyzedCandidates = candidates.filter(c => c.aiAnalysis);
   
   const handleRunAnalysis = async () => {
+    if (!selectedPosition?.aiAnalysisPrompt) {
+      toast({
+        title: "Erro",
+        description: "Prompt de análise não configurado para esta vaga.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsAnalyzing(true);
     
     try {
+      let analyzed = 0;
+      
       for (const candidate of pendingAnalysis) {
-        // Simula análise IA para cada candidato
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        console.log(`Analisando candidato: ${candidate.name}`);
         
-        // Atualiza o candidato com análise simulada
-        const experienciaProfissional = Math.floor(Math.random() * 5); // 0-4
-        const habilidadesTecnicas = Math.floor(Math.random() * 3); // 0-2
-        const competenciasComportamentais = Math.floor(Math.random() * 2); // 0-1
-        const formacaoAcademica = 1; // Sempre 1 se tem ensino médio
-        const diferenciaisRelevantes = Math.floor(Math.random() * 3); // 0-2
-        
-        const totalScore = experienciaProfissional + habilidadesTecnicas + competenciasComportamentais + formacaoAcademica + diferenciaisRelevantes;
-        const recommendation = totalScore >= 6.5 ? 'advance' : totalScore >= 4 ? 'review' : 'reject';
-        
-        const updatedCandidate = {
-          ...candidate,
-          aiAnalysis: {
-            score: totalScore,
-            experienciaProfissional,
-            habilidadesTecnicas, 
-            competenciasComportamentais,
-            formacaoAcademica,
-            diferenciaisRelevantes,
-            recommendation: recommendation as 'advance' | 'reject' | 'review',
-            pontoFortes: [
-              "Experiência sólida com vendas por telefone",
-              "Boa comunicação e proatividade",
-              "Conhecimento em CRM e sistemas digitais"
-            ],
-            pontosAtencao: [
-              "Localização: verificar viabilidade logística",
-              "Pretensão salarial: confirmar expectativas"
-            ],
-            reasoning: "Candidato apresenta perfil adequado para a vaga, com experiência relevante em vendas e boa comunicação.",
-            recomendacaoFinal: (totalScore >= 6.5 ? 'aprovado' : 'nao_recomendado') as 'aprovado' | 'nao_recomendado',
-            analyzedAt: new Date()
+        if (!candidate.resumeText) {
+          console.warn(`Candidato ${candidate.name} não tem texto do currículo`);
+          continue;
+        }
+
+        try {
+          const { data, error } = await supabase.functions.invoke('analyze-candidate', {
+            body: {
+              resumeText: candidate.resumeText,
+              analysisPrompt: selectedPosition.aiAnalysisPrompt,
+              candidateName: candidate.name
+            }
+          });
+
+          if (error) {
+            console.error(`Erro ao analisar ${candidate.name}:`, error);
+            continue;
           }
-        };
-        
-        onCandidateUpdate(updatedCandidate);
+
+          // Atualizar o candidato com a análise
+          const updatedCandidate = {
+            ...candidate,
+            aiAnalysis: {
+              score: data.score,
+              experienciaProfissional: data.experienciaProfissional,
+              habilidadesTecnicas: data.habilidadesTecnicas,
+              competenciasComportamentais: data.competenciasComportamentais,
+              formacaoAcademica: data.formacaoAcademica,
+              diferenciaisRelevantes: data.diferenciaisRelevantes,
+              recommendation: data.recommendation as 'advance' | 'reject' | 'review',
+              pontoFortes: data.pontoFortes,
+              pontosAtencao: data.pontosAtencao,
+              reasoning: data.reasoning,
+              recomendacaoFinal: data.recomendacaoFinal as 'aprovado' | 'nao_recomendado',
+              analyzedAt: new Date(data.analyzedAt)
+            }
+          };
+
+          onCandidateUpdate(updatedCandidate);
+          analyzed++;
+          
+          // Pequena pausa entre análises
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+        } catch (candidateError) {
+          console.error(`Erro específico para ${candidate.name}:`, candidateError);
+        }
       }
       
       setIsAnalyzing(false);
-      toast({
-        title: "Análise Concluída",
-        description: `${pendingAnalysis.length} candidatos foram analisados com sucesso.`,
-      });
+      
+      if (analyzed > 0) {
+        toast({
+          title: "Análise Concluída",
+          description: `${analyzed} candidatos foram analisados com sucesso.`,
+        });
+      } else {
+        toast({
+          title: "Nenhuma Análise Realizada",
+          description: "Não foi possível analisar nenhum candidato. Verifique se há candidatos com currículo na fase de análise IA.",
+          variant: "destructive"
+        });
+      }
     } catch (error) {
       setIsAnalyzing(false);
+      console.error('Erro geral na análise:', error);
       toast({
         title: "Erro na Análise",
         description: "Ocorreu um erro durante a análise dos candidatos.",

@@ -14,6 +14,7 @@ interface ExtractionResult {
   success: boolean;
   data: ExtractedData;
   confidence: number;
+  rawText?: string; // Adicionar texto bruto
 }
 
 export function useResumeExtraction() {
@@ -81,7 +82,8 @@ export function useResumeExtraction() {
           skills: [],
           education: ''
         },
-        confidence: data.confidence || 0
+        confidence: data.confidence || 0,
+        rawText: data.extractedText || '' // Incluir o texto bruto
       };
 
       return result;

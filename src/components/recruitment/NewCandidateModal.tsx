@@ -43,6 +43,7 @@ export function NewCandidateModal({ isOpen, onClose, onSubmit }: NewCandidateMod
   });
   const [resumeUrl, setResumeUrl] = useState<string>('');
   const [resumeFileName, setResumeFileName] = useState<string>('');
+  const [resumeText, setResumeText] = useState<string>('');
   const { toast } = useToast();
 
   const handleInputChange = (field: string, value: string) => {
@@ -61,7 +62,12 @@ export function NewCandidateModal({ isOpen, onClose, onSubmit }: NewCandidateMod
     });
   };
 
-  const handleDataExtracted = (extractedData: any) => {
+  const handleDataExtracted = (extractedData: any, fullText?: string) => {
+    // Salvar o texto completo do currículo
+    if (fullText) {
+      setResumeText(fullText);
+    }
+    
     // Preencher automaticamente os campos com os dados extraídos
     setFormData(prev => ({
       ...prev,
@@ -114,6 +120,7 @@ export function NewCandidateModal({ isOpen, onClose, onSubmit }: NewCandidateMod
       phone: formData.phone,
       positionId: formData.positionId || 'florista-especializada',
       resumeUrl,
+      resumeText, // Adicionar o texto do currículo
       resumeFileName,
       source: formData.source,
       stage: 'nova_candidatura',
@@ -143,6 +150,7 @@ export function NewCandidateModal({ isOpen, onClose, onSubmit }: NewCandidateMod
     });
     setResumeUrl('');
     setResumeFileName('');
+    setResumeText('');
     
     toast({
       title: "Candidato adicionado",
@@ -164,6 +172,7 @@ export function NewCandidateModal({ isOpen, onClose, onSubmit }: NewCandidateMod
     });
     setResumeUrl('');
     setResumeFileName('');
+    setResumeText('');
     onClose();
   };
 
