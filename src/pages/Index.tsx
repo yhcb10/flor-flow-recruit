@@ -7,7 +7,7 @@ import { useRecruitmentKanban } from '@/hooks/useRecruitmentKanban';
 import { mockJobPositions } from '@/data/mockData';
 
 const Index = () => {
-  const { columns, moveCandidateToStage, updateCandidate, addCandidate, stats } = useRecruitmentKanban();
+  const { columns, candidates, moveCandidateToStage, updateCandidate, addCandidate, stats } = useRecruitmentKanban();
   const [selectedPosition, setSelectedPosition] = useState(mockJobPositions[0]);
 
   return (
@@ -47,7 +47,11 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="ai" className="mt-6">
-            <AIAnalysisPanel selectedPosition={selectedPosition} />
+            <AIAnalysisPanel 
+              selectedPosition={selectedPosition} 
+              candidates={candidates}
+              onCandidateUpdate={updateCandidate}
+            />
           </TabsContent>
         </Tabs>
       </div>

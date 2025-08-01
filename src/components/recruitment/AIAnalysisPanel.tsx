@@ -6,13 +6,15 @@ import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
 import { Brain, Sparkles, Target, AlertCircle, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { JobPosition } from '@/types/recruitment';
+import { JobPosition, Candidate } from '@/types/recruitment';
 
 interface AIAnalysisPanelProps {
   selectedPosition?: JobPosition;
+  candidates: Candidate[];
+  onCandidateUpdate: (candidate: Candidate) => void;
 }
 
-export function AIAnalysisPanel({ selectedPosition }: AIAnalysisPanelProps) {
+export function AIAnalysisPanel({ selectedPosition, candidates, onCandidateUpdate }: AIAnalysisPanelProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisPrompt, setAnalysisPrompt] = useState(
     selectedPosition?.aiAnalysisPrompt || 
@@ -36,24 +38,63 @@ Mantenha tom respeitoso e profissional.`
   
   const { toast } = useToast();
 
+  // Filtrar candidatos na fase de análise IA
+  const pendingAnalysis = candidates.filter(c => c.stage === 'analise_ia');
+  const analyzedCandidates = candidates.filter(c => c.aiAnalysis);
+  
   const handleRunAnalysis = async () => {
     setIsAnalyzing(true);
     
-    // Simula processamento IA
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
-    setIsAnalyzing(false);
-    toast({
-      title: "Análise Concluída",
-      description: "3 candidatos foram analisados com sucesso.",
-    });
+    try {
+      for (const candidate of pendingAnalysis) {
+        // Simula análise IA para cada candidato
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Atualiza o candidato com análise simulada
+        const updatedCandidate = {
+          ...candidate,
+          aiAnalysis: {
+            score: Math.round((Math.random() * 4 + 6) * 10) / 10, // Score entre 6.0 e 10.0
+            recommendation: Math.random() > 0.7 ? 'advance' : Math.random() > 0.4 ? 'review' : 'reject' as 'advance' | 'reject' | 'review',
+            strengths: [
+              "Experiência sólida na área",
+              "Boa comunicação",
+              "Proatividade demonstrada"
+            ],
+            weaknesses: [
+              "Localização pode ser um desafio",
+              "Pretensão salarial acima da média"
+            ],
+            reasoning: "Candidato com perfil adequado para a vaga, demonstrando experiência relevante e boas habilidades de comunicação.",
+            analyzedAt: new Date()
+          }
+        };
+        
+        onCandidateUpdate(updatedCandidate);
+      }
+      
+      setIsAnalyzing(false);
+      toast({
+        title: "Análise Concluída",
+        description: `${pendingAnalysis.length} candidatos foram analisados com sucesso.`,
+      });
+    } catch (error) {
+      setIsAnalyzing(false);
+      toast({
+        title: "Erro na Análise",
+        description: "Ocorreu um erro durante a análise dos candidatos.",
+        variant: "destructive"
+      });
+    }
   };
 
   const analysisStatus = {
-    total: 5,
-    analyzed: 3,
-    pending: 2,
-    avgScore: 7.6
+    total: candidates.length,
+    analyzed: analyzedCandidates.length,
+    pending: pendingAnalysis.length,
+    avgScore: analyzedCandidates.length > 0 
+      ? analyzedCandidates.reduce((acc, c) => acc + (c.aiAnalysis?.score || 0), 0) / analyzedCandidates.length
+      : 0
   };
 
   return (
@@ -157,36 +198,46 @@ Mantenha tom respeitoso e profissional.`
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {[
-              { name: "Maria Silva", score: 8.5, recommendation: "advance", time: "2 min atrás" },
-              { name: "João Santos", score: 7.2, recommendation: "review", time: "5 min atrás" },
-              { name: "Ana Paula Costa", score: 9.1, recommendation: "advance", time: "8 min atrás" }
-            ].map((result, index) => (
-              <div key={index} className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                    <span className="text-xs font-medium text-primary">
-                      {result.name.split(' ').map(n => n[0]).join('')}
-                    </span>
-                  </div>
-                  <div>
-                    <div className="font-medium text-sm">{result.name}</div>
-                    <div className="text-xs text-muted-foreground">{result.time}</div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <div className="text-lg font-bold text-primary">{result.score}</div>
-                  <Badge variant={
-                    result.recommendation === 'advance' ? 'default' :
-                    result.recommendation === 'review' ? 'secondary' : 'destructive'
-                  }>
-                    {result.recommendation === 'advance' ? 'Avançar' :
-                     result.recommendation === 'review' ? 'Revisar' : 'Rejeitar'}
-                  </Badge>
-                </div>
+            {analyzedCandidates.length === 0 ? (
+              <div className="text-center text-muted-foreground py-8">
+                Nenhum candidato analisado ainda
               </div>
-            ))}
+            ) : (
+              analyzedCandidates
+                .sort((a, b) => new Date(b.aiAnalysis?.analyzedAt || 0).getTime() - new Date(a.aiAnalysis?.analyzedAt || 0).getTime())
+                .slice(0, 5)
+                .map((candidate, index) => (
+                  <div key={candidate.id} className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                        <span className="text-xs font-medium text-primary">
+                          {candidate.name.split(' ').map(n => n[0]).join('')}
+                        </span>
+                      </div>
+                      <div>
+                        <div className="font-medium text-sm">{candidate.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {candidate.aiAnalysis?.analyzedAt 
+                            ? new Date(candidate.aiAnalysis.analyzedAt).toLocaleString('pt-BR')
+                            : 'Há pouco'
+                          }
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <div className="text-lg font-bold text-primary">{candidate.aiAnalysis?.score}</div>
+                      <Badge variant={
+                        candidate.aiAnalysis?.recommendation === 'advance' ? 'default' :
+                        candidate.aiAnalysis?.recommendation === 'review' ? 'secondary' : 'destructive'
+                      }>
+                        {candidate.aiAnalysis?.recommendation === 'advance' ? 'Avançar' :
+                         candidate.aiAnalysis?.recommendation === 'review' ? 'Revisar' : 'Rejeitar'}
+                      </Badge>
+                    </div>
+                  </div>
+                ))
+            )}
           </div>
         </CardContent>
       </Card>
