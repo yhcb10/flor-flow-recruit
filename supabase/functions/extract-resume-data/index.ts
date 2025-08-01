@@ -8,65 +8,142 @@ const corsHeaders = {
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
-// Função para extrair texto real de PDF
+// Função avançada para extrair texto de PDF
 async function extractTextFromPDF(base64Data: string): Promise<string> {
   try {
     const binaryString = atob(base64Data);
-    
-    // Procurar por streams de texto no PDF
-    const streamPattern = /stream\s*([\s\S]*?)\s*endstream/gi;
-    const streams = [];
-    let match;
-    
-    while ((match = streamPattern.exec(binaryString)) !== null) {
-      streams.push(match[1]);
-    }
-    
     let extractedText = '';
-    
-    // Processar cada stream
-    for (const stream of streams) {
-      // Buscar texto entre parênteses (comum em PDFs)
-      const textMatches = stream.match(/\(([^)]{2,})\)/g) || [];
+
+    console.log('Iniciando extração de texto do PDF...');
+
+    // Estratégia 1: Procurar por objetos de texto diretos
+    const textObjPattern = /BT\s*([\s\S]*?)\s*ET/gi;
+    let match;
+    while ((match = textObjPattern.exec(binaryString)) !== null) {
+      const textBlock = match[1];
       
-      for (const textMatch of textMatches) {
-        let text = textMatch.replace(/[()]/g, '').trim();
+      // Extrair strings de texto do bloco
+      const stringMatches = textBlock.match(/\(([^)]+)\)/g) || [];
+      for (const stringMatch of stringMatches) {
+        let text = stringMatch.replace(/[()]/g, '');
         
-        // Limpar caracteres especiais mas manter acentos
-        text = text.replace(/[^\w\s\u00C0-\u017F\u00A0-\u024F@.-]/g, ' ')
-                   .replace(/\s+/g, ' ')
-                   .trim();
+        // Decodificar caracteres especiais comuns
+        text = text.replace(/\\n/g, ' ')
+                   .replace(/\\r/g, ' ')
+                   .replace(/\\t/g, ' ')
+                   .replace(/\\(/g, '(')
+                   .replace(/\\)/g, ')')
+                   .replace(/\\\\/g, '\\');
         
-        // Filtrar apenas texto que parece ser real (não metadados)
-        if (text.length >= 3 && 
-            /[a-zA-ZÀ-ÿ]/.test(text) &&
-            !text.match(/^(Indeed|Resume|Apache|FOP|Version|D:)/) &&
-            !text.match(/^[0-9\.\-\+\*\/\=\<\>\!\@\#\$\%\^\&]+$/)) {
+        // Filtrar texto válido
+        if (text.length >= 2 && /[a-zA-ZÀ-ÿ0-9]/.test(text)) {
           extractedText += text + ' ';
         }
       }
     }
-    
-    // Se não encontrou texto nos streams, tentar busca mais ampla
-    if (extractedText.length < 30) {
-      const allMatches = binaryString.match(/\(([^)]{3,})\)/g) || [];
-      
-      for (const match of allMatches) {
-        let text = match.replace(/[()]/g, '').trim();
-        text = text.replace(/[^\w\s\u00C0-\u017F\u00A0-\u024F@.-]/g, ' ')
-                   .replace(/\s+/g, ' ')
-                   .trim();
+
+    // Estratégia 2: Procurar por comandos Tj (show text)
+    if (extractedText.length < 20) {
+      const tjPattern = /\(([^)]+)\)\s*Tj/gi;
+      while ((match = tjPattern.exec(binaryString)) !== null) {
+        let text = match[1];
         
-        if (text.length >= 3 && 
-            /[a-zA-ZÀ-ÿ]/.test(text) &&
-            !text.match(/^(Indeed|Resume|Apache|FOP|Version|D:|Tj|BT|ET)/) &&
-            text.split(' ').length >= 2) {
+        // Decodificar e limpar
+        text = text.replace(/\\n/g, ' ')
+                   .replace(/\\r/g, ' ')
+                   .replace(/\\t/g, ' ')
+                   .replace(/\\(/g, '(')
+                   .replace(/\\)/g, ')')
+                   .replace(/\\\\/g, '\\');
+        
+        if (text.length >= 2 && /[a-zA-ZÀ-ÿ0-9]/.test(text)) {
           extractedText += text + ' ';
         }
       }
     }
-    
-    return extractedText.trim();
+
+    // Estratégia 3: Procurar por arrays de texto
+    if (extractedText.length < 20) {
+      const arrayPattern = /\[\s*(\([^)]+\)(?:\s*\([^)]+\))*)\s*\]\s*TJ/gi;
+      while ((match = arrayPattern.exec(binaryString)) !== null) {
+        const arrayContent = match[1];
+        const stringMatches = arrayContent.match(/\(([^)]+)\)/g) || [];
+        
+        for (const stringMatch of stringMatches) {
+          let text = stringMatch.replace(/[()]/g, '');
+          
+          text = text.replace(/\\n/g, ' ')
+                     .replace(/\\r/g, ' ')
+                     .replace(/\\t/g, ' ');
+          
+          if (text.length >= 2 && /[a-zA-ZÀ-ÿ0-9]/.test(text)) {
+            extractedText += text + ' ';
+          }
+        }
+      }
+    }
+
+    // Estratégia 4: Busca mais ampla em streams decodificados
+    if (extractedText.length < 20) {
+      const streamPattern = /stream\s*([\s\S]*?)\s*endstream/gi;
+      while ((match = streamPattern.exec(binaryString)) !== null) {
+        let streamContent = match[1];
+        
+        // Tentar diferentes padrões de texto
+        const patterns = [
+          /\(([^)]{2,})\)/g,
+          /\/([A-Za-z\u00C0-\u017F\s]{3,})\s/g,
+          /<([A-Fa-f0-9]{4,})>/g
+        ];
+        
+        for (const pattern of patterns) {
+          const matches = streamContent.match(pattern) || [];
+          for (const textMatch of matches) {
+            let text = textMatch.replace(/[()<>\/]/g, '').trim();
+            
+            // Para strings hexadecimais, tentar decodificar
+            if (/^[A-Fa-f0-9]+$/.test(text) && text.length % 2 === 0) {
+              try {
+                let decoded = '';
+                for (let i = 0; i < text.length; i += 2) {
+                  const charCode = parseInt(text.substr(i, 2), 16);
+                  if (charCode > 31 && charCode < 127) {
+                    decoded += String.fromCharCode(charCode);
+                  }
+                }
+                if (decoded.length >= 2 && /[a-zA-Z]/.test(decoded)) {
+                  text = decoded;
+                }
+              } catch (e) {
+                // Ignorar erro de decodificação
+              }
+            }
+            
+            // Limpar e validar texto
+            text = text.replace(/[^\w\s\u00C0-\u017F\u00A0-\u024F@.-]/g, ' ')
+                       .replace(/\s+/g, ' ')
+                       .trim();
+            
+            if (text.length >= 3 && 
+                /[a-zA-ZÀ-ÿ]/.test(text) &&
+                !text.match(/^(Indeed|Resume|Apache|FOP|Version|D:|Tj|BT|ET|stream|endstream)$/i)) {
+              extractedText += text + ' ';
+            }
+          }
+        }
+      }
+    }
+
+    // Limpar e normalizar o texto final
+    extractedText = extractedText
+      .replace(/\s+/g, ' ')
+      .replace(/([.!?])\s*([A-Z])/g, '$1 $2')
+      .trim();
+
+    console.log(`Texto extraído: ${extractedText.length} caracteres`);
+    console.log('Primeiros 200 chars:', extractedText.substring(0, 200));
+
+    return extractedText;
   } catch (error) {
     console.error('Erro ao extrair texto do PDF:', error);
     return '';
