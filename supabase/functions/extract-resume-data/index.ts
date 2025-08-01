@@ -1,3 +1,4 @@
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
@@ -5,68 +6,99 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Função para extrair texto de PDF usando pdfjs-dist
+const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+
+// Função para extrair texto básico de PDF
 async function extractTextFromPDF(base64Data: string): Promise<string> {
   try {
-    // Importar pdfjs-dist dinamicamente
-    const pdfjs = await import('https://cdn.skypack.dev/pdfjs-dist@3.11.174');
-    
-    // Converter base64 para Uint8Array
     const binaryString = atob(base64Data);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-
-    // Carregar o documento PDF
-    const pdf = await pdfjs.getDocument({ data: bytes }).promise;
-    let fullText = '';
-
-    // Extrair texto de todas as páginas
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const textContent = await page.getTextContent();
-      const pageText = textContent.items
-        .map((item: any) => item.str)
-        .join(' ');
-      fullText += pageText + '\n';
-    }
-
-    return fullText.trim();
-  } catch (error) {
-    console.error('Erro ao extrair texto do PDF com pdfjs:', error);
     
-    // Fallback: tentar uma extração mais simples
-    try {
-      const binaryString = atob(base64Data);
-      // Procurar por texto legível no PDF usando regex mais específicos
-      const textRegex = /BT\s*(.*?)\s*ET/gs;
-      const tjRegex = /\[(.*?)\]\s*TJ/g;
-      const streamRegex = /stream\s*([\s\S]*?)\s*endstream/g;
-      
-      let extractedText = '';
-      
-      // Tentar extrair usando diferentes padrões
-      const textMatches = binaryString.match(textRegex);
-      if (textMatches) {
-        textMatches.forEach(match => {
-          const tjMatches = match.match(tjRegex);
-          if (tjMatches) {
-            tjMatches.forEach(tj => {
-              const content = tj.replace(/\[(.*?)\]\s*TJ/, '$1')
-                .replace(/[()]/g, '')
-                .replace(/\\[0-9]+/g, ' ');
-              extractedText += content + ' ';
-            });
+    // Extração simples de texto procurando por padrões comuns em PDFs
+    const textRegex = /\(([^)]+)\)/g;
+    const matches = binaryString.match(textRegex) || [];
+    
+    const extractedText = matches
+      .map(match => match.replace(/[()]/g, ''))
+      .filter(text => text.length > 2 && /[a-zA-ZÀ-ÿ\s]/.test(text))
+      .join(' ');
+
+    return extractedText || binaryString.replace(/[^\x20-\x7E\u00C0-\u017F]/g, ' ').trim();
+  } catch (error) {
+    console.error('Erro ao extrair texto do PDF:', error);
+    return '';
+  }
+}
+
+// Função para analisar currículo usando ChatGPT
+async function analyzeResumeWithAI(resumeText: string) {
+  if (!openAIApiKey) {
+    throw new Error('OpenAI API key não configurada');
+  }
+
+  const prompt = `Analise o seguinte currículo e extraia as informações em formato JSON. Se alguma informação não estiver disponível, deixe o campo vazio.
+
+Currículo:
+${resumeText}
+
+Retorne APENAS um JSON válido com esta estrutura:
+{
+  "name": "Nome completo da pessoa",
+  "email": "email@exemplo.com",
+  "phone": "telefone formatado",
+  "experience": "X anos de experiência em...",
+  "skills": ["habilidade1", "habilidade2", "habilidade3"],
+  "education": "Formação educacional principal"
+}`;
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'Você é um especialista em análise de currículos. Extraia informações de forma precisa e retorne apenas JSON válido.'
+          },
+          {
+            role: 'user',
+            content: prompt
           }
-        });
-      }
-      
-      return extractedText.trim() || 'Não foi possível extrair texto do PDF';
-    } catch (fallbackError) {
-      console.error('Erro no fallback de extração:', fallbackError);
-      throw new Error('Falha ao processar PDF');
+        ],
+        temperature: 0.1,
+        max_tokens: 1000
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status}`);
     }
+
+    const data = await response.json();
+    const aiResponse = data.choices[0].message.content;
+    
+    console.log('Resposta da IA:', aiResponse);
+    
+    // Parse da resposta JSON
+    try {
+      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const extractedData = JSON.parse(jsonMatch[0]);
+        return extractedData;
+      } else {
+        throw new Error('Resposta da IA não contém JSON válido');
+      }
+    } catch (parseError) {
+      console.error('Erro ao fazer parse da resposta da IA:', parseError);
+      throw new Error('Resposta da IA inválida');
+    }
+  } catch (error) {
+    console.error('Erro na análise com IA:', error);
+    throw error;
   }
 }
 
@@ -87,22 +119,47 @@ serve(async (req) => {
     if (pdfData) {
       try {
         textToAnalyze = await extractTextFromPDF(pdfData);
-        console.log('Extracted text from PDF:', textToAnalyze.substring(0, 200) + '...');
+        console.log('Texto extraído do PDF (primeiros 200 chars):', textToAnalyze.substring(0, 200));
       } catch (error) {
         console.error('Erro ao extrair texto do PDF:', error);
-        // Fallback para texto vazio se a extração falhar
         textToAnalyze = '';
       }
     }
 
-    // Análise do texto extraído do currículo para extrair informações
-    const extractedData = analyzeResumeText(textToAnalyze);
+    if (!textToAnalyze.trim()) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Não foi possível extrair texto do currículo',
+          confidence: 0
+        }),
+        { 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json' 
+          },
+          status: 400
+        }
+      );
+    }
+
+    // Analisar com ChatGPT
+    const aiAnalysis = await analyzeResumeWithAI(textToAnalyze);
     
-    // Retornar também o texto extraído para debug
+    // Calcular confiança baseada nos campos preenchidos
+    let confidence = 0;
+    if (aiAnalysis.name && aiAnalysis.name.trim()) confidence += 30;
+    if (aiAnalysis.email && aiAnalysis.email.includes('@')) confidence += 25;
+    if (aiAnalysis.phone && aiAnalysis.phone.trim()) confidence += 25;
+    if (aiAnalysis.experience && aiAnalysis.experience.trim()) confidence += 10;
+    if (aiAnalysis.skills && aiAnalysis.skills.length > 0) confidence += 10;
+
     return new Response(
       JSON.stringify({
-        ...extractedData,
-        extractedText: textToAnalyze
+        success: true,
+        data: aiAnalysis,
+        confidence: confidence,
+        extractedText: textToAnalyze.substring(0, 500) // Para debug
       }),
       { 
         headers: { 
@@ -115,7 +172,11 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error processing resume:', error);
     return new Response(
-      JSON.stringify({ error: 'Failed to process resume' }),
+      JSON.stringify({ 
+        success: false,
+        error: error.message || 'Failed to process resume',
+        confidence: 0
+      }),
       { 
         headers: { 
           ...corsHeaders, 
@@ -126,95 +187,3 @@ serve(async (req) => {
     );
   }
 });
-
-function analyzeResumeText(text: string) {
-  const extractedInfo = {
-    name: '',
-    email: '',
-    phone: '',
-    experience: '',
-    skills: [] as string[],
-    education: '',
-  };
-
-  // Regex patterns para extrair informações
-  const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/;
-  const phoneRegex = /(?:\+55\s?)?(?:\(?(?:11|12|13|14|15|16|17|18|19|21|22|24|27|28|31|32|33|34|35|37|38|41|42|43|44|45|46|47|48|49|51|53|54|55|61|62|63|64|65|66|67|68|69|71|73|74|75|77|79|81|82|83|84|85|86|87|88|89|91|92|93|94|95|96|97|98|99)\)?\s?)?(?:9\s?)?[0-9]{4}[\s-]?[0-9]{4}/;
-
-  // Extrair email
-  const emailMatch = text.match(emailRegex);
-  if (emailMatch) {
-    extractedInfo.email = emailMatch[0];
-  }
-
-  // Extrair telefone
-  const phoneMatch = text.match(phoneRegex);
-  if (phoneMatch) {
-    extractedInfo.phone = phoneMatch[0];
-  }
-
-  // Extrair nome (primeira linha que não seja email/telefone e tenha entre 2-4 palavras)
-  const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-  for (const line of lines) {
-    const words = line.split(' ').filter(word => word.length > 1);
-    if (words.length >= 2 && words.length <= 4 && 
-        !emailRegex.test(line) && !phoneRegex.test(line) &&
-        !line.toLowerCase().includes('currículo') &&
-        !line.toLowerCase().includes('cv') &&
-        !line.toLowerCase().includes('resumo')) {
-      extractedInfo.name = line;
-      break;
-    }
-  }
-
-  // Extrair experiência (anos)
-  const experienceRegex = /(\d+)\s*(?:anos?|years?)\s*(?:de\s*)?(?:experiência|experience)/i;
-  const expMatch = text.match(experienceRegex);
-  if (expMatch) {
-    extractedInfo.experience = `${expMatch[1]} anos de experiência`;
-  }
-
-  // Extrair habilidades relacionadas a floricultura
-  const floricultySkills = [
-    'arranjos florais', 'decoração', 'floricultura', 'jardinagem',
-    'paisagismo', 'plantas', 'flores', 'eventos', 'casamentos',
-    'buquês', 'coroas', 'ornamentação', 'atendimento', 'vendas',
-    'ikebana', 'composições florais'
-  ];
-
-  const textLower = text.toLowerCase();
-  const foundSkills = floricultySkills.filter(skill => 
-    textLower.includes(skill.toLowerCase())
-  );
-  extractedInfo.skills = foundSkills;
-
-  // Extrair educação básica
-  const educationKeywords = ['superior', 'graduação', 'ensino médio', 'técnico', 'curso'];
-  for (const keyword of educationKeywords) {
-    if (textLower.includes(keyword)) {
-      const sentences = text.split('.').filter(sentence => 
-        sentence.toLowerCase().includes(keyword)
-      );
-      if (sentences.length > 0) {
-        extractedInfo.education = sentences[0].trim();
-        break;
-      }
-    }
-  }
-
-  return {
-    success: true,
-    data: extractedInfo,
-    confidence: calculateConfidence(extractedInfo)
-  };
-}
-
-function calculateConfidence(data: any): number {
-  let score = 0;
-  if (data.name) score += 30;
-  if (data.email) score += 25;
-  if (data.phone) score += 25;
-  if (data.experience) score += 10;
-  if (data.skills.length > 0) score += 10;
-  return score;
-}
