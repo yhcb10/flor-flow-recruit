@@ -5,9 +5,12 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Função para extrair texto de PDF usando uma abordagem simples
+// Função para extrair texto de PDF usando pdfjs-dist
 async function extractTextFromPDF(base64Data: string): Promise<string> {
   try {
+    // Importar pdfjs-dist dinamicamente
+    const pdfjs = await import('https://cdn.skypack.dev/pdfjs-dist@3.11.174');
+    
     // Converter base64 para Uint8Array
     const binaryString = atob(base64Data);
     const bytes = new Uint8Array(binaryString.length);
@@ -15,20 +18,55 @@ async function extractTextFromPDF(base64Data: string): Promise<string> {
       bytes[i] = binaryString.charCodeAt(i);
     }
 
-    // Simples extração de texto procurando por strings entre parênteses e outras marcações do PDF
-    const pdfText = new TextDecoder().decode(bytes);
-    
-    // Extrair texto visível do PDF (método simplificado)
-    const textMatches = pdfText.match(/\(([^)]+)\)/g) || [];
-    const extractedText = textMatches
-      .map(match => match.replace(/[()]/g, ''))
-      .filter(text => text.length > 2 && /[a-zA-ZÀ-ÿ]/.test(text))
-      .join(' ');
+    // Carregar o documento PDF
+    const pdf = await pdfjs.getDocument({ data: bytes }).promise;
+    let fullText = '';
 
-    return extractedText;
+    // Extrair texto de todas as páginas
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items
+        .map((item: any) => item.str)
+        .join(' ');
+      fullText += pageText + '\n';
+    }
+
+    return fullText.trim();
   } catch (error) {
-    console.error('Erro ao extrair texto do PDF:', error);
-    throw new Error('Falha ao processar PDF');
+    console.error('Erro ao extrair texto do PDF com pdfjs:', error);
+    
+    // Fallback: tentar uma extração mais simples
+    try {
+      const binaryString = atob(base64Data);
+      // Procurar por texto legível no PDF usando regex mais específicos
+      const textRegex = /BT\s*(.*?)\s*ET/gs;
+      const tjRegex = /\[(.*?)\]\s*TJ/g;
+      const streamRegex = /stream\s*([\s\S]*?)\s*endstream/g;
+      
+      let extractedText = '';
+      
+      // Tentar extrair usando diferentes padrões
+      const textMatches = binaryString.match(textRegex);
+      if (textMatches) {
+        textMatches.forEach(match => {
+          const tjMatches = match.match(tjRegex);
+          if (tjMatches) {
+            tjMatches.forEach(tj => {
+              const content = tj.replace(/\[(.*?)\]\s*TJ/, '$1')
+                .replace(/[()]/g, '')
+                .replace(/\\[0-9]+/g, ' ');
+              extractedText += content + ' ';
+            });
+          }
+        });
+      }
+      
+      return extractedText.trim() || 'Não foi possível extrair texto do PDF';
+    } catch (fallbackError) {
+      console.error('Erro no fallback de extração:', fallbackError);
+      throw new Error('Falha ao processar PDF');
+    }
   }
 }
 
