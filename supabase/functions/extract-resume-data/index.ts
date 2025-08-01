@@ -245,34 +245,30 @@ async function analyzeResumeWithAI(resumeText: string) {
     throw new Error('OpenAI API key não configurada');
   }
 
-  // Se o texto for muito curto, tentar extrair pelo menos email/telefone por regex
-  if (resumeText.length < 50) {
-    const basicInfo = extractBasicInfo(resumeText);
-    if (Object.keys(basicInfo).length > 0) {
-      return {
-        name: basicInfo.name || '',
-        email: basicInfo.email || '',
-        phone: basicInfo.phone || '',
-        experience: '',
-        skills: [],
-        education: ''
-      };
-    }
-  }
+  // SEMPRE extrair informações básicas primeiro (como backup)
+  const basicInfo = extractBasicInfo(resumeText);
+  console.log('Informações básicas extraídas por regex:', basicInfo);
 
-  const prompt = `Analise o seguinte texto extraído de um currículo e extraia as informações disponíveis. O texto pode estar fragmentado ou com alguns caracteres corrompidos, mas tente identificar as informações principais.
+  const prompt = `Analise o seguinte texto extraído de um currículo e extraia as informações disponíveis. 
+IMPORTANTE: Procure especialmente por emails (formato: xxx@xxx.xxx) e telefones (números com DDD, podem ter parênteses, traços ou espaços).
 
 Texto do currículo:
 ${resumeText}
 
+Procure por:
+- Email: padrões como "email@dominio.com", "contato@", "usuario@gmail.com", etc.
+- Telefone: números brasileiros com DDD como "(11) 99999-9999", "11999999999", "11 9999-9999", "+55 11 99999-9999"
+- Nome: geralmente no início do currículo
+- Experiência profissional e educação
+
 Retorne APENAS um JSON válido com esta estrutura exata:
 {
-  "name": "Nome completo encontrado ou vazio",
-  "email": "email@encontrado.com ou vazio", 
-  "phone": "telefone encontrado ou vazio",
-  "experience": "Resumo da experiência profissional ou vazio",
+  "name": "Nome completo encontrado ou string vazia",
+  "email": "email@encontrado.com ou string vazia", 
+  "phone": "telefone encontrado ou string vazia",
+  "experience": "Resumo da experiência profissional ou string vazia",
   "skills": ["lista", "de", "habilidades"] ou array vazio,
-  "education": "Formação educacional ou vazio"
+  "education": "Formação educacional ou string vazia"
 }`;
 
   try {
@@ -287,7 +283,7 @@ Retorne APENAS um JSON válido com esta estrutura exata:
         messages: [
           {
             role: 'system',
-            content: 'Você é um especialista em análise de currículos. Mesmo com texto fragmentado, extraia o máximo de informações possível. Retorne apenas JSON válido.'
+            content: 'Você é um especialista em análise de currículos. Seja minucioso ao procurar emails e telefones no texto. Procure por padrões como "@", números com DDD brasileiro, etc. Retorne apenas JSON válido.'
           },
           {
             role: 'user',
@@ -317,27 +313,29 @@ Retorne APENAS um JSON válido com esta estrutura exata:
       if (jsonMatch) {
         const extractedData = JSON.parse(jsonMatch[0]);
         
-        // Garantir estrutura correta
-        return {
-          name: extractedData.name || '',
-          email: extractedData.email || '',
-          phone: extractedData.phone || '',
+        // Combinar dados da IA com extração por regex (priorizar regex para email/phone se estiver vazio)
+        const finalData = {
+          name: extractedData.name || basicInfo.name || '',
+          email: extractedData.email || basicInfo.email || '',
+          phone: extractedData.phone || basicInfo.phone || '',
           experience: extractedData.experience || '',
           skills: Array.isArray(extractedData.skills) ? extractedData.skills : [],
           education: extractedData.education || ''
         };
+
+        console.log('Dados finais combinados:', finalData);
+        return finalData;
       } else {
         throw new Error('Resposta da IA não contém JSON válido');
       }
     } catch (parseError) {
       console.error('Erro ao fazer parse da resposta da IA:', parseError);
       
-      // Fallback: tentar extrair informações básicas manualmente
-      const fallbackInfo = extractBasicInfo(resumeText);
+      // Fallback: usar informações básicas extraídas por regex
       return {
-        name: fallbackInfo.name || '',
-        email: fallbackInfo.email || '',
-        phone: fallbackInfo.phone || '',
+        name: basicInfo.name || '',
+        email: basicInfo.email || '',
+        phone: basicInfo.phone || '',
         experience: '',
         skills: [],
         education: ''
@@ -345,39 +343,115 @@ Retorne APENAS um JSON válido com esta estrutura exata:
     }
   } catch (error) {
     console.error('Erro na análise com IA:', error);
-    throw error;
+    
+    // Fallback: usar informações básicas extraídas por regex
+    return {
+      name: basicInfo.name || '',
+      email: basicInfo.email || '',
+      phone: basicInfo.phone || '',
+      experience: '',
+      skills: [],
+      education: ''
+    };
   }
 }
 
-// Extração básica por regex como fallback
+// Extração básica por regex como fallback (melhorada)
 function extractBasicInfo(text: string) {
   const info: any = {};
   
-  // Email
-  const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
-  const emailMatch = text.match(emailRegex);
-  if (emailMatch) info.email = emailMatch[0];
+  console.log('Iniciando extração básica do texto:', text.substring(0, 300));
   
-  // Telefone brasileiro
-  const phoneRegex = /(?:\+55\s?)?(?:\(?\d{2}\)?\s?)?\d{4,5}[-\s]?\d{4}/g;
-  const phoneMatch = text.match(phoneRegex);
-  if (phoneMatch) info.phone = phoneMatch[0];
+  // Email - padrões mais abrangentes
+  const emailPatterns = [
+    /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
+    /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g,
+    // Capturar emails que podem estar separados por espaços
+    /[a-zA-Z0-9._%+-]+\s*@\s*[a-zA-Z0-9.-]+\s*\.\s*[a-zA-Z]{2,}/g
+  ];
   
-  // Nome (primeiro conjunto de palavras que parece nome)
-  const words = text.split(/\s+/);
-  for (let i = 0; i < words.length - 1; i++) {
-    const word1 = words[i];
-    const word2 = words[i + 1];
-    
-    if (word1.length > 2 && word2.length > 2 && 
-        /^[A-ZÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ]/.test(word1) &&
-        /^[A-ZÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ]/.test(word2) &&
-        !/^(PDF|TYPE|FORM|STREAM|OBJ)/.test(word1)) {
-      info.name = `${word1} ${word2}`;
+  for (const emailRegex of emailPatterns) {
+    const emailMatch = text.match(emailRegex);
+    if (emailMatch && emailMatch[0]) {
+      // Limpar espaços do email encontrado
+      info.email = emailMatch[0].replace(/\s/g, '');
+      console.log('Email encontrado:', info.email);
       break;
     }
   }
   
+  // Telefone brasileiro - padrões mais abrangentes
+  const phonePatterns = [
+    // Padrão completo: +55 (11) 99999-9999
+    /\+55\s*\(?\d{2}\)?\s*\d{4,5}[-\s]?\d{4}/g,
+    // Padrão com DDD: (11) 99999-9999
+    /\(\d{2}\)\s*\d{4,5}[-\s]?\d{4}/g,
+    // Padrão simples: 11 99999-9999
+    /\b\d{2}\s+\d{4,5}[-\s]?\d{4}\b/g,
+    // Padrão sem espaços: 11999999999
+    /\b\d{11}\b/g,
+    // Padrão com traços: 11-99999-9999
+    /\b\d{2}[-\s]?\d{4,5}[-\s]?\d{4}\b/g,
+    // Capturar números que podem estar espalhados
+    /\d{2}\s*\d{4,5}\s*\d{4}/g
+  ];
+  
+  for (const phoneRegex of phonePatterns) {
+    const phoneMatch = text.match(phoneRegex);
+    if (phoneMatch && phoneMatch[0]) {
+      let phone = phoneMatch[0].trim();
+      
+      // Validar se tem pelo menos 10 dígitos
+      const digitsOnly = phone.replace(/\D/g, '');
+      if (digitsOnly.length >= 10 && digitsOnly.length <= 13) {
+        info.phone = phone;
+        console.log('Telefone encontrado:', info.phone);
+        break;
+      }
+    }
+  }
+  
+  // Nome - buscar no início do texto ou por padrões específicos
+  const namePatterns = [
+    // Procurar por duas palavras em maiúscula no início
+    /^([A-ZÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ][a-zàáâãäåæçèéêëìíîïðñòóôõö]+\s+[A-ZÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ][a-zàáâãäåæçèéêëìíîïðñòóôõö]+)/,
+    // Procurar padrão "Nome: João Silva"
+    /(?:nome|name):\s*([A-ZÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ][a-zàáâãäåæçèéêëìíîïðñòóôõö]+(?:\s+[A-ZÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ][a-zàáâãäåæçèéêëìíîïðñòóôõö]+)+)/i,
+  ];
+  
+  const words = text.split(/\s+/);
+  
+  // Tentar padrões específicos primeiro
+  for (const nameRegex of namePatterns) {
+    const nameMatch = text.match(nameRegex);
+    if (nameMatch && nameMatch[1]) {
+      info.name = nameMatch[1].trim();
+      console.log('Nome encontrado por padrão:', info.name);
+      break;
+    }
+  }
+  
+  // Se não encontrou nome, procurar no início do texto
+  if (!info.name) {
+    for (let i = 0; i < Math.min(words.length - 1, 20); i++) {
+      const word1 = words[i];
+      const word2 = words[i + 1];
+      
+      if (word1 && word2 && 
+          word1.length > 2 && word2.length > 2 && 
+          /^[A-ZÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ]/.test(word1) &&
+          /^[A-ZÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ][a-zàáâãäåæçèéêëìíîïðñòóôõö]/.test(word2) &&
+          !/^(PDF|TYPE|FORM|STREAM|OBJ|CURRICULO|RESUME|CV)$/i.test(word1) &&
+          !/^(PDF|TYPE|FORM|STREAM|OBJ|CURRICULO|RESUME|CV)$/i.test(word2)) {
+        
+        info.name = `${word1} ${word2}`;
+        console.log('Nome encontrado no início:', info.name);
+        break;
+      }
+    }
+  }
+  
+  console.log('Informações básicas extraídas:', info);
   return info;
 }
 
