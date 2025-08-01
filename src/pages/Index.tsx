@@ -6,7 +6,7 @@ import { AIAnalysisPanel } from '@/components/recruitment/AIAnalysisPanel';
 import { useRecruitmentKanban } from '@/hooks/useRecruitmentKanban';
 
 const Index = () => {
-  const { columns, moveCandidateToStage, updateCandidate, stats } = useRecruitmentKanban();
+  const { columns, moveCandidateToStage, updateCandidate, addCandidate, stats } = useRecruitmentKanban();
 
   return (
     <div className="min-h-screen bg-kanban-bg">
@@ -40,6 +40,7 @@ const Index = () => {
               columns={columns}
               onCandidateMove={moveCandidateToStage}
               onCandidateSelect={updateCandidate}
+              onCandidateAdd={addCandidate}
             />
           </TabsContent>
 

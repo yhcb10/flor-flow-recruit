@@ -9,16 +9,19 @@ import { CandidateCard } from './CandidateCard';
 import { CandidateModal } from './CandidateModal';
 import { Candidate, CandidateStage, KanbanColumn } from '@/types/recruitment';
 import { cn } from '@/lib/utils';
+import { NewCandidateModal } from './NewCandidateModal';
 
 interface KanbanBoardProps {
   columns: KanbanColumn[];
   onCandidateMove: (candidateId: string, newStage: CandidateStage) => void;
   onCandidateSelect: (candidate: Candidate) => void;
+  onCandidateAdd: (candidate: Candidate) => void;
 }
 
-export function KanbanBoard({ columns, onCandidateMove, onCandidateSelect }: KanbanBoardProps) {
+export function KanbanBoard({ columns, onCandidateMove, onCandidateSelect, onCandidateAdd }: KanbanBoardProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
+  const [showNewCandidateModal, setShowNewCandidateModal] = useState(false);
 
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
@@ -60,9 +63,12 @@ export function KanbanBoard({ columns, onCandidateMove, onCandidateSelect }: Kan
             <Filter className="h-4 w-4 mr-2" />
             Filtros
           </Button>
-          <Button size="sm">
+          <Button 
+            size="sm"
+            onClick={() => setShowNewCandidateModal(true)}
+          >
             <Plus className="h-4 w-4 mr-2" />
-            Nova Vaga
+            Nova Candidatura
           </Button>
         </div>
       </div>
@@ -138,6 +144,16 @@ export function KanbanBoard({ columns, onCandidateMove, onCandidateSelect }: Kan
           }}
         />
       )}
+
+      {/* New Candidate Modal */}
+      <NewCandidateModal
+        isOpen={showNewCandidateModal}
+        onClose={() => setShowNewCandidateModal(false)}
+        onSubmit={(candidate) => {
+          onCandidateAdd(candidate);
+          setShowNewCandidateModal(false);
+        }}
+      />
     </div>
   );
 }
