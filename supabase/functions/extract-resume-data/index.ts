@@ -8,75 +8,156 @@ const corsHeaders = {
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
-// Função para converter PDF para imagem usando API externa
-async function convertPDFToImage(base64Data: string): Promise<string> {
+// Função inteligente para extrair texto limpo do PDF
+async function extractCleanTextFromPDF(base64Data: string): Promise<string> {
   try {
-    console.log('🔄 Convertendo PDF para imagem...');
+    const binaryString = atob(base64Data);
+    console.log('📄 Analisando PDF de', binaryString.length, 'bytes');
     
-    // Usar API gratuita do PDF.co para converter PDF para imagem
-    const response = await fetch('https://api.pdf.co/v1/pdf/convert/to/png', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': 'demo' // Usar chave demo por enquanto
-      },
-      body: JSON.stringify({
-        file: `data:application/pdf;base64,${base64Data}`,
-        pages: '1', // Primeira página apenas
-        async: false
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Erro na conversão: ${response.status}`);
-    }
-
-    const result = await response.json();
+    const extractedParts: string[] = [];
     
-    if (result.error) {
-      throw new Error(`Erro PDF.co: ${result.message}`);
+    // 1. Buscar emails diretamente no binário
+    const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+    const emails = binaryString.match(emailPattern) || [];
+    if (emails.length > 0) {
+      console.log('📧 Emails encontrados:', emails);
+      extractedParts.push(...emails);
     }
-
-    console.log('✅ PDF convertido para imagem');
-    return result.url; // URL da imagem gerada
+    
+    // 2. Buscar telefones brasileiros
+    const phonePatterns = [
+      /\+55\s*\d{2}\s*\d{4,5}[-\s]?\d{4}/g,
+      /\(\d{2}\)\s*\d{4,5}[-\s]?\d{4}/g,
+      /\d{2}\s+\d{4,5}[-\s]?\d{4}/g
+    ];
+    
+    for (const pattern of phonePatterns) {
+      const phones = binaryString.match(pattern) || [];
+      if (phones.length > 0) {
+        console.log('📱 Telefones encontrados:', phones);
+        extractedParts.push(...phones);
+      }
+    }
+    
+    // 3. Extrair texto de comandos PDF (método mais preciso)
+    const textCommands = [
+      /BT\s*([\s\S]*?)\s*ET/gi,           // Blocos de texto
+      /\(([\w\s\u00C0-\u017F.@-]{2,50})\)\s*Tj/gi,  // Comandos Tj
+      /\[(.*?)\]\s*TJ/gi                  // Arrays TJ
+    ];
+    
+    for (const command of textCommands) {
+      let match;
+      while ((match = command.exec(binaryString)) !== null) {
+        let text = match[1];
+        
+        // Se for array TJ, extrair strings
+        if (command.source.includes('TJ')) {
+          const strings = text.match(/\(([^)]*)\)/g) || [];
+          text = strings.map(s => s.replace(/[()]/g, '')).join(' ');
+        }
+        
+        // Limpar e validar texto
+        text = cleanText(text);
+        if (text.length > 2 && isValidText(text)) {
+          extractedParts.push(text);
+        }
+      }
+    }
+    
+    // 4. Buscar texto em parênteses (mais genérico)
+    const parenthesesPattern = /\(([^)]{3,100})\)/g;
+    let match;
+    while ((match = parenthesesPattern.exec(binaryString)) !== null) {
+      const text = cleanText(match[1]);
+      if (text.length > 2 && isValidText(text)) {
+        extractedParts.push(text);
+      }
+    }
+    
+    // Combinar tudo e remover duplicatas
+    const uniqueParts = [...new Set(extractedParts)];
+    const finalText = uniqueParts.join(' ');
+    
+    console.log('✅ Texto limpo extraído (', finalText.length, 'chars):', finalText.substring(0, 600));
+    
+    return finalText;
     
   } catch (error) {
-    console.error('❌ Erro na conversão PDF→Imagem:', error);
-    throw error;
+    console.error('❌ Erro na extração:', error);
+    return '';
   }
 }
 
-// Função para analisar imagem com ChatGPT Vision
-async function analyzeImageWithChatGPT(imageUrl: string, fileName: string) {
+// Função para limpar texto
+function cleanText(text: string): string {
+  return text
+    .replace(/\\([0-7]{3})/g, (match, octal) => {
+      const code = parseInt(octal, 8);
+      return (code >= 32 && code <= 126) ? String.fromCharCode(code) : ' ';
+    })
+    .replace(/\\[rntf]/g, ' ')
+    .replace(/\\\\/g, '\\')
+    .replace(/\\\(/g, '(')
+    .replace(/\\\)/g, ')')
+    .replace(/\\./g, ' ')
+    .replace(/[^\w\s\u00C0-\u017F\u00A0-\u024F@.\-+()]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Função para validar se é texto útil
+function isValidText(text: string): boolean {
+  // Deve ter pelo menos uma letra
+  if (!/[a-zA-ZÀ-ÿ]/.test(text)) return false;
+  
+  // Não deve ser apenas números
+  if (/^[0-9\s.\-+()]+$/.test(text)) return false;
+  
+  // Não deve ser metadados conhecidos
+  const badPatterns = [
+    /^(obj|endobj|stream|endstream|xref|trailer|startxref)$/i,
+    /^(Type|Font|Encoding|Width|Height|Length|Filter|Subtype|FormType|BBox|Resources|Group|Transparency|CS|ProcSet|Image|ColorSpace|Interpolate|DeviceRGB|DeviceGray)$/i,
+    /^(PDF|Indeed|Resume|Apache|FOP|Version|Canva|Google|Docs|Renderer|Skia)$/i,
+    /^[RF]?\d+$/,
+    /^D:\d{14}/
+  ];
+  
+  return !badPatterns.some(pattern => pattern.test(text.trim()));
+}
+
+// Função para analisar com ChatGPT usando prompt otimizado
+async function analyzeWithChatGPT(extractedText: string, fileName: string) {
   if (!openAIApiKey) {
     throw new Error('OpenAI API key não configurada');
   }
 
-  console.log('👁️ Enviando imagem para ChatGPT Vision...');
+  const prompt = `Você é um especialista em análise de currículos. Analise este texto extraído de um PDF de currículo e extraia as informações solicitadas.
 
-  const prompt = `Analise esta imagem de currículo e extraia exatamente estas informações:
+TEXTO DO CURRÍCULO:
+${extractedText}
 
-**Nome Completo**
-**Email** 
-**Telefone**
-**Observações Iniciais**
+ARQUIVO: ${fileName}
 
-INSTRUÇÕES DETALHADAS:
-- Procure pelo NOME da pessoa (geralmente em destaque no topo)
-- Procure pelo EMAIL (formato: xxx@xxx.com)
-- Procure pelo TELEFONE brasileiro (formato: (11) 99999-9999 ou +55 11 99999-9999)
-- Faça um RESUMO de 2-3 linhas da experiência profissional
+TAREFA: Extraia exatamente estas informações:
 
-MUITO IMPORTANTE:
-- Se não conseguir encontrar alguma informação, deixe o campo vazio
-- NÃO invente dados
-- Seja muito preciso com email e telefone
+1. **Nome Completo**: Procure pelo nome da pessoa (geralmente aparece primeiro ou em destaque)
+2. **Email**: Procure por qualquer email válido (deve conter @ e domínio)
+3. **Telefone**: Procure por telefone brasileiro (formatos: (11) 99999-9999, +55 11 99999-9999, 11 99999-9999)
+4. **Observações Iniciais**: Faça um resumo de 2-3 linhas sobre a experiência profissional da pessoa
 
-Retorne APENAS este JSON:
+INSTRUÇÕES IMPORTANTES:
+- Seja MUITO cuidadoso com email e telefone - extraia exatamente como aparece
+- Se não encontrar alguma informação com certeza, deixe o campo vazio
+- NÃO invente ou suponha informações
+- Use apenas dados que estão claramente no texto
+
+FORMATO DE RESPOSTA:
+Retorne APENAS este JSON (sem explicações adicionais):
 {
   "name": "Nome completo encontrado",
   "email": "email@encontrado.com",
-  "phone": "telefone encontrado", 
+  "phone": "telefone encontrado",
   "observations": "Resumo da experiência profissional"
 }`;
 
@@ -88,173 +169,66 @@ Retorne APENAS este JSON:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
-            content: 'Você é um especialista em análise de currículos. Analise a imagem do currículo com extrema precisão e extraia nome, email, telefone e observações.'
+            content: 'Você é um especialista em extração de dados de currículos. Analise textos extraídos de PDFs e identifique nome, email, telefone e experiência com máxima precisão. Retorne apenas JSON válido.'
           },
           {
             role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: prompt
-              },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: imageUrl,
-                  detail: 'high'
-                }
-              }
-            ]
+            content: prompt
           }
         ],
-        temperature: 0.1,
-        max_tokens: 1000
+        temperature: 0.0,
+        max_tokens: 1200
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error('❌ Erro OpenAI:', response.status, errorText);
-      throw new Error(`Erro ChatGPT Vision: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const aiResponse = data.choices[0].message.content.trim();
-    
-    console.log('🤖 Resposta ChatGPT Vision:', aiResponse);
-    
-    // Parse JSON
-    const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      console.error('❌ Resposta sem JSON:', aiResponse);
-      throw new Error('ChatGPT não retornou JSON válido');
-    }
-    
-    const result = JSON.parse(jsonMatch[0]);
-    
-    // Validar dados
-    const finalData = {
-      name: (result.name && typeof result.name === 'string') ? result.name.trim() : '',
-      email: (result.email && typeof result.email === 'string' && result.email.includes('@')) 
-             ? result.email.trim() : '',
-      phone: (result.phone && typeof result.phone === 'string') ? result.phone.trim() : '',
-      observations: (result.observations && typeof result.observations === 'string') 
-                    ? result.observations.trim() : ''
-    };
-
-    console.log('✅ Dados extraídos pelo ChatGPT Vision:', finalData);
-    return finalData;
-    
-  } catch (error) {
-    console.error('❌ Erro ChatGPT Vision:', error);
-    throw error;
-  }
-}
-
-// Função de fallback usando extração simples + ChatGPT normal
-async function fallbackTextAnalysis(base64Data: string) {
-  try {
-    console.log('🔄 Usando análise de texto como fallback...');
-    
-    const binaryString = atob(base64Data);
-    
-    // Buscar apenas padrões específicos
-    const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
-    const phonePattern = /(\+55\s*)?(?:\(?\d{2}\)?\s*)?\d{4,5}[-\s]?\d{4}/g;
-    
-    const emails = binaryString.match(emailPattern) || [];
-    const phones = binaryString.match(phonePattern) || [];
-    
-    // Extrair texto simples
-    const textPattern = /\(([^)]{2,50})\)/g;
-    const texts = [];
-    let match;
-    
-    while ((match = textPattern.exec(binaryString)) !== null) {
-      const text = match[1].replace(/[^\w\s\u00C0-\u017F@.-]/g, ' ').trim();
-      if (text.length > 2 && /[a-zA-ZÀ-ÿ]/.test(text)) {
-        texts.push(text);
-      }
-    }
-    
-    const extractedText = [...emails, ...phones, ...texts].join(' ');
-    
-    console.log('📄 Texto extraído para fallback:', extractedText.substring(0, 500));
-    
-    if (extractedText.length < 20) {
-      throw new Error('Texto insuficiente para análise');
-    }
-    
-    // Analisar com ChatGPT normal
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: 'Analise este texto de currículo e extraia nome, email, telefone e observações.'
-          },
-          {
-            role: 'user',
-            content: `Texto do currículo: ${extractedText}
-
-Extraia:
-- Nome completo
-- Email (deve conter @)
-- Telefone brasileiro
-- Observações sobre experiência
-
-JSON:
-{
-  "name": "",
-  "email": "",
-  "phone": "",
-  "observations": ""
-}`
-          }
-        ],
-        temperature: 0.1,
-        max_tokens: 800
-      }),
-    });
-
-    if (!response.ok) {
       throw new Error(`Erro ChatGPT: ${response.status}`);
     }
 
     const data = await response.json();
     const aiResponse = data.choices[0].message.content.trim();
     
-    const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const result = JSON.parse(jsonMatch[0]);
-      return {
-        name: result.name || '',
-        email: result.email || '',
-        phone: result.phone || '',
-        observations: result.observations || ''
-      };
+    console.log('🤖 Resposta ChatGPT:', aiResponse);
+    
+    // Parse JSON mais robusto
+    let cleanResponse = aiResponse
+      .replace(/```json\n?/g, '')
+      .replace(/```\n?/g, '')
+      .replace(/^[^{]*/, '')  // Remove texto antes do JSON
+      .replace(/[^}]*$/, '}'); // Remove texto depois do JSON
+    
+    const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.error('❌ Resposta sem JSON válido:', aiResponse);
+      throw new Error('ChatGPT não retornou JSON válido');
     }
     
-    throw new Error('Fallback falhou');
+    const result = JSON.parse(jsonMatch[0]);
+    
+    // Validação final
+    const finalData = {
+      name: (result.name && typeof result.name === 'string' && result.name !== 'Nome completo encontrado') 
+             ? result.name.trim() : '',
+      email: (result.email && typeof result.email === 'string' && result.email.includes('@') && result.email !== 'email@encontrado.com') 
+             ? result.email.trim() : '',
+      phone: (result.phone && typeof result.phone === 'string' && result.phone !== 'telefone encontrado') 
+             ? result.phone.trim() : '',
+      observations: (result.observations && typeof result.observations === 'string' && result.observations !== 'Resumo da experiência profissional') 
+                    ? result.observations.trim() : ''
+    };
+
+    console.log('✅ Dados finais validados:', finalData);
+    return finalData;
     
   } catch (error) {
-    console.error('❌ Erro no fallback:', error);
-    return {
-      name: '',
-      email: '',
-      phone: '',
-      observations: ''
-    };
+    console.error('❌ Erro ChatGPT:', error);
+    throw error;
   }
 }
 
@@ -274,19 +248,22 @@ serve(async (req) => {
       );
     }
 
-    let candidateInfo;
+    // Extrair texto limpo do PDF
+    const extractedText = await extractCleanTextFromPDF(pdfData);
     
-    try {
-      // Método 1: PDF → Imagem → ChatGPT Vision
-      const imageUrl = await convertPDFToImage(pdfData);
-      candidateInfo = await analyzeImageWithChatGPT(imageUrl, fileName || 'resume.pdf');
-      
-    } catch (visionError) {
-      console.log('❌ ChatGPT Vision falhou, usando fallback:', visionError.message);
-      
-      // Método 2: Extração simples + ChatGPT normal
-      candidateInfo = await fallbackTextAnalysis(pdfData);
+    if (!extractedText || extractedText.length < 30) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Não foi possível extrair texto suficiente do PDF',
+          debug: { textLength: extractedText.length }
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
     }
+
+    // Analisar com ChatGPT
+    const candidateInfo = await analyzeWithChatGPT(extractedText, fileName || 'resume.pdf');
     
     // Calcular confiança
     let confidence = 0;
@@ -307,7 +284,7 @@ serve(async (req) => {
     
     if (candidateInfo.observations && candidateInfo.observations.length > 10) {
       confidence += 5;
-      console.log('✅ Observações encontradas');
+      console.log('✅ Observações:', candidateInfo.observations.substring(0, 100) + '...');
     }
 
     console.log('🎯 Confiança final:', confidence + '%');
@@ -317,7 +294,7 @@ serve(async (req) => {
         success: true,
         data: candidateInfo,
         confidence: confidence,
-        method: 'PDF → Imagem → ChatGPT Vision'
+        method: 'Extração Inteligente + ChatGPT'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
