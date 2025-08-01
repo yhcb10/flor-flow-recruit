@@ -21,20 +21,23 @@ export function useResumeExtraction() {
 
   const extractPdfText = async (file: File): Promise<string> => {
     try {
-      // Para a web, vamos usar uma abordagem diferente
-      // Não podemos usar pdf-parse diretamente no frontend
-      // Vamos ler como array buffer e enviar para a edge function
+      // Converter o arquivo PDF para base64 e enviar para a edge function processar
       const arrayBuffer = await file.arrayBuffer();
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
       
-      // Por enquanto, vamos simular a extração de texto
-      // Em produção, você pode usar uma biblioteca como PDF.js
-      return `Simulação de texto extraído do PDF: ${file.name}
-Nome: João Silva
-Email: joao.silva@email.com
-Telefone: (11) 99999-9999
-Experiência: 5 anos de experiência em floricultura
-Habilidades: arranjos florais, decoração, atendimento ao cliente
-Formação: Ensino médio completo`;
+      // Chamar edge function para extrair texto do PDF
+      const { data, error } = await supabase.functions.invoke('extract-resume-data', {
+        body: {
+          pdfData: base64,
+          fileName: file.name
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      return data.extractedText || '';
     } catch (error) {
       console.error('Erro ao extrair texto do PDF:', error);
       throw new Error('Falha ao processar PDF');

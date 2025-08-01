@@ -5,6 +5,33 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Função para extrair texto de PDF usando uma abordagem simples
+async function extractTextFromPDF(base64Data: string): Promise<string> {
+  try {
+    // Converter base64 para Uint8Array
+    const binaryString = atob(base64Data);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+
+    // Simples extração de texto procurando por strings entre parênteses e outras marcações do PDF
+    const pdfText = new TextDecoder().decode(bytes);
+    
+    // Extrair texto visível do PDF (método simplificado)
+    const textMatches = pdfText.match(/\(([^)]+)\)/g) || [];
+    const extractedText = textMatches
+      .map(match => match.replace(/[()]/g, ''))
+      .filter(text => text.length > 2 && /[a-zA-ZÀ-ÿ]/.test(text))
+      .join(' ');
+
+    return extractedText;
+  } catch (error) {
+    console.error('Erro ao extrair texto do PDF:', error);
+    throw new Error('Falha ao processar PDF');
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -12,17 +39,33 @@ serve(async (req) => {
   }
 
   try {
-    const { resumeUrl, resumeText } = await req.json();
+    const { resumeUrl, resumeText, pdfData, fileName } = await req.json();
 
-    // Simulação de extração de dados do currículo
-    // Em produção, aqui você integraria com uma API de OCR ou processamento de PDF
-    console.log('Processing resume:', resumeUrl);
+    console.log('Processing resume:', fileName || resumeUrl);
 
-    // Análise básica de texto do currículo para extrair informações
-    const extractedData = analyzeResumeText(resumeText || '');
+    let textToAnalyze = resumeText || '';
+    
+    // Se temos dados do PDF, extrair o texto
+    if (pdfData) {
+      try {
+        textToAnalyze = await extractTextFromPDF(pdfData);
+        console.log('Extracted text from PDF:', textToAnalyze.substring(0, 200) + '...');
+      } catch (error) {
+        console.error('Erro ao extrair texto do PDF:', error);
+        // Fallback para texto vazio se a extração falhar
+        textToAnalyze = '';
+      }
+    }
 
+    // Análise do texto extraído do currículo para extrair informações
+    const extractedData = analyzeResumeText(textToAnalyze);
+    
+    // Retornar também o texto extraído para debug
     return new Response(
-      JSON.stringify(extractedData),
+      JSON.stringify({
+        ...extractedData,
+        extractedText: textToAnalyze
+      }),
       { 
         headers: { 
           ...corsHeaders, 
