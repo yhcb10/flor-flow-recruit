@@ -61,19 +61,21 @@ export function NewCandidateModal({ isOpen, onClose, onSubmit }: NewCandidateMod
     });
   };
 
-  const handleDataExtracted = (extractedData: ExtractedData) => {
+  const handleDataExtracted = (extractedData: any) => {
     // Preencher automaticamente os campos com os dados extraídos
     setFormData(prev => ({
       ...prev,
       name: extractedData.name || prev.name,
       email: extractedData.email || prev.email,
       phone: extractedData.phone || prev.phone,
-      notes: prev.notes + (extractedData.skills.length > 0 
+      notes: prev.notes + (extractedData.skills && extractedData.skills.length > 0 
         ? `\nHabilidades identificadas: ${extractedData.skills.join(', ')}`
         : '') + (extractedData.education 
         ? `\nFormação: ${extractedData.education}`
         : '') + (extractedData.experience 
         ? `\nExperiência: ${extractedData.experience}`
+        : '') + (extractedData.observations 
+        ? `\nObservações: ${extractedData.observations}`
         : '')
     }));
 
