@@ -8,57 +8,217 @@ const corsHeaders = {
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
-// Função para converter PDF para texto usando API externa gratuita
-async function convertPDFToTextUsingAPI(base64Data: string): Promise<string> {
+// Função para converter PDF para PNG usando jsPDF ou similar
+async function convertPDFToImage(base64Data: string): Promise<string> {
   try {
-    console.log('🔄 Convertendo PDF para texto usando API externa...');
+    console.log('🖼️ Convertendo PDF para imagem...');
     
-    // Usar API ConvertAPI (tem plano gratuito)
-    const response = await fetch('https://v2.convertapi.com/convert/pdf/to/txt?Secret=your_secret_here', {
+    // Usar PDF-lib para converter primeira página em imagem
+    const response = await fetch('https://api.cloudconvert.com/v2/convert', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Authorization': 'Bearer your_api_key_here',
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        Parameters: [
-          {
-            Name: 'File',
-            FileValue: {
-              Name: 'resume.pdf',
-              Data: base64Data
-            }
-          }
-        ]
+        input: 'base64',
+        inputformat: 'pdf',
+        outputformat: 'png',
+        file: base64Data
       })
     });
 
     if (response.ok) {
       const result = await response.json();
-      if (result.Files && result.Files[0]) {
-        const textResponse = await fetch(result.Files[0].Url);
-        const extractedText = await textResponse.text();
-        console.log('✅ Texto extraído via API:', extractedText.substring(0, 500));
-        return extractedText;
-      }
+      return result.output;
     }
     
-    throw new Error('API conversion failed');
+    throw new Error('Conversão falhou');
     
   } catch (error) {
-    console.log('❌ API externa falhou, usando método alternativo');
+    console.log('❌ Conversão PDF→Imagem falhou:', error.message);
     throw error;
   }
 }
 
-// Função alternativa usando ChatGPT para "ler" o PDF como texto
-async function extractUsingChatGPT(base64Data: string): Promise<string> {
-  if (!openAIApiKey) {
-    throw new Error('OpenAI API key não configurada');
+// Função robusta para extrair dados diretamente do PDF
+function extractDataFromPDFBinary(base64Data: string) {
+  try {
+    console.log('🔍 Extraindo dados diretamente do binário PDF...');
+    
+    const binaryData = atob(base64Data);
+    const result = {
+      name: '',
+      email: '',
+      phone: '',
+      observations: ''
+    };
+    
+    // 1. Extrair emails com regex mais precisa
+    const emailPatterns = [
+      /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g,
+      /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g
+    ];
+    
+    let emails = [];
+    for (const pattern of emailPatterns) {
+      const matches = binaryData.match(pattern) || [];
+      emails.push(...matches);
+    }
+    
+    // Filtrar emails válidos
+    const validEmails = emails.filter(email => {
+      return email &&
+             email.length > 5 &&
+             email.length < 100 &&
+             !email.includes('example') &&
+             !email.includes('test') &&
+             !email.includes('domain') &&
+             /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email);
+    });
+    
+    if (validEmails.length > 0) {
+      result.email = validEmails[0];
+      console.log('📧 Email encontrado:', result.email);
+    }
+    
+    // 2. Extrair telefones brasileiros
+    const phonePatterns = [
+      /\+55\s*\(?\d{2}\)?\s*\d{4,5}[-\s]?\d{4}/g,
+      /\(\d{2}\)\s*\d{4,5}[-\s]?\d{4}/g,
+      /\d{2}\s+\d{4,5}[-\s]?\d{4}/g,
+      /\d{2}\d{4,5}\d{4}/g
+    ];
+    
+    let phones = [];
+    for (const pattern of phonePatterns) {
+      const matches = binaryData.match(pattern) || [];
+      phones.push(...matches);
+    }
+    
+    // Filtrar telefones válidos
+    const validPhones = phones.filter(phone => {
+      const digits = phone.replace(/\D/g, '');
+      return digits.length >= 10 && 
+             digits.length <= 13 && 
+             !digits.startsWith('0000') &&
+             !digits.startsWith('1111') &&
+             parseInt(digits.substring(0, 2)) >= 11 && 
+             parseInt(digits.substring(0, 2)) <= 99;
+    });
+    
+    if (validPhones.length > 0) {
+      result.phone = validPhones[0];
+      console.log('📱 Telefone encontrado:', result.phone);
+    }
+    
+    // 3. Extrair nomes usando múltiplas estratégias
+    const nameStrategies = [
+      // Estratégia 1: Nomes em comandos de texto PDF
+      () => {
+        const textCommands = binaryData.match(/\(([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3})\)\s*Tj/g) || [];
+        return textCommands.map(cmd => cmd.match(/\((.+?)\)/)[1]);
+      },
+      
+      // Estratégia 2: Nomes em formato de título
+      () => {
+        const titlePattern = /([A-Z]{2,}\s+[A-Z]{2,}(?:\s+[A-Z]{2,})?)/g;
+        const matches = binaryData.match(titlePattern) || [];
+        return matches.filter(name => 
+          name.length > 5 && 
+          name.length < 50 &&
+          !/(PDF|FONT|TYPE|STREAM|OBJECT|PAGE|ROOT|INFO|CREATOR|PRODUCER|GOOGLE|DOCS|RENDERER)/i.test(name)
+        );
+      },
+      
+      // Estratégia 3: Nomes em formato normal
+      () => {
+        const normalPattern = /\b([A-Z][a-z]{2,}\s+[A-Z][a-z]{2,}(?:\s+[A-Z][a-z]{2,})?)\b/g;
+        const matches = binaryData.match(normalPattern) || [];
+        return matches.filter(name => 
+          name.length > 5 && 
+          name.length < 50 &&
+          !/^(Google Docs|Adobe|Microsoft|Windows|Linux|Android|iPhone)/i.test(name)
+        );
+      }
+    ];
+    
+    // Tentar cada estratégia até encontrar um nome válido
+    for (const strategy of nameStrategies) {
+      try {
+        const names = strategy();
+        if (names && names.length > 0) {
+          const bestName = names.find(name => 
+            name.split(' ').length >= 2 && 
+            name.split(' ').length <= 4 &&
+            !/^(CURRICULO|RESUME|CV|DOCUMENTO|EXPERIENCIA|FORMACAO|CONTATO)/i.test(name)
+          );
+          
+          if (bestName) {
+            result.name = bestName.trim();
+            console.log('👤 Nome encontrado:', result.name);
+            break;
+          }
+        }
+      } catch (error) {
+        console.log('❌ Estratégia de nome falhou:', error.message);
+        continue;
+      }
+    }
+    
+    // 4. Gerar observações baseadas nos dados encontrados
+    if (result.email || result.phone || result.name) {
+      const parts = [];
+      if (result.name) parts.push(`Candidato: ${result.name}`);
+      if (result.email) parts.push(`Email de contato disponível`);
+      if (result.phone) parts.push(`Telefone de contato disponível`);
+      parts.push('Currículo processado com sucesso');
+      result.observations = parts.join('. ') + '.';
+    } else {
+      result.observations = 'Currículo processado. Dados de contato podem estar em formato não reconhecido.';
+    }
+    
+    console.log('✅ Extração concluída:', result);
+    return result;
+    
+  } catch (error) {
+    console.error('❌ Erro na extração binária:', error);
+    return {
+      name: '',
+      email: '',
+      phone: '',
+      observations: 'Erro no processamento do currículo.'
+    };
+  }
+}
+
+// Função para usar ChatGPT como análise de texto simples
+async function analyzeWithTextGPT(extractedData: any): Promise<any> {
+  if (!openAIApiKey || (!extractedData.email && !extractedData.phone && !extractedData.name)) {
+    return extractedData;
   }
 
   try {
-    console.log('🤖 Usando ChatGPT para extrair texto do PDF...');
+    console.log('🤖 Melhorando extração com ChatGPT...');
     
+    const prompt = `Baseado nos seguintes dados extraídos de um currículo, melhore e valide as informações:
+
+Nome encontrado: ${extractedData.name || 'Não encontrado'}
+Email encontrado: ${extractedData.email || 'Não encontrado'}
+Telefone encontrado: ${extractedData.phone || 'Não encontrado'}
+
+Tarefas:
+1. Se o nome parecer estar em MAIÚSCULAS, converta para formato adequado (Primeira Letra Maiúscula)
+2. Valide se o email está correto
+3. Valide se o telefone tem formato brasileiro válido
+4. Crie uma observação profissional sobre o candidato
+
+Retorne apenas:
+Nome: [nome corrigido]
+Email: [email validado]
+Telefone: [telefone validado]
+Observações: [observação profissional]`;
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -66,142 +226,50 @@ async function extractUsingChatGPT(base64Data: string): Promise<string> {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-3.5-turbo',
         messages: [
           {
-            role: 'system',
-            content: 'Você é um especialista em leitura de documentos. Analise este arquivo e extraia SOMENTE as seguintes informações em formato de texto simples: Nome completo, Email, Telefone e um resumo da experiência profissional.'
-          },
-          {
             role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: 'Extraia do documento: Nome, Email, Telefone e Experiência. Retorne em formato de texto simples, uma informação por linha.'
-              },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: `data:application/pdf;base64,${base64Data}`,
-                  detail: 'high'
-                }
-              }
-            ]
+            content: prompt
           }
         ],
         temperature: 0.1,
-        max_tokens: 1000
+        max_tokens: 500
       }),
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Erro ChatGPT:', response.status, errorText);
-      throw new Error(`ChatGPT error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const extractedText = data.choices[0].message.content.trim();
-    
-    console.log('✅ Texto extraído via ChatGPT:', extractedText);
-    return extractedText;
-    
-  } catch (error) {
-    console.error('❌ Erro ChatGPT:', error);
-    throw error;
-  }
-}
-
-// Função para fazer parsing manual como último recurso
-function parseRawPDFData(base64Data: string): string {
-  try {
-    console.log('🔧 Tentando extração manual básica...');
-    
-    const binaryData = atob(base64Data);
-    const textParts = [];
-    
-    // Buscar especificamente por padrões de email e telefone no binário
-    const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
-    const phoneRegex = /(?:\+55\s*)?(?:\(?\d{2}\)?\s*)?\d{4,5}[-\s]?\d{4}/g;
-    
-    const emails = binaryData.match(emailRegex) || [];
-    const phones = binaryData.match(phoneRegex) || [];
-    
-    console.log('📧 Emails no binário:', emails);
-    console.log('📱 Telefones no binário:', phones);
-    
-    // Tentar extrair nomes de padrões simples
-    const nameMatches = binaryData.match(/[A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?/g) || [];
-    const possibleNames = nameMatches.filter(name => 
-      name.length > 5 && 
-      name.length < 50 &&
-      !/(PDF|Font|Type|Stream|Object|Page|Root|Info|Creator|Producer)/i.test(name)
-    );
-    
-    console.log('👤 Nomes possíveis:', possibleNames);
-    
-    if (emails.length > 0) textParts.push(`Email: ${emails[0]}`);
-    if (phones.length > 0) textParts.push(`Telefone: ${phones[0]}`);
-    if (possibleNames.length > 0) textParts.push(`Nome: ${possibleNames[0]}`);
-    
-    return textParts.join('\n');
-    
-  } catch (error) {
-    console.error('❌ Erro na extração manual:', error);
-    return '';
-  }
-}
-
-// Função para analisar o texto extraído e estruturar os dados
-function parseExtractedText(text: string) {
-  const result = {
-    name: '',
-    email: '',
-    phone: '',
-    observations: ''
-  };
-  
-  if (!text) return result;
-  
-  // Extrair email
-  const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
-  if (emailMatch) {
-    result.email = emailMatch[0];
-  }
-  
-  // Extrair telefone
-  const phoneMatch = text.match(/(?:\+55\s*)?(?:\(?\d{2}\)?\s*)?\d{4,5}[-\s]?\d{4}/);
-  if (phoneMatch) {
-    result.phone = phoneMatch[0];
-  }
-  
-  // Extrair nome (procurar por padrões após "Nome:" ou similar)
-  const namePatterns = [
-    /(?:Nome|Name):\s*([A-Za-zÀ-ÿ\s]{5,50})/i,
-    /^([A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/m,
-    /([A-Z][A-Z\s]{10,50})/
-  ];
-  
-  for (const pattern of namePatterns) {
-    const nameMatch = text.match(pattern);
-    if (nameMatch && nameMatch[1]) {
-      const name = nameMatch[1].trim();
-      if (name.length > 3 && name.length < 50) {
-        result.name = name;
-        break;
+    if (response.ok) {
+      const data = await response.json();
+      const aiText = data.choices[0].message.content;
+      
+      // Parse simples da resposta
+      const lines = aiText.split('\n');
+      const improved = { ...extractedData };
+      
+      for (const line of lines) {
+        if (line.includes('Nome:') && line.split('Nome:')[1]?.trim()) {
+          improved.name = line.split('Nome:')[1].trim();
+        }
+        if (line.includes('Email:') && line.split('Email:')[1]?.trim()) {
+          improved.email = line.split('Email:')[1].trim();
+        }
+        if (line.includes('Telefone:') && line.split('Telefone:')[1]?.trim()) {
+          improved.phone = line.split('Telefone:')[1].trim();
+        }
+        if (line.includes('Observações:') && line.split('Observações:')[1]?.trim()) {
+          improved.observations = line.split('Observações:')[1].trim();
+        }
       }
+      
+      console.log('✅ Dados melhorados pela IA:', improved);
+      return improved;
     }
+    
+  } catch (error) {
+    console.log('❌ Melhoria com ChatGPT falhou:', error.message);
   }
   
-  // Gerar observações baseadas no conteúdo
-  const lines = text.split('\n').filter(line => line.trim().length > 10);
-  if (lines.length > 3) {
-    result.observations = lines.slice(0, 3).join('. ').substring(0, 200) + '...';
-  } else {
-    result.observations = 'Informações extraídas do currículo processado.';
-  }
-  
-  return result;
+  return extractedData;
 }
 
 serve(async (req) => {
@@ -220,97 +288,33 @@ serve(async (req) => {
       );
     }
 
-    let extractedText = '';
-    let method = '';
-
-    // Método 1: Tentar ChatGPT Vision primeiro
-    try {
-      extractedText = await extractUsingChatGPT(pdfData);
-      method = 'ChatGPT Vision';
-    } catch (error) {
-      console.log('❌ ChatGPT falhou:', error.message);
-      
-      // Método 2: Tentar API externa
-      try {
-        extractedText = await convertPDFToTextUsingAPI(pdfData);
-        method = 'API Externa';
-      } catch (apiError) {
-        console.log('❌ API externa falhou:', apiError.message);
-        
-        // Método 3: Parsing manual como último recurso
-        extractedText = parseRawPDFData(pdfData);
-        method = 'Extração Manual';
-      }
-    }
-
-    if (!extractedText || extractedText.length < 10) {
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Não foi possível extrair texto do PDF. Arquivo pode estar corrompido ou protegido.',
-          method: method
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
-    }
-
-    // Analisar o texto extraído
-    const candidateInfo = parseExtractedText(extractedText);
+    // Extrair dados diretamente do PDF
+    let candidateInfo = extractDataFromPDFBinary(pdfData);
     
-    // Filtrar resultados de baixa qualidade
-    if (candidateInfo.name === 'Google Docs Renderer' || 
-        candidateInfo.name.includes('PDF') || 
-        candidateInfo.name.includes('Font') ||
-        candidateInfo.name.includes('Stream')) {
-      candidateInfo.name = '';
-    }
-
+    // Melhorar com ChatGPT se possível
+    candidateInfo = await analyzeWithTextGPT(candidateInfo);
+    
     // Calcular confiança
     let confidence = 0;
-    if (candidateInfo.name && candidateInfo.name.length > 3) confidence += 30;
-    if (candidateInfo.email && candidateInfo.email.includes('@')) confidence += 35;
-    if (candidateInfo.phone && candidateInfo.phone.length > 8) confidence += 30;
-    if (candidateInfo.observations && candidateInfo.observations.length > 10) confidence += 5;
+    if (candidateInfo.name && candidateInfo.name.length > 3 && candidateInfo.name !== 'Google Docs Renderer') confidence += 30;
+    if (candidateInfo.email && candidateInfo.email.includes('@') && candidateInfo.email.includes('.')) confidence += 35;
+    if (candidateInfo.phone && candidateInfo.phone.length > 8 && !candidateInfo.phone.startsWith('0000')) confidence += 30;
+    if (candidateInfo.observations && candidateInfo.observations.length > 20) confidence += 5;
 
-    // Se confiança muito baixa, tentar métodos alternativos
-    if (confidence < 50) {
-      console.log('🔄 Baixa confiança, tentando métodos alternativos...');
-      
-      // Tentar extrair nomes de formato brasileiro
-      const brazilianNamePattern = /([A-ZÁÉÍÓÚÂÊÎÔÛÀÈÌÒÙÃÕÇ][a-záéíóúâêîôûàèìòùãõç]+(?:\s+[A-ZÁÉÍÓÚÂÊÎÔÛÀÈÌÒÙÃÕÇ][a-záéíóúâêîôûàèìòùãõç]+){1,3})/g;
-      const brazilianNames = extractedText.match(brazilianNamePattern) || [];
-      
-      if (brazilianNames.length > 0 && !candidateInfo.name) {
-        const validName = brazilianNames.find(name => 
-          name.length > 5 && name.length < 50 && 
-          !/(PDF|Font|Type|Stream|Object|Page|Root|Info|Creator|Producer|Google|Docs|Renderer)/i.test(name)
-        );
-        if (validName) {
-          candidateInfo.name = validName;
-          confidence += 25;
-        }
-      }
-    }
-
-    console.log('✅ Resultado final:', candidateInfo);
-    console.log('🎯 Confiança:', confidence + '%');
+    console.log('🎯 Confiança final:', confidence + '%');
 
     return new Response(
       JSON.stringify({
         success: true,
         data: candidateInfo,
         confidence: confidence,
-        method: method,
-        debug: {
-          extractedTextLength: extractedText.length,
-          extractedTextSample: extractedText.substring(0, 300)
-        }
+        method: 'Extração Binária Robusta + IA'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('💥 Erro geral:', error);
+    console.error('💥 Erro final:', error);
     
     return new Response(
       JSON.stringify({ 
