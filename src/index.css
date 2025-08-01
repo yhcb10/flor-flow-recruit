@@ -2,39 +2,62 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Sistema de Design para Coroa de Flores Nobre
+Cores profissionais e respeitosas que refletem seriedade e sensibilidade
+Todas as cores DEVEM ser HSL. */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Cores principais - tons elegantes e sóbrios */
+    --background: 210 20% 98%;
+    --foreground: 210 15% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 210 15% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 210 15% 15%;
 
-    --primary: 222.2 47.4% 11.2%;
+    /* Primary - azul petróleo elegante */
+    --primary: 205 30% 25%;
     --primary-foreground: 210 40% 98%;
+    --primary-hover: 205 30% 30%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Secondary - cinza suave profissional */
+    --secondary: 210 15% 95%;
+    --secondary-foreground: 210 15% 25%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 210 15% 95%;
+    --muted-foreground: 210 10% 50%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Accent - dourado discreto para destaque */
+    --accent: 45 25% 85%;
+    --accent-foreground: 45 15% 25%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    /* Estados dos status */
+    --success: 150 40% 35%;
+    --success-foreground: 150 50% 95%;
+    --warning: 35 80% 50%;
+    --warning-foreground: 35 90% 95%;
+    --destructive: 0 60% 45%;
+    --destructive-foreground: 0 85% 97%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    /* Kanban específico */
+    --kanban-bg: 210 25% 97%;
+    --kanban-column: 210 20% 98%;
+    --kanban-card: 0 0% 100%;
+    --kanban-card-hover: 210 30% 96%;
+
+    /* Status específicos do processo seletivo */
+    --status-new: 200 40% 90%;
+    --status-analysis: 35 60% 90%;
+    --status-interview: 260 40% 90%;
+    --status-approved: 150 40% 90%;
+    --status-rejected: 0 40% 90%;
+
+    --border: 210 20% 90%;
+    --input: 210 20% 95%;
+    --ring: 205 30% 25%;
 
     --radius: 0.5rem;
 
@@ -56,33 +79,49 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 210 20% 8%;
+    --foreground: 210 40% 95%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 210 20% 10%;
+    --card-foreground: 210 40% 95%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 210 20% 10%;
+    --popover-foreground: 210 40% 95%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 205 40% 70%;
+    --primary-foreground: 210 20% 8%;
+    --primary-hover: 205 40% 75%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 210 15% 15%;
+    --secondary-foreground: 210 40% 90%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 210 15% 15%;
+    --muted-foreground: 210 15% 65%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 45 25% 25%;
+    --accent-foreground: 45 80% 90%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --success: 150 50% 60%;
+    --success-foreground: 150 80% 10%;
+    --warning: 35 90% 65%;
+    --warning-foreground: 35 90% 10%;
+    --destructive: 0 70% 60%;
+    --destructive-foreground: 0 85% 95%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --kanban-bg: 210 20% 6%;
+    --kanban-column: 210 20% 9%;
+    --kanban-card: 210 20% 12%;
+    --kanban-card-hover: 210 20% 15%;
+
+    --status-new: 200 20% 20%;
+    --status-analysis: 35 30% 20%;
+    --status-interview: 260 20% 20%;
+    --status-approved: 150 30% 20%;
+    --status-rejected: 0 30% 20%;
+
+    --border: 210 20% 20%;
+    --input: 210 20% 15%;
+    --ring: 205 40% 70%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
