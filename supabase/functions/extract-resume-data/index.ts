@@ -8,61 +8,47 @@ const corsHeaders = {
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
-// Função melhorada para extrair texto de PDF
+// Função simplificada para extrair texto de PDF
 async function extractTextFromPDF(base64Data: string): Promise<string> {
   try {
     const binaryString = atob(base64Data);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
     
-    // Buscar por streams de texto no PDF
-    const text = binaryString;
-    
-    // Extrair texto entre parênteses e colchetes (comum em PDFs)
-    const textPatterns = [
-      /\(([^)]+)\)/g,           // Texto entre parênteses
-      /\[([^\]]+)\]/g,          // Texto entre colchetes  
-      /Tj\s*([^T]+)T/g,         // Operadores de texto PDF
-      /BT\s*([^E]+)ET/g,        // Blocos de texto PDF
+    // Buscar padrões de texto comuns em PDFs
+    const patterns = [
+      /\(([^)]{3,})\)/g,        // Texto entre parênteses (mín 3 chars)
+      /\/([A-Za-z\u00C0-\u017F\s]{3,})\s/g,  // Texto após barra
     ];
     
     let extractedText = '';
     
-    for (const pattern of textPatterns) {
-      const matches = text.match(pattern) || [];
+    for (const pattern of patterns) {
+      const matches = binaryString.match(pattern) || [];
       for (const match of matches) {
-        const cleanText = match
-          .replace(/[()[\]]/g, '')           // Remove parênteses e colchetes
-          .replace(/[^\x20-\x7E\u00C0-\u017F\u00A0-\u024F]/g, ' ') // Mantém apenas caracteres legíveis
-          .replace(/\s+/g, ' ')              // Normaliza espaços
-          .trim();
+        let cleanText = match.replace(/[()\/]/g, '').trim();
         
-        if (cleanText.length > 2 && /[a-zA-ZÀ-ÿ]/.test(cleanText)) {
+        // Filtrar apenas texto que parece ser legível
+        if (cleanText.length >= 3 && 
+            /[a-zA-ZÀ-ÿ]/.test(cleanText) && 
+            !cleanText.match(/^[0-9\.\-\+\*\/\=\<\>\!\@\#\$\%\^\&]+$/)) {
           extractedText += cleanText + ' ';
         }
       }
     }
     
-    // Se não encontrou texto suficiente, tenta uma abordagem mais agressiva
-    if (extractedText.length < 50) {
-      const allText = binaryString
-        .replace(/[^\x20-\x7E\u00C0-\u017F\u00A0-\u024F]/g, ' ')
+    // Se não encontrou texto suficiente, fazer extração mais simples
+    if (extractedText.length < 20) {
+      const simpleText = binaryString
+        .replace(/[^\x20-\x7E\u00C0-\u017F]/g, ' ')
         .replace(/\s+/g, ' ')
-        .trim();
+        .split(' ')
+        .filter(word => word.length > 2 && /[a-zA-ZÀ-ÿ]/.test(word))
+        .slice(0, 100)
+        .join(' ');
       
-      // Extrai palavras que parecem ser texto legível
-      const words = allText.split(' ').filter(word => 
-        word.length > 2 && 
-        /[a-zA-ZÀ-ÿ]/.test(word) &&
-        !word.match(/^[0-9\.\-\+\*\/\=\<\>\!\@\#\$\%\^\&\(\)]+$/)
-      );
-      
-      extractedText = words.slice(0, 200).join(' '); // Limita a 200 palavras
+      extractedText = simpleText;
     }
     
-    return extractedText.trim() || '';
+    return extractedText.trim();
   } catch (error) {
     console.error('Erro ao extrair texto do PDF:', error);
     return '';
@@ -235,12 +221,14 @@ serve(async (req) => {
     
     // Calcular confiança baseada nos campos preenchidos
     let confidence = 0;
-    if (aiAnalysis.name && aiAnalysis.name.trim() && aiAnalysis.name !== '') confidence += 30;
-    if (aiAnalysis.email && aiAnalysis.email.includes('@')) confidence += 25;
-    if (aiAnalysis.phone && aiAnalysis.phone.trim() && aiAnalysis.phone !== '') confidence += 25;
-    if (aiAnalysis.experience && aiAnalysis.experience.trim() && aiAnalysis.experience !== '') confidence += 10;
-    if (aiAnalysis.skills && aiAnalysis.skills.length > 0) confidence += 10;
+    if (aiAnalysis.name && aiAnalysis.name.trim() && aiAnalysis.name !== '' && aiAnalysis.name.length > 2) confidence += 30;
+    if (aiAnalysis.email && aiAnalysis.email.includes('@') && aiAnalysis.email.length > 5) confidence += 25;
+    if (aiAnalysis.phone && aiAnalysis.phone.trim() && aiAnalysis.phone !== '' && aiAnalysis.phone.length > 3) confidence += 25;
+    if (aiAnalysis.experience && aiAnalysis.experience.trim() && aiAnalysis.experience !== '' && aiAnalysis.experience.length > 5) confidence += 10;
+    if (aiAnalysis.skills && Array.isArray(aiAnalysis.skills) && aiAnalysis.skills.length > 0) confidence += 10;
+    if (aiAnalysis.education && aiAnalysis.education.trim() && aiAnalysis.education !== '' && aiAnalysis.education.length > 3) confidence += 5;
 
+    console.log('Dados extraídos:', aiAnalysis);
     console.log('Confiança calculada:', confidence);
 
     return new Response(
