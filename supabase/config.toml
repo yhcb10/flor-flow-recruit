@@ -2,3 +2,9 @@ project_id = "burxedzkpugyavsqkzaj"
 
 [functions.extract-resume-data]
 verify_jwt = false
+
+[functions.analyze-candidate]
+verify_jwt = false
+
+[functions.receive-n8n-analysis]
+verify_jwt = false
