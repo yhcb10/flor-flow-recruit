@@ -1,9 +1,56 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Candidate, CandidateStage, KanbanColumn } from '@/types/recruitment';
 import { mockCandidates, kanbanColumns } from '@/data/mockData';
+import { supabase } from '@/integrations/supabase/client';
 
 export function useRecruitmentKanban(positionId?: string) {
-  const [candidates, setCandidates] = useState<Candidate[]>(mockCandidates);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Load candidates from Supabase
+  useEffect(() => {
+    const loadCandidates = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('candidates')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Error loading candidates:', error);
+          // Fallback to mock data on error
+          setCandidates(mockCandidates);
+        } else {
+          // Transform data from database format to app format
+          const transformedCandidates: Candidate[] = data.map(candidate => ({
+            id: candidate.id,
+            name: candidate.name,
+            email: candidate.email,
+            phone: candidate.phone || '',
+            positionId: candidate.position_id || '1',
+            resumeUrl: candidate.resume_url,
+            resumeText: candidate.resume_text,
+            resumeFileName: candidate.resume_file_name,
+            source: candidate.source as 'indeed' | 'manual' | 'referral',
+            stage: candidate.stage as CandidateStage,
+            aiAnalysis: candidate.ai_analysis as any || undefined,
+            notes: (candidate.notes as any) || [],
+            interviews: (candidate.interviews as any) || [],
+            createdAt: new Date(candidate.created_at),
+            updatedAt: new Date(candidate.updated_at)
+          }));
+          setCandidates(transformedCandidates);
+        }
+      } catch (error) {
+        console.error('Error loading candidates:', error);
+        setCandidates(mockCandidates);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadCandidates();
+  }, []);
 
   const columns = useMemo(() => {
     const candidatesByStage = candidates.reduce((acc, candidate) => {
@@ -62,6 +109,7 @@ export function useRecruitmentKanban(positionId?: string) {
   return {
     columns,
     candidates,
+    loading,
     moveCandidateToStage,
     updateCandidate,
     addCandidate,

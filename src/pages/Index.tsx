@@ -9,7 +9,7 @@ import { mockJobPositions } from '@/data/mockData';
 
 const Index = () => {
   const [selectedPosition, setSelectedPosition] = useState(mockJobPositions[0]);
-  const { columns, candidates, moveCandidateToStage, updateCandidate, addCandidate, stats } = useRecruitmentKanban(selectedPosition?.id);
+  const { columns, candidates, loading, moveCandidateToStage, updateCandidate, addCandidate, stats } = useRecruitmentKanban(selectedPosition?.id);
   
   // Filter candidates by selected position
   const positionCandidates = candidates.filter(candidate => 
@@ -80,16 +80,22 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="kanban" className="mt-6">
-            <KanbanBoard
-              columns={filteredColumns}
-              onCandidateMove={moveCandidateToStage}
-              onCandidateSelect={updateCandidate}
-              onCandidateAdd={(candidate) => addCandidate({
-                ...candidate,
-                positionId: selectedPosition?.id || ''
-              })}
-              selectedPosition={selectedPosition}
-            />
+            {loading ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="text-lg text-muted-foreground">Carregando candidatos...</div>
+              </div>
+            ) : (
+              <KanbanBoard
+                columns={filteredColumns}
+                onCandidateMove={moveCandidateToStage}
+                onCandidateSelect={updateCandidate}
+                onCandidateAdd={(candidate) => addCandidate({
+                  ...candidate,
+                  positionId: selectedPosition?.id || ''
+                })}
+                selectedPosition={selectedPosition}
+              />
+            )}
           </TabsContent>
 
           <TabsContent value="ai" className="mt-6">
