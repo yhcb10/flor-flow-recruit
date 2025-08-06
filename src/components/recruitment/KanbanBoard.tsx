@@ -155,13 +155,6 @@ export function KanbanBoard({ columns, onCandidateMove, onCandidateSelect, onCan
       <NewCandidateModal
         isOpen={showNewCandidateModal}
         onClose={() => setShowNewCandidateModal(false)}
-        onSubmit={(candidate) => {
-          onCandidateAdd({
-            ...candidate,
-            positionId: selectedPosition?.id || ''
-          });
-          setShowNewCandidateModal(false);
-        }}
         selectedPosition={selectedPosition}
       />
     </div>

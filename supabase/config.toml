@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.receive-n8n-analysis]
 verify_jwt = false
+
+[functions.send-resume-to-n8n]
+verify_jwt = false
