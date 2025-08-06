@@ -30,64 +30,18 @@ serve(async (req) => {
   }
 
   try {
-    // Expect a single candidate object from N8N
+    // Log the received data
     const candidateData: N8NCandidateData = await req.json();
     
     console.log('Received N8N analysis data:', candidateData);
 
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    // Map N8N data directly to our database structure
-    const dbData = {
-      nome_completo: candidateData.nome_completo,
-      idade: candidateData.idade,
-      telefone: candidateData.telefone,
-      email: candidateData.email,
-      cidade: candidateData.cidade,
-      nota_final: candidateData.nota_final,
-      justificativa: candidateData.justificativa,
-      pontos_fortes: candidateData.pontos_fortes,
-      pontos_fracos: candidateData.pontos_fracos,
-      observacoes: candidateData.observacoes,
-      recomendacao: candidateData.recomendacao,
-      proximos_passos: candidateData.proximos_passos,
-      data_processamento: candidateData.data_processamento,
-    };
-
-    // Insert new candidate
-    const { data: newCandidate, error: insertError } = await supabase
-      .from('candidates')
-      .insert(dbData)
-      .select()
-      .single();
-
-    if (insertError) {
-      console.error(`Error inserting candidate ${candidateData.nome_completo}:`, insertError);
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: insertError.message,
-          candidate: candidateData.nome_completo
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
+    // Simply return success without database operations
     console.log(`Successfully processed candidate: ${candidateData.nome_completo}`);
     return new Response(
       JSON.stringify({
         success: true,
         message: `Successfully processed candidate: ${candidateData.nome_completo}`,
-        candidate: {
-          id: newCandidate.id,
-          name: candidateData.nome_completo
-        }
+        data: candidateData
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
