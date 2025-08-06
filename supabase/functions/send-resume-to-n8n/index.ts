@@ -31,8 +31,15 @@ serve(async (req) => {
     // Obter webhook URL do N8N das variáveis de ambiente
     const n8nWebhookUrl = Deno.env.get('N8N_WEBHOOK_URL');
     
+    console.log('N8N_WEBHOOK_URL configurado:', n8nWebhookUrl ? 'Sim' : 'Não');
+    console.log('URL do webhook:', n8nWebhookUrl);
+    
     if (!n8nWebhookUrl) {
-      throw new Error('N8N_WEBHOOK_URL não configurado');
+      throw new Error('N8N_WEBHOOK_URL não configurado nas variáveis de ambiente');
+    }
+
+    if (n8nWebhookUrl === 'teste') {
+      throw new Error('N8N_WEBHOOK_URL ainda está configurado como "teste" - favor atualizar com a URL correta');
     }
 
     // Preparar dados para enviar ao N8N
