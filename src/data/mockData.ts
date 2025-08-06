@@ -1,38 +1,180 @@
 import { Candidate, JobPosition, KanbanColumn, CandidateStage } from '@/types/recruitment';
 
-export const gestorAdsJobPosition: JobPosition = {
-  id: 'gestor-ads',
-  title: 'Gestor de Ads',
-  department: 'Marketing',
-  description: 'Gestor de campanhas de Google Ads e Facebook Ads para maximizar ROI e conversões',
-  requirements: [
-    'Superior completo em Marketing, Publicidade ou áreas afins',
-    'Experiência mínima de 2 anos com Google Ads',
-    'Experiência com Facebook Ads e Instagram Ads',
-    'Conhecimento em Google Analytics e ferramentas de análise',
-    'Certificações Google Ads (preferencial)'
-  ],
-  responsibilities: [
-    'Criação e otimização de campanhas no Google Ads',
-    'Gestão de campanhas em redes sociais (Facebook, Instagram)',
-    'Análise de métricas e relatórios de performance',
-    'Otimização de ROI e redução de CPA',
-    'Definição de públicos-alvo e segmentações',
-    'Acompanhamento de tendências e melhores práticas'
-  ],
-  culturalValues: [
-    'Foco em resultados e métricas',
-    'Pensamento analítico e estratégico',
-    'Capacidade de adaptação rápida',
-    'Criatividade para testes e otimizações',
-    'Transparência na comunicação de resultados'
-  ],
-  minimumQualification: 'Superior completo',
-  status: 'active',
-  createdAt: new Date('2024-01-15'),
-  createdBy: 'RH - Recursos Humanos',
-  targetHires: 1,
-  aiAnalysisPrompt: `🧠 Avaliador IA - Gestor de Ads
+export const mockJobPositions: JobPosition[] = [
+  {
+    id: '1',
+    title: 'Vendedor',
+    department: 'Vendas',
+    description: 'Vendedor presencial para atendimento ativo e receptivo via telefone e WhatsApp na Barra Funda - SP',
+    requirements: [
+      'Ensino Médio completo',
+      'Experiência em call center de vendas com metas',
+      'Boa digitação',
+      'Domínio da norma culta da língua portuguesa',
+      'Disponibilidade para escala 12x36'
+    ],
+    responsibilities: [
+      'Atendimento ativo e receptivo via telefone e WhatsApp',
+      'Apresentação de soluções com empatia, clareza e foco em conversão',
+      'Negociação com agilidade e orientação para metas',
+      'Registro de atendimentos no CRM',
+      'Comunicação profissional e eficaz durante todo o processo'
+    ],
+    culturalValues: [
+      'Agilidade para múltiplas demandas',
+      'Comunicação verbal e escrita',
+      'Organização sob pressão',
+      'Postura consultiva e foco em resultado',
+      'Resiliência e senso de urgência'
+    ],
+    minimumQualification: 'Ensino médio completo',
+    status: 'active',
+    createdAt: new Date('2024-01-15'),
+    createdBy: 'Ana Santos - RH',
+    targetHires: 2,
+    aiAnalysisPrompt: `🧠 Prompt Personalizado GPT – Avaliador de Currículos: Vaga de Vendedor (Barra Funda – SP)
+
+🎯 OBJETIVO GERAL
+Você é um avaliador inteligente de currículos, especializado em identificar candidatos ideais para uma vaga de vendedor presencial, com base em critérios técnicos, comportamentais, experienciais e de compatibilidade com a cultura e as demandas da função.
+
+Seu papel é ler atentamente cada currículo enviado, analisar todas as informações disponíveis, pontuar o candidato de forma justa e estruturada com base em critérios objetivos definidos previamente, verificar a adequação ao perfil etário desejado, e recomendar ou não o candidato para entrevista, justificando com base em dados reais.
+
+📌 SOBRE A VAGA
+🧾 Informações Gerais
+Cargo: Vendedor
+Local: Barra Funda – São Paulo (presencial)
+Salário fixo: R$ 2.335,00
+Comissão média: R$ 1.400,00
+Ganhos médios mensais: R$ 3.735,00
+Escala: 12x36
+Idade preferencial: 20 a 30 anos
+
+🧩 Responsabilidades
+Atendimento ativo e receptivo via telefone e WhatsApp
+Apresentação de soluções com empatia, clareza e foco em conversão
+Negociação com agilidade e orientação para metas
+Registro de atendimentos no CRM
+Comunicação profissional e eficaz durante todo o processo
+
+💡 Competências Comportamentais Esperadas
+Agilidade para múltiplas demandas
+Comunicação verbal e escrita
+Organização sob pressão
+Postura consultiva e foco em resultado
+Resiliência e senso de urgência
+
+🧠 Experiências Desejadas
+Call center de vendas com metas
+Vendas por telefone ou WhatsApp
+Uso de CRM e ambiente digital
+
+🎓 Qualificação Mínima
+Ensino Médio completo
+Boa digitação
+Domínio da norma culta da língua portuguesa
+Disponibilidade para escala mencionada, inclusive fins de semana e feriados
+
+🧬 Mindset Esperado
+Proatividade
+Mentalidade de dono
+Foco em conversão
+Organização
+
+📊 CRITÉRIOS DE AVALIAÇÃO (TOTAL BASE: 8 PONTOS)
+1. Experiência Profissional (4 pontos): Vendas por telefone/WhatsApp, call center com metas, uso de CRM, ambiente digital
+2. Habilidades Técnicas (2 pontos): Boa digitação, português correto, domínio de sistemas digitais (CRM, planilhas, etc.)
+3. Competências Comportamentais (1 ponto): Comunicação, empatia, agilidade, resiliência, organização
+4. Formação Acadêmica (1 ponto): Ensino Médio completo (obrigatório). Técnicos ou superiores são diferenciais, mas não somam pontos
+
+🌟 DIFERENCIAIS (PONTUAÇÃO EXTRA: 0 a 2 PONTOS)
+Apenas atribua nota entre 9 e 10 se o candidato atender 100% dos requisitos obrigatórios e apresentar pelo menos 2 diferenciais abaixo:
+- Experiência com metas agressivas e histórico de performance
+- Uso recorrente e declarado de CRM
+- Vendas por WhatsApp com foco consultivo
+- Certificações, cursos de vendas ou atendimento
+- Promoções ou reconhecimentos anteriores
+- Demonstração clara de foco em resultado, mentalidade de dono ou liderança informal
+
+🚫 ITENS NÃO PONTUÁVEIS (MAS DEVEM SER OBSERVADOS)
+Pretensão Salarial: Deve ser até R$ 3.735,00. Se superior, destaque como ponto de atenção.
+Localização / Disponibilidade para Escala 12x36: Deve residir em SP ou região com fácil acesso à Barra Funda. Se não for o caso, destaque como ponto de atenção.
+Idade: O perfil desejado está entre 20 e 30 anos. Caso o currículo contenha idade ou data de nascimento que indiquem idade fora desse intervalo, sinalize como desclassificado para entrevista e mostre o porquê, se não houver esses dados sinalize como ponto de atenção.
+
+⚠️ Não penalize a nota com base na idade.
+
+✅ CRITÉRIO DE APROVAÇÃO PARA ENTREVISTA
+Apenas candidatos com nota final igual ou superior a 6.5/10 devem ser recomendados para entrevista.
+Candidatos abaixo dessa nota devem ser marcados como "Não recomendados neste momento".
+
+🧾 FORMATO DE RESPOSTA
+📄 Candidato Avaliado
+Nome: [Nome completo do candidato]
+Telefone: [Número de contato]
+Nota final: [X.X]/10
+
+🔍 Avaliação Detalhada
+Experiência Profissional: X/4
+Habilidades Técnicas: X/2
+Competências Comportamentais: X/1
+Formação Acadêmica: X/1
+Diferenciais relevantes: X/2
+
+✅ Pontos Fortes:
+- [Exemplo: Experiência sólida com vendas por WhatsApp em call center]
+- [Exemplo: Comunicação clara, proatividade e uso de CRM]
+
+⚠️ Pontos de Atenção:
+- Pretensão salarial: [Exemplo: R$ 4.200,00 – acima da faixa desejada]
+- Localização: [Exemplo: Mora em Guarulhos – verificar viabilidade logística]
+- Idade estimada: [Exemplo: Provável idade acima do intervalo (baseado em datas de experiência)]
+
+📌 Recomendação Final:
+✅ Aprovado para entrevista ou ❌ Não recomendado neste momento
+
+Resumo Profissional:
+[Texto de 3 a 5 linhas com os principais pontos da trajetória profissional, perfil técnico e potencial do candidato]
+
+⚠️ CONDUTA DO GPT
+Seja criterioso e profissional.
+Não presuma informações não mencionadas.
+Faça o melhor julgamento possível com base no conteúdo real do currículo.
+Nunca aprove currículos com nota inferior a 6.5.
+Nunca atribua nota 10 a candidatos que não atendam 100% dos obrigatórios + diferenciais.
+Sempre destaque idade estimada fora do intervalo, pretensão acima do teto e localização desfavorável, mas não reduza pontos por esses motivos.`
+  },
+  {
+    id: 'gestor-ads',
+    title: 'Gestor de Ads',
+    department: 'Marketing',
+    description: 'Gestor de campanhas de Google Ads e Facebook Ads para maximizar ROI e conversões',
+    requirements: [
+      'Superior completo em Marketing, Publicidade ou áreas afins',
+      'Experiência mínima de 2 anos com Google Ads',
+      'Experiência com Facebook Ads e Instagram Ads',
+      'Conhecimento em Google Analytics e ferramentas de análise',
+      'Certificações Google Ads (preferencial)'
+    ],
+    responsibilities: [
+      'Criação e otimização de campanhas no Google Ads',
+      'Gestão de campanhas em redes sociais (Facebook, Instagram)',
+      'Análise de métricas e relatórios de performance',
+      'Otimização de ROI e redução de CPA',
+      'Definição de públicos-alvo e segmentações',
+      'Acompanhamento de tendências e melhores práticas'
+    ],
+    culturalValues: [
+      'Foco em resultados e métricas',
+      'Pensamento analítico e estratégico',
+      'Capacidade de adaptação rápida',
+      'Criatividade para testes e otimizações',
+      'Transparência na comunicação de resultados'
+    ],
+    minimumQualification: 'Superior completo',
+    status: 'active',
+    createdAt: new Date('2024-01-15'),
+    createdBy: 'RH - Recursos Humanos',
+    targetHires: 1,
+    aiAnalysisPrompt: `🧠 Avaliador IA - Gestor de Ads
 
 🎯 OBJETIVO
 Avaliar candidatos para posição de Gestor de Ads com foco em performance digital e ROI.
@@ -89,7 +231,8 @@ Foco especial em experiência prática e resultados
 
 🎯 PERFIL IDEAL
 Profissional analítico, focado em resultados, com experiência sólida em gestão de campanhas pagas e capacidade de otimizar constantemente para melhor ROI.`
-};
+  }
+];
 
 export const mockCandidates: Candidate[] = [
   {

@@ -1,24 +1,26 @@
+import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { KanbanBoard } from '@/components/recruitment/KanbanBoard';
 import { RecruitmentDashboard } from '@/components/recruitment/RecruitmentDashboard';
 import { AIAnalysisPanel } from '@/components/recruitment/AIAnalysisPanel';
+import { JobPositionSelector } from '@/components/recruitment/JobPositionSelector';
 import { useRecruitmentKanban } from '@/hooks/useRecruitmentKanban';
-import { gestorAdsJobPosition } from '@/data/mockData';
+import { mockJobPositions } from '@/data/mockData';
 
 const Index = () => {
-  const selectedPosition = gestorAdsJobPosition;
-  const { columns, candidates, loading, moveCandidateToStage, updateCandidate, addCandidate, deleteCandidate, stats } = useRecruitmentKanban(selectedPosition.id);
+  const [selectedPosition, setSelectedPosition] = useState(mockJobPositions[0]);
+  const { columns, candidates, loading, moveCandidateToStage, updateCandidate, addCandidate, deleteCandidate, stats } = useRecruitmentKanban(selectedPosition?.id);
   
   // Filter candidates by selected position
   const positionCandidates = candidates.filter(candidate => 
-    candidate.positionId === selectedPosition.id
+    candidate.positionId === selectedPosition?.id
   );
   
   // Filter columns to only show candidates for selected position
   const filteredColumns = columns.map(column => ({
     ...column,
     candidates: column.candidates.filter(candidate => 
-      candidate.positionId === selectedPosition.id
+      candidate.positionId === selectedPosition?.id
     )
   }));
   
@@ -44,8 +46,7 @@ const Index = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-foreground">Coroa de Flores Nobre</h1>
-              <p className="text-lg text-muted-foreground">Processo Seletivo - {selectedPosition.title}</p>
-              <p className="text-sm text-muted-foreground">{selectedPosition.department} • Meta: {selectedPosition.targetHires} contratação(ões)</p>
+              <p className="text-lg text-muted-foreground">Sistema de Gestão de Processo Seletivo</p>
             </div>
             <div className="text-right">
               <div className="text-sm text-muted-foreground">Versão 1.0</div>
@@ -53,6 +54,19 @@ const Index = () => {
             </div>
           </div>
         </header>
+
+        {/* Job Position Selector */}
+        <div className="mb-6">
+          <JobPositionSelector
+            positions={mockJobPositions}
+            selectedPosition={selectedPosition}
+            onPositionSelect={setSelectedPosition}
+            onNewPosition={() => {
+              // TODO: Implement new position creation
+              console.log('Create new position');
+            }}
+          />
+        </div>
 
         <Tabs defaultValue="kanban" className="w-full">
           <TabsList className="grid w-full grid-cols-3 max-w-lg">
@@ -77,7 +91,7 @@ const Index = () => {
                 onCandidateSelect={updateCandidate}
                 onCandidateAdd={(candidate) => addCandidate({
                   ...candidate,
-                  positionId: selectedPosition.id
+                  positionId: selectedPosition?.id || ''
                 })}
                 onCandidateDelete={deleteCandidate}
                 selectedPosition={selectedPosition}
