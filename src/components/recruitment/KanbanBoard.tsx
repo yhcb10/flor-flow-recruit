@@ -16,10 +16,11 @@ interface KanbanBoardProps {
   onCandidateMove: (candidateId: string, newStage: CandidateStage) => void;
   onCandidateSelect: (candidate: Candidate) => void;
   onCandidateAdd: (candidate: Candidate) => void;
+  onCandidateDelete?: (candidateId: string) => void;
   selectedPosition?: JobPosition | null;
 }
 
-export function KanbanBoard({ columns, onCandidateMove, onCandidateSelect, onCandidateAdd, selectedPosition }: KanbanBoardProps) {
+export function KanbanBoard({ columns, onCandidateMove, onCandidateSelect, onCandidateAdd, onCandidateDelete, selectedPosition }: KanbanBoardProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [showNewCandidateModal, setShowNewCandidateModal] = useState(false);
@@ -143,6 +144,10 @@ export function KanbanBoard({ columns, onCandidateMove, onCandidateSelect, onCan
             onCandidateSelect(updatedCandidate);
             setSelectedCandidate(null);
           }}
+          onDelete={onCandidateDelete ? (candidateId) => {
+            onCandidateDelete(candidateId);
+            setSelectedCandidate(null);
+          } : undefined}
         />
       )}
 

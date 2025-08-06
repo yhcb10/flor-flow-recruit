@@ -9,7 +9,7 @@ import { mockJobPositions } from '@/data/mockData';
 
 const Index = () => {
   const [selectedPosition, setSelectedPosition] = useState(mockJobPositions[0]);
-  const { columns, candidates, loading, moveCandidateToStage, updateCandidate, addCandidate, stats } = useRecruitmentKanban(selectedPosition?.id);
+  const { columns, candidates, loading, moveCandidateToStage, updateCandidate, addCandidate, deleteCandidate, stats } = useRecruitmentKanban(selectedPosition?.id);
   
   // Filter candidates by selected position
   const positionCandidates = candidates.filter(candidate => 
@@ -93,6 +93,7 @@ const Index = () => {
                   ...candidate,
                   positionId: selectedPosition?.id || ''
                 })}
+                onCandidateDelete={deleteCandidate}
                 selectedPosition={selectedPosition}
               />
             )}

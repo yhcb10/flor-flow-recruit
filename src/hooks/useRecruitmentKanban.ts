@@ -85,6 +85,25 @@ export function useRecruitmentKanban(positionId?: string) {
     setCandidates(prev => [...prev, newCandidate]);
   };
 
+  const deleteCandidate = async (candidateId: string) => {
+    try {
+      const { error } = await supabase
+        .from('candidates')
+        .delete()
+        .eq('id', candidateId);
+
+      if (error) {
+        console.error('Error deleting candidate:', error);
+        throw error;
+      }
+
+      setCandidates(prev => prev.filter(candidate => candidate.id !== candidateId));
+    } catch (error) {
+      console.error('Error deleting candidate:', error);
+      throw error;
+    }
+  };
+
   const getStats = () => {
     const total = candidates.length;
     const byStage = candidates.reduce((acc, candidate) => {
@@ -113,6 +132,7 @@ export function useRecruitmentKanban(positionId?: string) {
     moveCandidateToStage,
     updateCandidate,
     addCandidate,
+    deleteCandidate,
     stats: getStats()
   };
 }

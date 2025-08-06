@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { 
   User, Mail, Phone, Calendar, Star, TrendingUp, TrendingDown, 
-  MessageSquare, Video, MapPin, Clock, ExternalLink 
+  MessageSquare, Video, MapPin, Clock, ExternalLink, Trash2 
 } from 'lucide-react';
 import { Candidate } from '@/types/recruitment';
 import { format } from 'date-fns';
@@ -25,9 +25,10 @@ interface CandidateModalProps {
   isOpen: boolean;
   onClose: () => void;
   onUpdate: (candidate: Candidate) => void;
+  onDelete?: (candidateId: string) => void;
 }
 
-export function CandidateModal({ candidate, isOpen, onClose, onUpdate }: CandidateModalProps) {
+export function CandidateModal({ candidate, isOpen, onClose, onUpdate, onDelete }: CandidateModalProps) {
   const [newNote, setNewNote] = useState('');
 
   const handleResumeUpload = (url: string, fileName: string) => {
@@ -77,20 +78,39 @@ export function CandidateModal({ candidate, isOpen, onClose, onUpdate }: Candida
     setNewNote('');
   };
 
+  const handleDelete = () => {
+    if (window.confirm(`Tem certeza que deseja excluir o candidato ${candidate.name}?`)) {
+      onDelete?.(candidate.id);
+      onClose();
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-3">
-            <Avatar className="h-12 w-12">
-              <AvatarFallback className="bg-primary/10 text-primary font-medium">
-                {candidate.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <div className="text-xl font-bold">{candidate.name}</div>
-              <div className="text-sm text-muted-foreground">Candidato • Florista Especializada</div>
+          <DialogTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Avatar className="h-12 w-12">
+                <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                  {candidate.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <div className="text-xl font-bold">{candidate.name}</div>
+                <div className="text-sm text-muted-foreground">Candidato • Florista Especializada</div>
+              </div>
             </div>
+            {onDelete && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDelete}
+                className="text-destructive hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
           </DialogTitle>
         </DialogHeader>
 
