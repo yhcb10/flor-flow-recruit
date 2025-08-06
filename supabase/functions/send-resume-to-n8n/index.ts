@@ -44,15 +44,10 @@ serve(async (req) => {
 
     // Preparar dados para enviar ao N8N
     const n8nPayload = {
-      tipo: 'novo_curriculo',
-      dados: {
-        arquivo_url: resumeUrl,
-        nome_arquivo: fileName,
-        vaga_id: positionId,
-        vaga_titulo: positionTitle,
-        data_envio: new Date().toISOString(),
-        origem: 'sistema_recrutamento'
-      }
+      resumeUrl,
+      fileName,
+      positionId,
+      positionTitle
     };
 
     // Enviar para o N8N
