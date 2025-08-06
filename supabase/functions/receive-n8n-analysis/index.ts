@@ -55,6 +55,7 @@ serve(async (req) => {
       recomendacao: candidateData.recomendacao,
       proximos_passos: candidateData.proximos_passos,
       data_processamento: candidateData.data_processamento,
+      stage: 'analise_ia' // Set stage to AI analysis
     };
 
     // Insert new candidate
