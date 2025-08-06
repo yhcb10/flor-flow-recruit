@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { Candidate, CandidateStage, KanbanColumn } from '@/types/recruitment';
 import { mockCandidates, kanbanColumns } from '@/data/mockData';
 
-export function useRecruitmentKanban() {
+export function useRecruitmentKanban(positionId?: string) {
   const [candidates, setCandidates] = useState<Candidate[]>(mockCandidates);
 
   const columns = useMemo(() => {

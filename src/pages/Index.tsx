@@ -3,12 +3,41 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { KanbanBoard } from '@/components/recruitment/KanbanBoard';
 import { RecruitmentDashboard } from '@/components/recruitment/RecruitmentDashboard';
 import { AIAnalysisPanel } from '@/components/recruitment/AIAnalysisPanel';
+import { JobPositionSelector } from '@/components/recruitment/JobPositionSelector';
 import { useRecruitmentKanban } from '@/hooks/useRecruitmentKanban';
 import { mockJobPositions } from '@/data/mockData';
 
 const Index = () => {
-  const { columns, candidates, moveCandidateToStage, updateCandidate, addCandidate, stats } = useRecruitmentKanban();
   const [selectedPosition, setSelectedPosition] = useState(mockJobPositions[0]);
+  const { columns, candidates, moveCandidateToStage, updateCandidate, addCandidate, stats } = useRecruitmentKanban(selectedPosition?.id);
+  
+  // Filter candidates by selected position
+  const positionCandidates = candidates.filter(candidate => 
+    candidate.positionId === selectedPosition?.id
+  );
+  
+  // Filter columns to only show candidates for selected position
+  const filteredColumns = columns.map(column => ({
+    ...column,
+    candidates: column.candidates.filter(candidate => 
+      candidate.positionId === selectedPosition?.id
+    )
+  }));
+  
+  // Calculate stats for selected position only
+  const positionStats = {
+    ...stats,
+    total: positionCandidates.length,
+    byStage: positionCandidates.reduce((acc, candidate) => {
+      acc[candidate.stage] = (acc[candidate.stage] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>),
+    approved: positionCandidates.filter(c => c.stage === 'aprovado').length,
+    rejected: positionCandidates.filter(c => c.stage === 'nao_aprovado').length,
+    inProcess: positionCandidates.filter(c => !['aprovado', 'nao_aprovado'].includes(c.stage)).length,
+    conversionRate: positionCandidates.length > 0 ? 
+      (positionCandidates.filter(c => c.stage === 'aprovado').length / positionCandidates.length) * 100 : 0
+  };
 
   return (
     <div className="min-h-screen bg-kanban-bg">
@@ -26,6 +55,19 @@ const Index = () => {
           </div>
         </header>
 
+        {/* Job Position Selector */}
+        <div className="mb-6">
+          <JobPositionSelector
+            positions={mockJobPositions}
+            selectedPosition={selectedPosition}
+            onPositionSelect={setSelectedPosition}
+            onNewPosition={() => {
+              // TODO: Implement new position creation
+              console.log('Create new position');
+            }}
+          />
+        </div>
+
         <Tabs defaultValue="kanban" className="w-full">
           <TabsList className="grid w-full grid-cols-3 max-w-lg">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
@@ -34,22 +76,26 @@ const Index = () => {
           </TabsList>
 
           <TabsContent value="dashboard" className="mt-6">
-            <RecruitmentDashboard stats={stats} />
+            <RecruitmentDashboard stats={positionStats} />
           </TabsContent>
 
           <TabsContent value="kanban" className="mt-6">
             <KanbanBoard
-              columns={columns}
+              columns={filteredColumns}
               onCandidateMove={moveCandidateToStage}
               onCandidateSelect={updateCandidate}
-              onCandidateAdd={addCandidate}
+              onCandidateAdd={(candidate) => addCandidate({
+                ...candidate,
+                positionId: selectedPosition?.id || ''
+              })}
+              selectedPosition={selectedPosition}
             />
           </TabsContent>
 
           <TabsContent value="ai" className="mt-6">
             <AIAnalysisPanel 
               selectedPosition={selectedPosition} 
-              candidates={candidates}
+              candidates={positionCandidates}
               onCandidateUpdate={updateCandidate}
             />
           </TabsContent>

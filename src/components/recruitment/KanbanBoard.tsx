@@ -7,7 +7,7 @@ import { Plus, Filter, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { CandidateCard } from './CandidateCard';
 import { CandidateModal } from './CandidateModal';
-import { Candidate, CandidateStage, KanbanColumn } from '@/types/recruitment';
+import { Candidate, CandidateStage, KanbanColumn, JobPosition } from '@/types/recruitment';
 import { cn } from '@/lib/utils';
 import { NewCandidateModal } from './NewCandidateModal';
 
@@ -16,9 +16,10 @@ interface KanbanBoardProps {
   onCandidateMove: (candidateId: string, newStage: CandidateStage) => void;
   onCandidateSelect: (candidate: Candidate) => void;
   onCandidateAdd: (candidate: Candidate) => void;
+  selectedPosition?: JobPosition | null;
 }
 
-export function KanbanBoard({ columns, onCandidateMove, onCandidateSelect, onCandidateAdd }: KanbanBoardProps) {
+export function KanbanBoard({ columns, onCandidateMove, onCandidateSelect, onCandidateAdd, selectedPosition }: KanbanBoardProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [showNewCandidateModal, setShowNewCandidateModal] = useState(false);
@@ -150,9 +151,13 @@ export function KanbanBoard({ columns, onCandidateMove, onCandidateSelect, onCan
         isOpen={showNewCandidateModal}
         onClose={() => setShowNewCandidateModal(false)}
         onSubmit={(candidate) => {
-          onCandidateAdd(candidate);
+          onCandidateAdd({
+            ...candidate,
+            positionId: selectedPosition?.id || ''
+          });
           setShowNewCandidateModal(false);
         }}
+        selectedPosition={selectedPosition}
       />
     </div>
   );

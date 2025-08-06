@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { UserPlus, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Candidate } from '@/types/recruitment';
+import { Candidate, JobPosition } from '@/types/recruitment';
 import { ResumeUpload } from './ResumeUpload';
 
 interface ExtractedData {
@@ -30,9 +30,10 @@ interface NewCandidateModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (candidate: Candidate) => void;
+  selectedPosition?: JobPosition | null;
 }
 
-export function NewCandidateModal({ isOpen, onClose, onSubmit }: NewCandidateModalProps) {
+export function NewCandidateModal({ isOpen, onClose, onSubmit, selectedPosition }: NewCandidateModalProps) {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -118,7 +119,7 @@ export function NewCandidateModal({ isOpen, onClose, onSubmit }: NewCandidateMod
       name: formData.name,
       email: formData.email,
       phone: formData.phone,
-      positionId: formData.positionId || 'florista-especializada',
+      positionId: selectedPosition?.id || formData.positionId || 'florista-especializada',
       resumeUrl,
       resumeText, // Adicionar o texto do currículo
       resumeFileName,
@@ -274,20 +275,33 @@ export function NewCandidateModal({ isOpen, onClose, onSubmit }: NewCandidateMod
                   </div>
                 </div>
 
-                <div>
-                  <Label htmlFor="position">Vaga de Interesse</Label>
-                  <Select value={formData.positionId} onValueChange={(value) => handleInputChange('positionId', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a vaga" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="florista-especializada">Florista Especializada</SelectItem>
-                      <SelectItem value="assistente-vendas">Assistente de Vendas</SelectItem>
-                      <SelectItem value="decorador">Decorador(a)</SelectItem>
-                      <SelectItem value="entregador">Entregador(a)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                {!selectedPosition && (
+                  <div>
+                    <Label htmlFor="position">Vaga de Interesse</Label>
+                    <Select value={formData.positionId} onValueChange={(value) => handleInputChange('positionId', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a vaga" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="florista-especializada">Florista Especializada</SelectItem>
+                        <SelectItem value="assistente-vendas">Assistente de Vendas</SelectItem>
+                        <SelectItem value="decorador">Decorador(a)</SelectItem>
+                        <SelectItem value="entregador">Entregador(a)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {selectedPosition && (
+                  <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
+                    <div className="text-sm font-medium text-primary">
+                      Vaga selecionada: {selectedPosition.title}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {selectedPosition.department}
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <Label htmlFor="notes">Observações Iniciais</Label>
