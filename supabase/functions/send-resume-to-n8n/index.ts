@@ -51,6 +51,8 @@ serve(async (req) => {
     };
 
     // Enviar para o N8N
+    console.log('Enviando payload para N8N:', JSON.stringify(n8nPayload, null, 2));
+    
     const n8nResponse = await fetch(n8nWebhookUrl, {
       method: 'POST',
       headers: {
@@ -59,12 +61,16 @@ serve(async (req) => {
       body: JSON.stringify(n8nPayload)
     });
 
-    if (!n8nResponse.ok) {
-      throw new Error(`Erro do N8N: ${n8nResponse.status} - ${n8nResponse.statusText}`);
-    }
+    console.log('Status da resposta do N8N:', n8nResponse.status);
+    console.log('Headers da resposta do N8N:', Object.fromEntries(n8nResponse.headers.entries()));
 
+    // Capturar o corpo da resposta antes de verificar o status
     const n8nResult = await n8nResponse.text();
-    console.log('Resposta do N8N:', n8nResult);
+    console.log('Corpo da resposta do N8N:', n8nResult);
+
+    if (!n8nResponse.ok) {
+      throw new Error(`Erro do N8N: ${n8nResponse.status} - ${n8nResponse.statusText}. Corpo da resposta: ${n8nResult}`);
+    }
 
     return new Response(
       JSON.stringify({
