@@ -8,49 +8,19 @@ const corsHeaders = {
 };
 
 interface N8NCandidateData {
-  candidato: {
-    nome_completo: string;
-    idade: number;
-    telefone: string;
-    email: string;
-    cidade: string;
-  };
-  vaga: {
-    id: string;
-    nome: string;
-    empresa: string;
-    local: string;
-    salario_base: number;
-    comissao_media: number;
-  };
-  avaliacao: {
-    nota_final: number;
-    justificativa: string;
-    pontos_fortes: string[];
-    pontos_fracos: string[];
-    observacoes: string;
-    recomendacao: string;
-    proximos_passos: string;
-  };
-  pontuacao_detalhada: {
-    experiencia_vendas: number;
-    formacao: number;
-    perfil_comportamental: number;
-    conhecimentos_tecnicos: number;
-    adequacao_geral: number;
-  };
-  status: {
-    aprovado: boolean;
-    fase_atual: string;
-    metodo_extracao: string;
-    data_processamento: string;
-  };
-  metadados: {
-    curriculo_url: string;
-    total_paginas: number;
-    caracteres_extraidos: number;
-    versao_fluxo: string;
-  };
+  nome_completo: string;
+  idade?: number;
+  telefone?: string;
+  email?: string;
+  cidade?: string;
+  nota_final?: number;
+  justificativa?: string;
+  pontos_fortes?: string[];
+  pontos_fracos?: string[];
+  observacoes?: string;
+  recomendacao?: string;
+  proximos_passos?: string;
+  data_processamento?: string;
 }
 
 serve(async (req) => {
@@ -60,86 +30,64 @@ serve(async (req) => {
   }
 
   try {
-    // Expect an array of candidates from N8N
-    const candidates: N8NCandidateData[] = await req.json();
+    // Expect a single candidate object from N8N
+    const candidateData: N8NCandidateData = await req.json();
     
-    console.log('Received N8N analysis data:', candidates);
+    console.log('Received N8N analysis data:', candidateData);
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const results = [];
+    // Map N8N data directly to our database structure
+    const dbData = {
+      nome_completo: candidateData.nome_completo,
+      idade: candidateData.idade,
+      telefone: candidateData.telefone,
+      email: candidateData.email,
+      cidade: candidateData.cidade,
+      nota_final: candidateData.nota_final,
+      justificativa: candidateData.justificativa,
+      pontos_fortes: candidateData.pontos_fortes,
+      pontos_fracos: candidateData.pontos_fracos,
+      observacoes: candidateData.observacoes,
+      recomendacao: candidateData.recomendacao,
+      proximos_passos: candidateData.proximos_passos,
+      data_processamento: candidateData.data_processamento,
+    };
 
-    for (const candidateData of candidates) {
-      try {
-        // Map N8N data to our database structure
-        const dbData = {
-          nome_completo: candidateData.candidato.nome_completo,
-          idade: candidateData.candidato.idade,
-          telefone: candidateData.candidato.telefone,
-          email: candidateData.candidato.email,
-          cidade: candidateData.candidato.cidade,
-          
-          // Avaliação
-          nota_final: candidateData.avaliacao.nota_final,
-          justificativa: candidateData.avaliacao.justificativa,
-          pontos_fortes: candidateData.avaliacao.pontos_fortes,
-          pontos_fracos: candidateData.avaliacao.pontos_fracos,
-          observacoes: candidateData.avaliacao.observacoes,
-          recomendacao: candidateData.avaliacao.recomendacao,
-          proximos_passos: candidateData.avaliacao.proximos_passos,
-          
-          // Pontuação detalhada (only the columns we kept)
-          perfil_comportamental: candidateData.pontuacao_detalhada.perfil_comportamental,
-          conhecimentos_tecnicos: candidateData.pontuacao_detalhada.conhecimentos_tecnicos,
-          adequacao_geral: candidateData.pontuacao_detalhada.adequacao_geral,
-          
-          // Status
-          aprovado: candidateData.status.aprovado,
-          fase_atual: candidateData.status.fase_atual,
-          metodo_extracao: candidateData.status.metodo_extracao,
-          data_processamento: candidateData.status.data_processamento,
-        };
+    // Insert new candidate
+    const { data: newCandidate, error: insertError } = await supabase
+      .from('candidates')
+      .insert(dbData)
+      .select()
+      .single();
 
-        // Insert new candidate
-        const { data: newCandidate, error: insertError } = await supabase
-          .from('candidates')
-          .insert(dbData)
-          .select()
-          .single();
-
-        if (insertError) {
-          console.error(`Error inserting candidate ${candidateData.candidato.nome_completo}:`, insertError);
-          results.push({
-            candidate: candidateData.candidato.nome_completo,
-            success: false,
-            error: insertError.message
-          });
-        } else {
-          console.log(`Successfully processed candidate: ${candidateData.candidato.nome_completo}`);
-          results.push({
-            candidate: candidateData.candidato.nome_completo,
-            success: true,
-            id: newCandidate.id
-          });
-        }
-      } catch (candidateError) {
-        console.error(`Error processing candidate ${candidateData.candidato?.nome_completo || 'unknown'}:`, candidateError);
-        results.push({
-          candidate: candidateData.candidato?.nome_completo || 'unknown',
+    if (insertError) {
+      console.error(`Error inserting candidate ${candidateData.nome_completo}:`, insertError);
+      return new Response(
+        JSON.stringify({
           success: false,
-          error: candidateError.message
-        });
-      }
+          error: insertError.message,
+          candidate: candidateData.nome_completo
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
+    console.log(`Successfully processed candidate: ${candidateData.nome_completo}`);
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Processed ${candidates.length} candidates`,
-        results: results
+        message: `Successfully processed candidate: ${candidateData.nome_completo}`,
+        candidate: {
+          id: newCandidate.id,
+          name: candidateData.nome_completo
+        }
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
