@@ -14,7 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      candidates: {
+        Row: {
+          ai_analysis: Json | null
+          created_at: string
+          email: string
+          id: string
+          interviews: Json | null
+          name: string
+          notes: Json | null
+          phone: string | null
+          position_id: string | null
+          resume_file_name: string | null
+          resume_text: string | null
+          resume_url: string | null
+          source: string | null
+          stage: string | null
+          updated_at: string
+        }
+        Insert: {
+          ai_analysis?: Json | null
+          created_at?: string
+          email: string
+          id?: string
+          interviews?: Json | null
+          name: string
+          notes?: Json | null
+          phone?: string | null
+          position_id?: string | null
+          resume_file_name?: string | null
+          resume_text?: string | null
+          resume_url?: string | null
+          source?: string | null
+          stage?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ai_analysis?: Json | null
+          created_at?: string
+          email?: string
+          id?: string
+          interviews?: Json | null
+          name?: string
+          notes?: Json | null
+          phone?: string | null
+          position_id?: string | null
+          resume_file_name?: string | null
+          resume_text?: string | null
+          resume_url?: string | null
+          source?: string | null
+          stage?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
