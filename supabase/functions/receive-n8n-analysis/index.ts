@@ -7,32 +7,49 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface N8NAnalysisData {
-  candidateId: string;
-  candidateInfo: {
-    name: string;
+interface N8NCandidateData {
+  candidato: {
+    nome_completo: string;
+    idade: number;
+    telefone: string;
     email: string;
-    phone: string;
-    positionId: string;
-    source?: 'indeed' | 'manual' | 'referral';
+    cidade: string;
   };
-  resumeData: {
-    resumeText?: string;
-    resumeUrl?: string;
-    resumeFileName?: string;
+  vaga: {
+    id: string;
+    nome: string;
+    empresa: string;
+    local: string;
+    salario_base: number;
+    comissao_media: number;
   };
-  aiAnalysis: {
-    score: number; // 0-10
-    experienciaProfissional: number; // 0-4
-    habilidadesTecnicas: number; // 0-2
-    competenciasComportamentais: number; // 0-1
-    formacaoAcademica: number; // 0-1
-    diferenciaisRelevantes: number; // 0-2
-    pontoFortes: string[];
-    pontosAtencao: string[];
-    recommendation: 'advance' | 'reject' | 'review';
-    reasoning: string;
-    recomendacaoFinal: 'aprovado' | 'nao_recomendado';
+  avaliacao: {
+    nota_final: number;
+    justificativa: string;
+    pontos_fortes: string[];
+    pontos_fracos: string[];
+    observacoes: string;
+    recomendacao: string;
+    proximos_passos: string;
+  };
+  pontuacao_detalhada: {
+    experiencia_vendas: number;
+    formacao: number;
+    perfil_comportamental: number;
+    conhecimentos_tecnicos: number;
+    adequacao_geral: number;
+  };
+  status: {
+    aprovado: boolean;
+    fase_atual: string;
+    metodo_extracao: string;
+    data_processamento: string;
+  };
+  metadados: {
+    curriculo_url: string;
+    total_paginas: number;
+    caracteres_extraidos: number;
+    versao_fluxo: string;
   };
 }
 
@@ -43,80 +60,86 @@ serve(async (req) => {
   }
 
   try {
-    const data: N8NAnalysisData = await req.json();
+    // Expect an array of candidates from N8N
+    const candidates: N8NCandidateData[] = await req.json();
     
-    console.log('Received N8N analysis data:', data);
+    console.log('Received N8N analysis data:', candidates);
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Check if candidate exists
-    const { data: existingCandidate, error: fetchError } = await supabase
-      .from('candidates')
-      .select('*')
-      .eq('id', data.candidateId)
-      .single();
+    const results = [];
 
-    if (fetchError && fetchError.code !== 'PGRST116') {
-      throw new Error(`Error fetching candidate: ${fetchError.message}`);
-    }
+    for (const candidateData of candidates) {
+      try {
+        // Map N8N data to our database structure
+        const dbData = {
+          nome_completo: candidateData.candidato.nome_completo,
+          idade: candidateData.candidato.idade,
+          telefone: candidateData.candidato.telefone,
+          email: candidateData.candidato.email,
+          cidade: candidateData.candidato.cidade,
+          
+          // Avaliação
+          nota_final: candidateData.avaliacao.nota_final,
+          justificativa: candidateData.avaliacao.justificativa,
+          pontos_fortes: candidateData.avaliacao.pontos_fortes,
+          pontos_fracos: candidateData.avaliacao.pontos_fracos,
+          observacoes: candidateData.avaliacao.observacoes,
+          recomendacao: candidateData.avaliacao.recomendacao,
+          proximos_passos: candidateData.avaliacao.proximos_passos,
+          
+          // Pontuação detalhada (only the columns we kept)
+          perfil_comportamental: candidateData.pontuacao_detalhada.perfil_comportamental,
+          conhecimentos_tecnicos: candidateData.pontuacao_detalhada.conhecimentos_tecnicos,
+          adequacao_geral: candidateData.pontuacao_detalhada.adequacao_geral,
+          
+          // Status
+          aprovado: candidateData.status.aprovado,
+          fase_atual: candidateData.status.fase_atual,
+          metodo_extracao: candidateData.status.metodo_extracao,
+          data_processamento: candidateData.status.data_processamento,
+        };
 
-    const candidateData = {
-      id: data.candidateId,
-      name: data.candidateInfo.name,
-      email: data.candidateInfo.email,
-      phone: data.candidateInfo.phone,
-      position_id: data.candidateInfo.positionId,
-      source: data.candidateInfo.source || 'manual',
-      stage: 'analise_ia', // Start at AI analysis stage
-      resume_url: data.resumeData.resumeUrl,
-      resume_text: data.resumeData.resumeText,
-      resume_file_name: data.resumeData.resumeFileName,
-      ai_analysis: {
-        ...data.aiAnalysis,
-        analyzedAt: new Date().toISOString()
-      },
-      created_at: existingCandidate?.created_at || new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
+        // Insert new candidate
+        const { data: newCandidate, error: insertError } = await supabase
+          .from('candidates')
+          .insert(dbData)
+          .select()
+          .single();
 
-    let result;
-    if (existingCandidate) {
-      // Update existing candidate
-      const { data: updatedCandidate, error: updateError } = await supabase
-        .from('candidates')
-        .update(candidateData)
-        .eq('id', data.candidateId)
-        .select()
-        .single();
-
-      if (updateError) {
-        throw new Error(`Error updating candidate: ${updateError.message}`);
+        if (insertError) {
+          console.error(`Error inserting candidate ${candidateData.candidato.nome_completo}:`, insertError);
+          results.push({
+            candidate: candidateData.candidato.nome_completo,
+            success: false,
+            error: insertError.message
+          });
+        } else {
+          console.log(`Successfully processed candidate: ${candidateData.candidato.nome_completo}`);
+          results.push({
+            candidate: candidateData.candidato.nome_completo,
+            success: true,
+            id: newCandidate.id
+          });
+        }
+      } catch (candidateError) {
+        console.error(`Error processing candidate ${candidateData.candidato?.nome_completo || 'unknown'}:`, candidateError);
+        results.push({
+          candidate: candidateData.candidato?.nome_completo || 'unknown',
+          success: false,
+          error: candidateError.message
+        });
       }
-      result = updatedCandidate;
-    } else {
-      // Create new candidate
-      const { data: newCandidate, error: insertError } = await supabase
-        .from('candidates')
-        .insert(candidateData)
-        .select()
-        .single();
-
-      if (insertError) {
-        throw new Error(`Error creating candidate: ${insertError.message}`);
-      }
-      result = newCandidate;
     }
-
-    console.log('Successfully processed candidate:', result);
 
     return new Response(
       JSON.stringify({
         success: true,
-        candidate: result,
-        message: existingCandidate ? 'Candidate updated successfully' : 'Candidate created successfully'
+        message: `Processed ${candidates.length} candidates`,
+        results: results
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

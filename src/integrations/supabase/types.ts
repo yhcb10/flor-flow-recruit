@@ -14,7 +14,81 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      candidates: {
+        Row: {
+          adequacao_geral: number | null
+          aprovado: boolean | null
+          cidade: string | null
+          conhecimentos_tecnicos: number | null
+          created_at: string
+          data_processamento: string | null
+          email: string | null
+          fase_atual: string | null
+          id: string
+          idade: number | null
+          justificativa: string | null
+          metodo_extracao: string | null
+          nome_completo: string
+          nota_final: number | null
+          observacoes: string | null
+          perfil_comportamental: number | null
+          pontos_fortes: string[] | null
+          pontos_fracos: string[] | null
+          proximos_passos: string | null
+          recomendacao: string | null
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          adequacao_geral?: number | null
+          aprovado?: boolean | null
+          cidade?: string | null
+          conhecimentos_tecnicos?: number | null
+          created_at?: string
+          data_processamento?: string | null
+          email?: string | null
+          fase_atual?: string | null
+          id?: string
+          idade?: number | null
+          justificativa?: string | null
+          metodo_extracao?: string | null
+          nome_completo: string
+          nota_final?: number | null
+          observacoes?: string | null
+          perfil_comportamental?: number | null
+          pontos_fortes?: string[] | null
+          pontos_fracos?: string[] | null
+          proximos_passos?: string | null
+          recomendacao?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          adequacao_geral?: number | null
+          aprovado?: boolean | null
+          cidade?: string | null
+          conhecimentos_tecnicos?: number | null
+          created_at?: string
+          data_processamento?: string | null
+          email?: string | null
+          fase_atual?: string | null
+          id?: string
+          idade?: number | null
+          justificativa?: string | null
+          metodo_extracao?: string | null
+          nome_completo?: string
+          nota_final?: number | null
+          observacoes?: string | null
+          perfil_comportamental?: number | null
+          pontos_fortes?: string[] | null
+          pontos_fracos?: string[] | null
+          proximos_passos?: string | null
+          recomendacao?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
