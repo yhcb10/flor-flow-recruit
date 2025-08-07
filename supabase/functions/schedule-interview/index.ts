@@ -192,27 +192,36 @@ async function sendEmailsViaGmail({ candidate, interview, meetingUrl, accessToke
     minute: '2-digit',
   });
 
-    // Emails para enviar (sempre incluir o email da empresa)
-    const allEmails = [
-      candidate.email,
-      'coroadefloresnobre@gmail.com',
-      ...interview.inviteeEmails.filter(email => email.trim())
-    ];
+  // Emails para enviar (sempre incluir o email da empresa)
+  const allEmails = [
+    candidate.email,
+    'coroadefloresnobre@gmail.com',
+    ...interview.inviteeEmails.filter(email => email.trim())
+  ];
 
-    // Remover duplicatas
-    const uniqueEmails = [...new Set(allEmails)];
+  // Remover duplicatas
+  const uniqueEmails = [...new Set(allEmails)];
 
-    // Enviar emails para todos os destinatários
-    for (const email of uniqueEmails) {
-      let emailContent;
-      
-      if (email === candidate.email) {
-        // Email personalizado para o candidato
-        emailContent = `Para: ${email}
-Assunto: Pré-entrevista agendada - ${candidate.name}
-Content-Type: text/html; charset=utf-8
+  console.log('Enviando emails para:', uniqueEmails);
 
-<h2>Sua pré-entrevista foi agendada!</h2>
+  // Enviar emails para todos os destinatários
+  for (const email of uniqueEmails) {
+    console.log(`Preparando email para: ${email}`);
+    
+    if (!email || email.trim() === '') {
+      console.error('Email vazio encontrado, pulando...');
+      continue;
+    }
+
+    let emailContent;
+    
+    if (email === candidate.email) {
+      // Email personalizado para o candidato
+      emailContent = createEmailMessage({
+        to: email,
+        from: 'coroadefloresnobre@gmail.com',
+        subject: `Pré-entrevista agendada - ${candidate.name}`,
+        html: `<h2>Sua pré-entrevista foi agendada!</h2>
 <p>Olá ${candidate.name},</p>
 <p>Sua pré-entrevista foi agendada para:</p>
 <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -224,14 +233,15 @@ Content-Type: text/html; charset=utf-8
   ${interview.notes ? `<p><strong>Observações:</strong> ${interview.notes}</p>` : ''}
 </div>
 <p>Por favor, conecte-se alguns minutos antes do horário agendado.</p>
-<p>Atenciosamente,<br>Equipe de Recrutamento<br>Coroa de Flores Nobre</p>`;
-      } else {
-        // Email para RH e convidados
-        emailContent = `Para: ${email}
-Assunto: Pré-entrevista com ${candidate.name}
-Content-Type: text/html; charset=utf-8
-
-<h2>Pré-entrevista agendada</h2>
+<p>Atenciosamente,<br>Equipe de Recrutamento<br>Coroa de Flores Nobre</p>`
+      });
+    } else {
+      // Email para RH e convidados
+      emailContent = createEmailMessage({
+        to: email,
+        from: 'coroadefloresnobre@gmail.com',
+        subject: `Pré-entrevista com ${candidate.name}`,
+        html: `<h2>Pré-entrevista agendada</h2>
 <p>Nova pré-entrevista foi agendada:</p>
 <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
   <h3>Detalhes:</h3>
@@ -243,16 +253,40 @@ Content-Type: text/html; charset=utf-8
   <p><strong>Link da Reunião:</strong> <a href="${meetingUrl}" target="_blank">Clique aqui para entrar no Google Meet</a></p>
   ${interview.notes ? `<p><strong>Observações:</strong> ${interview.notes}</p>` : ''}
 </div>
-<p>Atenciosamente,<br>Sistema de Recrutamento<br>Coroa de Flores Nobre</p>`;
-      }
-
-      await sendGmailMessage(emailContent, accessToken);
+<p>Atenciosamente,<br>Sistema de Recrutamento<br>Coroa de Flores Nobre</p>`
+      });
     }
+
+    console.log(`Email content preparado para ${email}`);
+    await sendGmailMessage(emailContent, accessToken);
+    console.log(`Email enviado com sucesso para: ${email}`);
+  }
+}
+
+function createEmailMessage({ to, from, subject, html }: {
+  to: string,
+  from: string,
+  subject: string,
+  html: string
+}) {
+  const message = [
+    `To: ${to}`,
+    `From: ${from}`,
+    `Subject: ${subject}`,
+    'MIME-Version: 1.0',
+    'Content-Type: text/html; charset=utf-8',
+    '',
+    html
+  ].join('\n');
+  
+  return message;
 }
 
 async function sendGmailMessage(emailContent: string, accessToken: string) {
   const encodedMessage = btoa(emailContent).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
+  console.log('Enviando email via Gmail API...');
+  
   const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
     method: 'POST',
     headers: {
@@ -266,8 +300,11 @@ async function sendGmailMessage(emailContent: string, accessToken: string) {
 
   if (!response.ok) {
     const errorText = await response.text();
+    console.error('Erro ao enviar email via Gmail:', errorText);
     throw new Error(`Erro ao enviar email via Gmail: ${errorText}`);
   }
 
-  return await response.json();
+  const result = await response.json();
+  console.log('Email enviado com sucesso:', result.id);
+  return result;
 }
