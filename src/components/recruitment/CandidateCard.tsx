@@ -1,19 +1,24 @@
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { CalendarDays, Mail, Phone, Star, Clock, MessageSquare } from 'lucide-react';
-import { Candidate } from '@/types/recruitment';
+import { Button } from '@/components/ui/button';
+import { CalendarDays, Mail, Phone, Star, Clock, MessageSquare, Check, X } from 'lucide-react';
+import { Candidate, CandidateStage } from '@/types/recruitment';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { RejectionReasonModal } from './RejectionReasonModal';
+import { useState } from 'react';
 
 interface CandidateCardProps {
   candidate: Candidate;
   onClick: () => void;
   isDragging?: boolean;
+  onStageChange?: (candidateId: string, newStage: CandidateStage, rejectionReason?: string) => void;
 }
 
-export function CandidateCard({ candidate, onClick, isDragging }: CandidateCardProps) {
+export function CandidateCard({ candidate, onClick, isDragging, onStageChange }: CandidateCardProps) {
+  const [showRejectionModal, setShowRejectionModal] = useState(false);
   const getScoreColor = (score: number) => {
     if (score >= 8) return 'text-success bg-success/10';
     if (score >= 6.5) return 'text-warning bg-warning/10';
@@ -30,6 +35,40 @@ export function CandidateCard({ candidate, onClick, isDragging }: CandidateCardP
   };
 
   const sourceBadge = getSourceBadge(candidate.source);
+
+  const getNextStage = (currentStage: CandidateStage): CandidateStage | null => {
+    switch (currentStage) {
+      case 'analise_ia':
+        return 'selecao_pre_entrevista';
+      case 'pre_entrevista':
+        return 'selecao_entrevista_presencial';
+      case 'entrevista_presencial':
+        return 'aprovado';
+      default:
+        return null;
+    }
+  };
+
+  const canShowActionButtons = ['analise_ia', 'pre_entrevista', 'entrevista_presencial'].includes(candidate.stage);
+
+  const handleApprove = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const nextStage = getNextStage(candidate.stage);
+    if (nextStage && onStageChange) {
+      onStageChange(candidate.id, nextStage);
+    }
+  };
+
+  const handleReject = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowRejectionModal(true);
+  };
+
+  const handleRejectConfirm = (reason: string) => {
+    if (onStageChange) {
+      onStageChange(candidate.id, 'nao_aprovado', reason);
+    }
+  };
 
   return (
     <Card 
@@ -114,6 +153,30 @@ export function CandidateCard({ candidate, onClick, isDragging }: CandidateCardP
           </div>
         )}
 
+        {/* Action Buttons */}
+        {canShowActionButtons && (
+          <div className="flex gap-2 mb-3">
+            <Button
+              size="sm"
+              variant="default"
+              onClick={handleApprove}
+              className="flex-1 h-8 text-xs"
+            >
+              <Check className="h-3 w-3 mr-1" />
+              Aprovar
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={handleReject}
+              className="flex-1 h-8 text-xs"
+            >
+              <X className="h-3 w-3 mr-1" />
+              Reprovar
+            </Button>
+          </div>
+        )}
+
         {/* Footer */}
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <div className="flex items-center gap-1">
@@ -137,6 +200,13 @@ export function CandidateCard({ candidate, onClick, isDragging }: CandidateCardP
           </div>
         </div>
       </div>
+      
+      <RejectionReasonModal
+        isOpen={showRejectionModal}
+        onClose={() => setShowRejectionModal(false)}
+        onConfirm={handleRejectConfirm}
+        candidateName={candidate.name}
+      />
     </Card>
   );
 }

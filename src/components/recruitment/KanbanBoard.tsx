@@ -14,7 +14,7 @@ import { NewCandidateModal } from './NewCandidateModal';
 
 interface KanbanBoardProps {
   columns: KanbanColumn[];
-  onCandidateMove: (candidateId: string, newStage: CandidateStage) => void;
+  onCandidateMove: (candidateId: string, newStage: CandidateStage, rejectionReason?: string) => void;
   onCandidateSelect: (candidate: Candidate) => void;
   onCandidateAdd: (candidate: Candidate) => void;
   onCandidateDelete?: (candidateId: string) => void;
@@ -25,6 +25,10 @@ export function KanbanBoard({ columns, onCandidateMove, onCandidateSelect, onCan
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [showNewCandidateModal, setShowNewCandidateModal] = useState(false);
+
+  const handleStageChange = (candidateId: string, newStage: CandidateStage, rejectionReason?: string) => {
+    onCandidateMove(candidateId, newStage, rejectionReason);
+  };
 
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
@@ -121,6 +125,7 @@ export function KanbanBoard({ columns, onCandidateMove, onCandidateSelect, onCan
                                   candidate={candidate}
                                   onClick={() => setSelectedCandidate(candidate)}
                                   isDragging={snapshot.isDragging}
+                                  onStageChange={handleStageChange}
                                 />
                               </div>
                             )}

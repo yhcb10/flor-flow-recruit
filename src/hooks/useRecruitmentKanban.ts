@@ -68,22 +68,33 @@ export function useRecruitmentKanban(positionId?: string) {
     }));
   }, [candidates]);
 
-  const moveCandidateToStage = async (candidateId: string, newStage: CandidateStage) => {
+  const moveCandidateToStage = async (candidateId: string, newStage: CandidateStage, rejectionReason?: string) => {
     // Atualizar estado local
     setCandidates(prev => prev.map(candidate => 
       candidate.id === candidateId 
-        ? { ...candidate, stage: newStage, updatedAt: new Date() }
+        ? { 
+            ...candidate, 
+            stage: newStage, 
+            rejectionReason: newStage === 'nao_aprovado' ? rejectionReason : undefined,
+            updatedAt: new Date() 
+          }
         : candidate
     ));
 
     // Atualizar no Supabase - preservando as entrevistas
     try {
+      const updateData: any = {
+        stage: newStage,
+        updated_at: new Date().toISOString(),
+      };
+      
+      if (newStage === 'nao_aprovado' && rejectionReason) {
+        updateData.rejection_reason = rejectionReason;
+      }
+      
       const { error } = await supabase
         .from('candidates')
-        .update({
-          stage: newStage,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq('id', candidateId);
 
       if (error) {
