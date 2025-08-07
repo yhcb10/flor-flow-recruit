@@ -6,11 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const supabase = createClient(
-  Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-);
-
 interface ScheduleInterviewRequest {
   candidate: {
     id: string;
@@ -36,87 +31,31 @@ serve(async (req) => {
 
     console.log('Agendando entrevista para:', candidate.name);
 
-    // Criar link simples do Google Meet
-    const meetingUrl = `https://meet.google.com/new`;
+    // Obter access token do Google
+    const accessToken = await getGoogleAccessToken();
 
-    // Preparar emails
-    const scheduledDate = new Date(interview.scheduledAt);
-    const formattedDate = scheduledDate.toLocaleDateString('pt-BR', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-    const formattedTime = scheduledDate.toLocaleTimeString('pt-BR', {
-      hour: '2-digit',
-      minute: '2-digit',
+    // Criar evento no Google Calendar
+    const calendarEvent = await createGoogleCalendarEvent({
+      candidate,
+      interview,
+      accessToken,
     });
 
-    // Email para o candidato
-    const candidateEmailData = {
-      to: candidate.email,
-      subject: `Pré-entrevista agendada - ${candidate.name}`,
-      html: `
-        <h2>Sua pré-entrevista foi agendada!</h2>
-        <p>Olá ${candidate.name},</p>
-        <p>Sua pré-entrevista foi agendada para:</p>
-        <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <h3>Detalhes da Entrevista:</h3>
-          <p><strong>Data:</strong> ${formattedDate}</p>
-          <p><strong>Horário:</strong> ${formattedTime}</p>
-          <p><strong>Duração:</strong> ${interview.duration} minutos</p>
-          <p><strong>Link da Reunião:</strong> <a href="${meetingUrl}" target="_blank">Clique aqui para entrar no Google Meet</a></p>
-          ${interview.notes ? `<p><strong>Observações:</strong> ${interview.notes}</p>` : ''}
-        </div>
-        <p>Por favor, conecte-se alguns minutos antes do horário agendado.</p>
-        <p>Atenciosamente,<br>Equipe de Recrutamento</p>
-      `
-    };
-
-    // Enviar email para o candidato
-    const candidateEmailResponse = await supabase.functions.invoke('send-email', {
-      body: candidateEmailData
+    // Enviar emails via Gmail
+    await sendEmailsViaGmail({
+      candidate,
+      interview,
+      meetingUrl: calendarEvent.meetingUrl,
+      accessToken,
     });
-
-    if (candidateEmailResponse.error) {
-      throw new Error(`Erro ao enviar email para candidato: ${candidateEmailResponse.error.message}`);
-    }
-
-    // Enviar emails para os convidados
-    for (const email of interview.inviteeEmails) {
-      if (email.trim()) {
-        const inviteeEmailData = {
-          to: email.trim(),
-          subject: `Pré-entrevista com ${candidate.name}`,
-          html: `
-            <h2>Pré-entrevista agendada</h2>
-            <p>Você foi convidado para participar da pré-entrevista com:</p>
-            <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h3>Detalhes:</h3>
-              <p><strong>Candidato:</strong> ${candidate.name} (${candidate.email})</p>
-              <p><strong>Data:</strong> ${formattedDate}</p>
-              <p><strong>Horário:</strong> ${formattedTime}</p>
-              <p><strong>Duração:</strong> ${interview.duration} minutos</p>
-              <p><strong>Link da Reunião:</strong> <a href="${meetingUrl}" target="_blank">Clique aqui para entrar no Google Meet</a></p>
-              ${interview.notes ? `<p><strong>Observações:</strong> ${interview.notes}</p>` : ''}
-            </div>
-            <p>Atenciosamente,<br>Equipe de Recrutamento</p>
-          `
-        };
-
-        await supabase.functions.invoke('send-email', {
-          body: inviteeEmailData
-        });
-      }
-    }
 
     console.log('Entrevista agendada e emails enviados com sucesso');
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        meetingUrl,
-        message: 'Entrevista agendada e emails enviados com sucesso!' 
+        meetingUrl: calendarEvent.meetingUrl,
+        eventId: calendarEvent.eventId 
       }),
       {
         status: 200,
@@ -127,7 +66,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Erro ao agendar entrevista:', error);
     return new Response(
-      JSON.stringify({ error: 'Erro ao agendar entrevista' }),
+      JSON.stringify({ error: error.message }),
       {
         status: 500,
         headers: { 'Content-Type': 'application/json', ...corsHeaders },
@@ -135,3 +74,174 @@ serve(async (req) => {
     );
   }
 });
+
+async function getGoogleAccessToken() {
+  const googleClientId = Deno.env.get('GOOGLE_CLIENT_ID');
+  const googleClientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET');
+  const googleRefreshToken = Deno.env.get('GOOGLE_REFRESH_TOKEN');
+
+  if (!googleClientId || !googleClientSecret || !googleRefreshToken) {
+    throw new Error('Credenciais do Google não configuradas');
+  }
+
+  const response = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: googleClientId,
+      client_secret: googleClientSecret,
+      refresh_token: googleRefreshToken,
+      grant_type: 'refresh_token',
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Erro ao obter access token do Google');
+  }
+
+  const { access_token } = await response.json();
+  return access_token;
+}
+
+async function createGoogleCalendarEvent({ candidate, interview, accessToken }: { 
+  candidate: ScheduleInterviewRequest['candidate'], 
+  interview: ScheduleInterviewRequest['interview'],
+  accessToken: string
+}) {
+  const startTime = new Date(interview.scheduledAt);
+  const endTime = new Date(startTime.getTime() + interview.duration * 60000);
+
+  const calendarEvent = {
+    summary: `Pré-entrevista - ${candidate.name}`,
+    description: `Pré-entrevista com candidato ${candidate.name}\n\nEmail: ${candidate.email}\n\n${interview.notes || ''}`,
+    start: {
+      dateTime: startTime.toISOString(),
+      timeZone: 'America/Sao_Paulo',
+    },
+    end: {
+      dateTime: endTime.toISOString(),
+      timeZone: 'America/Sao_Paulo',
+    },
+    attendees: [
+      { email: candidate.email },
+      ...interview.inviteeEmails.map(email => ({ email })),
+    ],
+    conferenceData: {
+      createRequest: {
+        requestId: `meet-${candidate.id}-${Date.now()}`,
+        conferenceSolutionKey: { type: 'hangoutsMeet' },
+      },
+    },
+  };
+
+  const response = await fetch(
+    'https://www.googleapis.com/calendar/v3/calendars/primary/events?conferenceDataVersion=1',
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(calendarEvent),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Erro ao criar evento no Google Calendar: ${errorText}`);
+  }
+
+  const eventData = await response.json();
+  const meetingUrl = eventData.conferenceData?.entryPoints?.[0]?.uri || '';
+
+  return {
+    eventId: eventData.id,
+    meetingUrl,
+  };
+}
+
+async function sendEmailsViaGmail({ candidate, interview, meetingUrl, accessToken }: {
+  candidate: ScheduleInterviewRequest['candidate'],
+  interview: ScheduleInterviewRequest['interview'],
+  meetingUrl: string,
+  accessToken: string
+}) {
+  const scheduledDate = new Date(interview.scheduledAt);
+  const formattedDate = scheduledDate.toLocaleDateString('pt-BR', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+  const formattedTime = scheduledDate.toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  // Email para o candidato
+  const candidateEmailContent = `Para: ${candidate.email}
+Assunto: Pré-entrevista agendada - ${candidate.name}
+Content-Type: text/html; charset=utf-8
+
+<h2>Sua pré-entrevista foi agendada!</h2>
+<p>Olá ${candidate.name},</p>
+<p>Sua pré-entrevista foi agendada para:</p>
+<div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+  <h3>Detalhes da Entrevista:</h3>
+  <p><strong>Data:</strong> ${formattedDate}</p>
+  <p><strong>Horário:</strong> ${formattedTime}</p>
+  <p><strong>Duração:</strong> ${interview.duration} minutos</p>
+  <p><strong>Link da Reunião:</strong> <a href="${meetingUrl}" target="_blank">Clique aqui para entrar no Google Meet</a></p>
+  ${interview.notes ? `<p><strong>Observações:</strong> ${interview.notes}</p>` : ''}
+</div>
+<p>Por favor, conecte-se alguns minutos antes do horário agendado.</p>
+<p>Atenciosamente,<br>Equipe de Recrutamento</p>`;
+
+  await sendGmailMessage(candidateEmailContent, accessToken);
+
+  // Emails para os convidados
+  for (const email of interview.inviteeEmails) {
+    if (email.trim()) {
+      const inviteeEmailContent = `Para: ${email.trim()}
+Assunto: Pré-entrevista com ${candidate.name}
+Content-Type: text/html; charset=utf-8
+
+<h2>Pré-entrevista agendada</h2>
+<p>Você foi convidado para participar da pré-entrevista com:</p>
+<div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+  <h3>Detalhes:</h3>
+  <p><strong>Candidato:</strong> ${candidate.name} (${candidate.email})</p>
+  <p><strong>Data:</strong> ${formattedDate}</p>
+  <p><strong>Horário:</strong> ${formattedTime}</p>
+  <p><strong>Duração:</strong> ${interview.duration} minutos</p>
+  <p><strong>Link da Reunião:</strong> <a href="${meetingUrl}" target="_blank">Clique aqui para entrar no Google Meet</a></p>
+  ${interview.notes ? `<p><strong>Observações:</strong> ${interview.notes}</p>` : ''}
+</div>
+<p>Atenciosamente,<br>Equipe de Recrutamento</p>`;
+
+      await sendGmailMessage(inviteeEmailContent, accessToken);
+    }
+  }
+}
+
+async function sendGmailMessage(emailContent: string, accessToken: string) {
+  const encodedMessage = btoa(emailContent).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+  const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      raw: encodedMessage,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Erro ao enviar email via Gmail: ${errorText}`);
+  }
+
+  return await response.json();
+}
