@@ -356,7 +356,7 @@ export function CandidateModal({ candidate, isOpen, onClose, onUpdate, onDelete 
 
           {/* Interviews Tab */}
           <TabsContent value="interviews" className="space-y-4">
-            {candidate.stage === 'selecao_rh' && (
+            {candidate.stage === 'selecao_pre_entrevista' && (
               <InterviewScheduler 
                 candidate={candidate}
                 onInterviewScheduled={(updatedCandidate) => {
@@ -365,7 +365,7 @@ export function CandidateModal({ candidate, isOpen, onClose, onUpdate, onDelete 
               />
             )}
 
-            {candidate.stage === 'pre_entrevista' && (
+            {candidate.stage === 'selecao_entrevista_presencial' && (
               <InPersonInterviewScheduler 
                 candidate={candidate}
                 onInterviewScheduled={(updatedCandidate) => {
@@ -420,7 +420,7 @@ export function CandidateModal({ candidate, isOpen, onClose, onUpdate, onDelete 
                   </CardContent>
                 </Card>
               ))
-            ) : !['selecao_rh', 'pre_entrevista'].includes(candidate.stage) ? (
+            ) : !['selecao_pre_entrevista', 'selecao_entrevista_presencial'].includes(candidate.stage) ? (
               <Card>
                 <CardContent className="pt-6 text-center">
                   <div className="text-muted-foreground">Nenhuma entrevista agendada</div>

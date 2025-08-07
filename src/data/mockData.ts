@@ -285,7 +285,7 @@ export const mockCandidates: Candidate[] = [
     phone: '(11) 88888-8888',
     positionId: '1',
     source: 'manual',
-    stage: 'selecao_rh',
+    stage: 'selecao_pre_entrevista',
     aiAnalysis: {
       score: 7.2,
       experienciaProfissional: 3,
@@ -382,11 +382,11 @@ export const kanbanColumns: KanbanColumn[] = [
     description: 'Em avaliação automática',
     color: 'bg-status-analysis',
     candidates: [],
-    allowedTransitions: ['selecao_rh', 'nao_aprovado']
+    allowedTransitions: ['selecao_pre_entrevista', 'nao_aprovado']
   },
   {
-    id: 'selecao_rh',
-    title: 'Seleção RH',
+    id: 'selecao_pre_entrevista',
+    title: 'Seleção Pré Entrevista',
     description: 'Análise manual do RH',
     color: 'bg-accent',
     candidates: [],
@@ -397,6 +397,14 @@ export const kanbanColumns: KanbanColumn[] = [
     title: 'Pré-entrevista',
     description: 'Entrevista online agendada',
     color: 'bg-status-interview',
+    candidates: [],
+    allowedTransitions: ['selecao_entrevista_presencial', 'nao_aprovado']
+  },
+  {
+    id: 'selecao_entrevista_presencial',
+    title: 'Seleção Entrevista Presencial',
+    description: 'Avaliação para entrevista presencial',
+    color: 'bg-accent/80',
     candidates: [],
     allowedTransitions: ['entrevista_presencial', 'nao_aprovado']
   },

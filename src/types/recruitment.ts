@@ -35,8 +35,9 @@ export interface Candidate {
 export type CandidateStage = 
   | 'nova_candidatura'
   | 'analise_ia'
-  | 'selecao_rh'
+  | 'selecao_pre_entrevista'
   | 'pre_entrevista'
+  | 'selecao_entrevista_presencial'
   | 'entrevista_presencial'
   | 'aprovado'
   | 'nao_aprovado';
