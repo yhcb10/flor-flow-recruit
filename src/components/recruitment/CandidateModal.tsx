@@ -99,7 +99,7 @@ export function CandidateModal({ candidate, isOpen, onClose, onUpdate, onDelete 
               </Avatar>
               <div>
                 <div className="text-xl font-bold">{candidate.name}</div>
-                <div className="text-sm text-muted-foreground">Candidato • Florista Especializada</div>
+                <div className="text-sm text-muted-foreground">Candidato • {candidate.positionId}</div>
               </div>
             </div>
             {onDelete && (

@@ -165,7 +165,11 @@ export function InterviewScheduler({ candidate, onInterviewScheduled }: Intervie
                   mode="single"
                   selected={selectedDate}
                   onSelect={setSelectedDate}
-                  disabled={(date) => date < new Date() || date.getDay() === 0 || date.getDay() === 6}
+                  disabled={(date) => {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    return date < today;
+                  }}
                   initialFocus
                   className="pointer-events-auto"
                 />

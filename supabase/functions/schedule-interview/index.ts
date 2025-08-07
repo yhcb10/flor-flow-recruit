@@ -178,8 +178,23 @@ async function sendEmailsViaGmail({ candidate, interview, meetingUrl, accessToke
     minute: '2-digit',
   });
 
-  // Email para o candidato
-  const candidateEmailContent = `Para: ${candidate.email}
+    // Emails para enviar (sempre incluir o email da empresa)
+    const allEmails = [
+      candidate.email,
+      'coroadefloresnobre@gmail.com',
+      ...interview.inviteeEmails.filter(email => email.trim())
+    ];
+
+    // Remover duplicatas
+    const uniqueEmails = [...new Set(allEmails)];
+
+    // Enviar emails para todos os destinatários
+    for (const email of uniqueEmails) {
+      let emailContent;
+      
+      if (email === candidate.email) {
+        // Email personalizado para o candidato
+        emailContent = `Para: ${email}
 Assunto: Pré-entrevista agendada - ${candidate.name}
 Content-Type: text/html; charset=utf-8
 
@@ -195,33 +210,30 @@ Content-Type: text/html; charset=utf-8
   ${interview.notes ? `<p><strong>Observações:</strong> ${interview.notes}</p>` : ''}
 </div>
 <p>Por favor, conecte-se alguns minutos antes do horário agendado.</p>
-<p>Atenciosamente,<br>Equipe de Recrutamento</p>`;
-
-  await sendGmailMessage(candidateEmailContent, accessToken);
-
-  // Emails para os convidados
-  for (const email of interview.inviteeEmails) {
-    if (email.trim()) {
-      const inviteeEmailContent = `Para: ${email.trim()}
+<p>Atenciosamente,<br>Equipe de Recrutamento<br>Coroa de Flores Nobre</p>`;
+      } else {
+        // Email para RH e convidados
+        emailContent = `Para: ${email}
 Assunto: Pré-entrevista com ${candidate.name}
 Content-Type: text/html; charset=utf-8
 
 <h2>Pré-entrevista agendada</h2>
-<p>Você foi convidado para participar da pré-entrevista com:</p>
+<p>Nova pré-entrevista foi agendada:</p>
 <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
   <h3>Detalhes:</h3>
-  <p><strong>Candidato:</strong> ${candidate.name} (${candidate.email})</p>
+  <p><strong>Candidato:</strong> ${candidate.name}</p>
+  <p><strong>Email:</strong> ${candidate.email}</p>
   <p><strong>Data:</strong> ${formattedDate}</p>
   <p><strong>Horário:</strong> ${formattedTime}</p>
   <p><strong>Duração:</strong> ${interview.duration} minutos</p>
   <p><strong>Link da Reunião:</strong> <a href="${meetingUrl}" target="_blank">Clique aqui para entrar no Google Meet</a></p>
   ${interview.notes ? `<p><strong>Observações:</strong> ${interview.notes}</p>` : ''}
 </div>
-<p>Atenciosamente,<br>Equipe de Recrutamento</p>`;
+<p>Atenciosamente,<br>Sistema de Recrutamento<br>Coroa de Flores Nobre</p>`;
+      }
 
-      await sendGmailMessage(inviteeEmailContent, accessToken);
+      await sendGmailMessage(emailContent, accessToken);
     }
-  }
 }
 
 async function sendGmailMessage(emailContent: string, accessToken: string) {
