@@ -173,45 +173,43 @@ export function InterviewScheduler({ candidate, onInterviewScheduled }: Intervie
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          {/* Seleção de Data - Formato Simples */}
-          <div className="space-y-2">
-            <Label>Data da Entrevista</Label>
-            <Input
-              type="date"
-              value={selectedDate ? selectedDate.toISOString().split('T')[0] : ''}
-              onChange={(e) => {
-                if (e.target.value) {
-                  setSelectedDate(new Date(e.target.value + 'T12:00:00'));
-                  console.log('Data selecionada via input:', new Date(e.target.value + 'T12:00:00'));
-                } else {
-                  setSelectedDate(undefined);
-                }
-              }}
-              min={new Date().toISOString().split('T')[0]}
-              className="w-full"
-            />
-          </div>
+        {/* Seleção de Data */}
+        <div className="space-y-2">
+          <Label>Data da Entrevista</Label>
+          <Input
+            type="date"
+            value={selectedDate ? selectedDate.toISOString().split('T')[0] : ''}
+            onChange={(e) => {
+              if (e.target.value) {
+                setSelectedDate(new Date(e.target.value + 'T12:00:00'));
+                console.log('Data selecionada via input:', new Date(e.target.value + 'T12:00:00'));
+              } else {
+                setSelectedDate(undefined);
+              }
+            }}
+            min={new Date().toISOString().split('T')[0]}
+            className="w-full"
+          />
+        </div>
 
-          {/* Seleção de Horário */}
-          <div className="space-y-2">
-            <Label>Horário</Label>
-            <div className="grid grid-cols-3 gap-2">
-              {timeSlots.map((time) => (
-                <Button
-                  key={time}
-                  variant={selectedTime === time ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => {
-                    setSelectedTime(time);
-                    console.log('Horário selecionado:', time);
-                  }}
-                  className="text-xs"
-                >
-                  {time}
-                </Button>
-              ))}
-            </div>
+        {/* Seleção de Horário */}
+        <div className="space-y-2">
+          <Label>Horário</Label>
+          <div className="grid grid-cols-4 gap-2">
+            {timeSlots.map((time) => (
+              <Button
+                key={time}
+                variant={selectedTime === time ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  setSelectedTime(time);
+                  console.log('Horário selecionado:', time);
+                }}
+                className="text-xs"
+              >
+                {time}
+              </Button>
+            ))}
           </div>
         </div>
 
