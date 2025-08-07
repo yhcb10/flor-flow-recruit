@@ -25,6 +25,7 @@ export type Database = {
           notes: Json | null
           phone: string | null
           position_id: string | null
+          rejection_reason: string | null
           resume_file_name: string | null
           resume_text: string | null
           resume_url: string | null
@@ -42,6 +43,7 @@ export type Database = {
           notes?: Json | null
           phone?: string | null
           position_id?: string | null
+          rejection_reason?: string | null
           resume_file_name?: string | null
           resume_text?: string | null
           resume_url?: string | null
@@ -59,6 +61,7 @@ export type Database = {
           notes?: Json | null
           phone?: string | null
           position_id?: string | null
+          rejection_reason?: string | null
           resume_file_name?: string | null
           resume_text?: string | null
           resume_url?: string | null

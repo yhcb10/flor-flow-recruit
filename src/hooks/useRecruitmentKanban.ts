@@ -36,6 +36,7 @@ export function useRecruitmentKanban(positionId?: string) {
             aiAnalysis: candidate.ai_analysis as any || undefined,
             notes: (candidate.notes as any) || [],
             interviews: (candidate.interviews as any) || [],
+            rejectionReason: candidate.rejection_reason,
             createdAt: new Date(candidate.created_at),
             updatedAt: new Date(candidate.updated_at)
           }));
