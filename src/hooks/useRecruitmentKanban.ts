@@ -67,12 +67,31 @@ export function useRecruitmentKanban(positionId?: string) {
     }));
   }, [candidates]);
 
-  const moveCandidateToStage = (candidateId: string, newStage: CandidateStage) => {
+  const moveCandidateToStage = async (candidateId: string, newStage: CandidateStage) => {
+    // Atualizar estado local
     setCandidates(prev => prev.map(candidate => 
       candidate.id === candidateId 
         ? { ...candidate, stage: newStage, updatedAt: new Date() }
         : candidate
     ));
+
+    // Atualizar no Supabase - preservando as entrevistas
+    try {
+      const { error } = await supabase
+        .from('candidates')
+        .update({
+          stage: newStage,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', candidateId);
+
+      if (error) {
+        console.error('Error updating candidate stage:', error);
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error updating candidate:', error);
+    }
   };
 
   const updateCandidate = (updatedCandidate: Candidate) => {

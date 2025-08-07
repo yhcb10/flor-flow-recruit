@@ -1,0 +1,322 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+interface ScheduleInPersonInterviewRequest {
+  candidate: {
+    id: string;
+    name: string;
+    email: string;
+    position?: string;
+  };
+  interview: {
+    scheduledAt: string;
+    duration: number;
+    location: string;
+    notes?: string;
+    inviteeEmails: string[];
+    type: 'in_person';
+  };
+}
+
+serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { candidate, interview }: ScheduleInPersonInterviewRequest = await req.json();
+
+    console.log('=== EDGE FUNCTION SCHEDULE-INPERSON-INTERVIEW ===');
+    console.log('Dados recebidos:');
+    console.log('- Candidato:', candidate);
+    console.log('- Entrevista:', interview);
+    console.log('- Data da entrevista:', interview.scheduledAt);
+    console.log('- Local:', interview.location);
+
+    console.log('Agendando entrevista presencial para:', candidate.name);
+
+    // Obter access token do Google
+    const accessToken = await getGoogleAccessToken();
+
+    // Criar evento no Google Calendar
+    const calendarEvent = await createGoogleCalendarEvent({
+      candidate,
+      interview,
+      accessToken,
+    });
+
+    // Enviar emails via Gmail
+    await sendEmailsViaGmail({
+      candidate,
+      interview,
+      accessToken,
+    });
+
+    console.log('Entrevista presencial agendada e emails enviados com sucesso');
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        eventId: calendarEvent.eventId 
+      }),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      }
+    );
+
+  } catch (error) {
+    console.error('=== ERRO NA EDGE FUNCTION ===');
+    console.error('Erro completo:', error);
+    console.error('Message:', error.message);
+    console.error('Stack:', error.stack);
+    console.error('=====================================');
+    
+    return new Response(
+      JSON.stringify({ 
+        error: error.message || 'Erro interno do servidor',
+        details: error.toString()
+      }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      }
+    );
+  }
+});
+
+async function getGoogleAccessToken() {
+  const googleClientId = Deno.env.get('GOOGLE_CLIENT_ID');
+  const googleClientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET');
+  const googleRefreshToken = Deno.env.get('GOOGLE_REFRESH_TOKEN');
+
+  if (!googleClientId || !googleClientSecret || !googleRefreshToken) {
+    throw new Error('Credenciais do Google não configuradas');
+  }
+
+  const response = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: googleClientId,
+      client_secret: googleClientSecret,
+      refresh_token: googleRefreshToken,
+      grant_type: 'refresh_token',
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Erro ao obter access token do Google');
+  }
+
+  const { access_token } = await response.json();
+  return access_token;
+}
+
+async function createGoogleCalendarEvent({ candidate, interview, accessToken }: { 
+  candidate: ScheduleInPersonInterviewRequest['candidate'], 
+  interview: ScheduleInPersonInterviewRequest['interview'],
+  accessToken: string
+}) {
+  const startTime = new Date(interview.scheduledAt);
+  const endTime = new Date(startTime.getTime() + interview.duration * 60000);
+
+  const calendarEvent = {
+    summary: `Entrevista Presencial - ${candidate.name}`,
+    description: `Entrevista presencial com candidato ${candidate.name}\n\nEmail: ${candidate.email}\nLocal: ${interview.location}\n\n${interview.notes || ''}`,
+    start: {
+      dateTime: startTime.toISOString(),
+      timeZone: 'America/Sao_Paulo',
+    },
+    end: {
+      dateTime: endTime.toISOString(),
+      timeZone: 'America/Sao_Paulo',
+    },
+    location: interview.location,
+    attendees: [
+      { email: candidate.email },
+      ...interview.inviteeEmails.map(email => ({ email })),
+    ],
+  };
+
+  const response = await fetch(
+    'https://www.googleapis.com/calendar/v3/calendars/primary/events',
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(calendarEvent),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Erro ao criar evento no Google Calendar: ${errorText}`);
+  }
+
+  const eventData = await response.json();
+
+  return {
+    eventId: eventData.id,
+  };
+}
+
+async function sendEmailsViaGmail({ candidate, interview, accessToken }: {
+  candidate: ScheduleInPersonInterviewRequest['candidate'],
+  interview: ScheduleInPersonInterviewRequest['interview'],
+  accessToken: string
+}) {
+  const scheduledDate = new Date(interview.scheduledAt);
+  const formattedDate = scheduledDate.toLocaleDateString('pt-BR', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+  const formattedTime = scheduledDate.toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  // Mapear positionId para nome da vaga
+  const getPositionName = (positionId?: string) => {
+    const positions: { [key: string]: string } = {
+      '1': 'Vendedor',
+      'gestor-ads': 'Gestor de Ads'
+    };
+    return positions[positionId || ''] || 'Não especificada';
+  };
+
+  const positionName = getPositionName(candidate.position);
+
+  // Emails para enviar (sempre incluir o email da empresa)
+  const allEmails = [
+    candidate.email,
+    'coroadefloresnobre@gmail.com',
+    ...interview.inviteeEmails.filter(email => email.trim())
+  ];
+
+  // Remover duplicatas
+  const uniqueEmails = [...new Set(allEmails)];
+
+  console.log('Enviando emails para:', uniqueEmails);
+
+  // Enviar emails para todos os destinatários
+  for (const email of uniqueEmails) {
+    console.log(`Preparando email para: ${email}`);
+    
+    if (!email || email.trim() === '') {
+      console.error('Email vazio encontrado, pulando...');
+      continue;
+    }
+
+    let emailContent;
+    
+    if (email === candidate.email) {
+      // Email personalizado para o candidato
+      emailContent = createEmailMessage({
+        to: email,
+        from: 'coroadefloresnobre@gmail.com',
+        subject: `Entrevista presencial agendada - ${candidate.name}`,
+        html: `<h2>Sua entrevista presencial foi agendada!</h2>
+<p>Olá ${candidate.name},</p>
+<p>Sua entrevista presencial foi agendada para:</p>
+<div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+  <h3>Detalhes da Entrevista:</h3>
+  <p><strong>Vaga:</strong> ${positionName}</p>
+  <p><strong>Data:</strong> ${formattedDate}</p>
+  <p><strong>Horário:</strong> ${formattedTime}</p>
+  <p><strong>Duração:</strong> ${interview.duration} minutos</p>
+  <p><strong>Local:</strong> ${interview.location}</p>
+  ${interview.notes ? `<p><strong>Observações:</strong> ${interview.notes}</p>` : ''}
+</div>
+<p>Por favor, chegue com 15 minutos de antecedência. Traga documento de identificação e currículo atualizado.</p>
+<p>Atenciosamente,<br>Equipe de Recrutamento<br>Coroa de Flores Nobre</p>`
+      });
+    } else {
+      // Email para RH e convidados
+      emailContent = createEmailMessage({
+        to: email,
+        from: 'coroadefloresnobre@gmail.com',
+        subject: `Entrevista presencial com ${candidate.name}`,
+        html: `<h2>Entrevista presencial agendada</h2>
+<p>Nova entrevista presencial foi agendada:</p>
+<div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+  <h3>Detalhes:</h3>
+  <p><strong>Candidato:</strong> ${candidate.name}</p>
+  <p><strong>Email:</strong> ${candidate.email}</p>
+  <p><strong>Vaga:</strong> ${positionName}</p>
+  <p><strong>Data:</strong> ${formattedDate}</p>
+  <p><strong>Horário:</strong> ${formattedTime}</p>
+  <p><strong>Duração:</strong> ${interview.duration} minutos</p>
+  <p><strong>Local:</strong> ${interview.location}</p>
+  ${interview.notes ? `<p><strong>Observações:</strong> ${interview.notes}</p>` : ''}
+</div>
+<p>Atenciosamente,<br>Sistema de Recrutamento<br>Coroa de Flores Nobre</p>`
+      });
+    }
+
+    console.log(`Email content preparado para ${email}`);
+    await sendGmailMessage(emailContent, accessToken);
+    console.log(`Email enviado com sucesso para: ${email}`);
+  }
+}
+
+function createEmailMessage({ to, from, subject, html }: {
+  to: string,
+  from: string,
+  subject: string,
+  html: string
+}) {
+  const message = [
+    `To: ${to}`,
+    `From: ${from}`,
+    `Subject: ${subject}`,
+    'MIME-Version: 1.0',
+    'Content-Type: text/html; charset=utf-8',
+    '',
+    html
+  ].join('\n');
+  
+  return message;
+}
+
+async function sendGmailMessage(emailContent: string, accessToken: string) {
+  console.log('Enviando email via Gmail API...');
+  
+  // Converter string para UTF-8 bytes e depois para base64
+  const encoder = new TextEncoder();
+  const utf8Bytes = encoder.encode(emailContent);
+  const encodedMessage = btoa(String.fromCharCode(...utf8Bytes))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+  
+  const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      raw: encodedMessage,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Erro ao enviar email via Gmail:', errorText);
+    throw new Error(`Erro ao enviar email via Gmail: ${errorText}`);
+  }
+
+  const result = await response.json();
+  console.log('Email enviado com sucesso:', result.id);
+  return result;
+}

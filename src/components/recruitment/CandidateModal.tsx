@@ -20,6 +20,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ResumeUpload } from './ResumeUpload';
 import { InterviewScheduler } from './InterviewScheduler';
+import { InPersonInterviewScheduler } from './InPersonInterviewScheduler';
 
 interface CandidateModalProps {
   candidate: Candidate;
@@ -363,6 +364,15 @@ export function CandidateModal({ candidate, isOpen, onClose, onUpdate, onDelete 
                 }}
               />
             )}
+
+            {candidate.stage === 'pre_entrevista' && (
+              <InPersonInterviewScheduler 
+                candidate={candidate}
+                onInterviewScheduled={(updatedCandidate) => {
+                  onUpdate(updatedCandidate);
+                }}
+              />
+            )}
             
             {candidate.interviews.length > 0 ? (
               candidate.interviews.map((interview) => (
@@ -410,7 +420,7 @@ export function CandidateModal({ candidate, isOpen, onClose, onUpdate, onDelete 
                   </CardContent>
                 </Card>
               ))
-            ) : candidate.stage !== 'selecao_rh' ? (
+            ) : !['selecao_rh', 'pre_entrevista'].includes(candidate.stage) ? (
               <Card>
                 <CardContent className="pt-6 text-center">
                   <div className="text-muted-foreground">Nenhuma entrevista agendada</div>
