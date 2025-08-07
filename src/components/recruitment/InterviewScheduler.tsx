@@ -106,6 +106,7 @@ export function InterviewScheduler({ candidate, onInterviewScheduled }: Intervie
           id: candidate.id,
           name: candidate.name,
           email: candidate.email,
+          position: candidate.positionId,
         },
         interview: {
           scheduledAt: scheduledAt.toISOString(),
@@ -122,6 +123,7 @@ export function InterviewScheduler({ candidate, onInterviewScheduled }: Intervie
             id: candidate.id,
             name: candidate.name,
             email: candidate.email,
+            position: candidate.positionId,
           },
           interview: {
             scheduledAt: scheduledAt.toISOString(),
