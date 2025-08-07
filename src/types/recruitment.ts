@@ -28,6 +28,7 @@ export interface Candidate {
   aiAnalysis?: AIAnalysis;
   notes: CandidateNote[];
   interviews: Interview[];
+  rejectionReason?: string;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -81,6 +81,16 @@ export function CandidateCard({ candidate, onClick, isDragging }: CandidateCardP
           </div>
         </div>
 
+        {/* Rejection Reason for rejected candidates */}
+        {candidate.stage === 'nao_aprovado' && candidate.rejectionReason && (
+          <div className="mb-3 p-2 bg-destructive/10 rounded-md border border-destructive/20">
+            <div className="text-xs font-medium text-destructive mb-1">Motivo da Rejeição:</div>
+            <div className="text-xs text-muted-foreground">
+              {candidate.rejectionReason}
+            </div>
+          </div>
+        )}
+
         {/* AI Analysis Summary */}
         {candidate.aiAnalysis && (
           <div className="mb-3 p-2 bg-secondary/50 rounded-md">
