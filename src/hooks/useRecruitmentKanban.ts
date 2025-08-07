@@ -116,33 +116,45 @@ export function useRecruitmentKanban(positionId?: string) {
   };
 
   const checkAndApplyAIAutomation = (candidate: Candidate) => {
-    // Only apply automation for candidates in 'analise_ia' stage with NEW AI analysis
+    // Only apply automation for candidates in 'analise_ia' stage with AI analysis
     if (candidate.stage === 'analise_ia' && candidate.aiAnalysis) {
       const score = candidate.aiAnalysis.score;
       
       console.log('🤖 Automação IA - Candidato:', candidate.name, 'Nota:', score, 'Stage:', candidate.stage);
       
-      // Check if the analysis is recent (within last 10 seconds) to avoid re-processing old analyses
-      const analysisAge = Date.now() - new Date(candidate.aiAnalysis.analyzedAt).getTime();
-      const isRecentAnalysis = analysisAge < 10000; // 10 seconds
-      
-      console.log('📅 Análise recente?', isRecentAnalysis, 'Idade:', analysisAge, 'ms');
-      
-      if (isRecentAnalysis) {
-        setTimeout(() => {
-          if (score >= 6.5) {
-            console.log('✅ Auto-aprovando candidato com nota >= 6.5');
-            moveCandidateToStage(candidate.id, 'selecao_pre_entrevista');
-          } else {
-            console.log('❌ Auto-reprovando candidato com nota < 6.5');
-            moveCandidateToStage(candidate.id, 'nao_aprovado', 'Pontuação IA abaixo do mínimo (6.5)');
-          }
-        }, 2000); // 2 second delay to show the analysis first
-      } else {
-        console.log('⏭️ Análise antiga, não aplicando automação');
-      }
+      // Apply automation immediately for all candidates with AI analysis in this stage
+      setTimeout(() => {
+        if (score >= 6.5) {
+          console.log('✅ Auto-aprovando candidato com nota >= 6.5');
+          moveCandidateToStage(candidate.id, 'selecao_pre_entrevista');
+        } else {
+          console.log('❌ Auto-reprovando candidato com nota < 6.5');
+          moveCandidateToStage(candidate.id, 'nao_aprovado', 'Pontuação IA abaixo do mínimo (6.5)');
+        }
+      }, 1000); // 1 second delay to show the analysis first
     }
   };
+
+  // Function to process all candidates in analise_ia stage on mount
+  const processExistingAIAnalyses = () => {
+    candidates.forEach(candidate => {
+      if (candidate.stage === 'analise_ia' && candidate.aiAnalysis) {
+        console.log('🔄 Processando análise IA existente para:', candidate.name, 'Nota:', candidate.aiAnalysis.score);
+        checkAndApplyAIAutomation(candidate);
+      }
+    });
+  };
+
+  // Process existing AI analyses when component mounts or candidates change
+  useEffect(() => {
+    if (loading || candidates.length === 0) return;
+    
+    const timer = setTimeout(() => {
+      processExistingAIAnalyses();
+    }, 2000); // Wait 2 seconds after mount to process existing analyses
+    
+    return () => clearTimeout(timer);
+  }, [loading, candidates.length]); // Re-run when loading changes or candidates array length changes
 
   const addCandidate = (newCandidate: Candidate) => {
     setCandidates(prev => [...prev, newCandidate]);
