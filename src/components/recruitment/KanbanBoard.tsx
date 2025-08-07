@@ -320,84 +320,72 @@ export function KanbanBoard({
                 scrollbarColor: 'hsl(var(--border)) transparent'
               }}
             >
-              <ResizablePanelGroup direction="horizontal" className="min-h-[600px] gap-4">
+              <div className="flex gap-4 min-h-[600px]" style={{ minWidth: 'max-content' }}>
                 {filteredColumns.map((column, index) => (
-                  <React.Fragment key={column.id}>
-                    <ResizablePanel 
-                      defaultSize={100 / filteredColumns.length}
-                      minSize={20}
-                      maxSize={50}
-                      className="min-w-80"
-                    >
-                      <div 
-                        data-column-id={column.id}
-                        className="h-full"
-                      >
-                        <Card className="bg-kanban-column border-border h-full flex flex-col">
-                          {/* Column Header */}
-                          <div className="p-4 border-b border-border">
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center gap-2">
-                                <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
-                                <h3 className="font-semibold text-foreground">{column.title}</h3>
-                              </div>
-                              <Badge variant="secondary" className="text-xs">
-                                {column.candidates.length}
-                              </Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground">{column.description}</p>
+                  <div 
+                    key={column.id}
+                    className="flex-shrink-0 w-80"
+                    data-column-id={column.id}
+                  >
+                    <Card className="bg-kanban-column border-border h-full flex flex-col">
+                      {/* Column Header */}
+                      <div className="p-4 border-b border-border">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
+                            <h3 className="font-semibold text-foreground">{column.title}</h3>
                           </div>
-
-                          {/* Droppable Area with ScrollArea */}
-                          <ScrollArea className="flex-1 max-h-[calc(100vh-400px)]">
-                            <Droppable droppableId={column.id}>
-                              {(provided, snapshot) => (
-                                <div
-                                  ref={provided.innerRef}
-                                  {...provided.droppableProps}
-                                  className={cn(
-                                    "p-4 min-h-[500px] transition-colors",
-                                    snapshot.isDraggingOver && "bg-primary/5"
-                                  )}
-                                >
-                                  {column.candidates.map((candidate, index) => (
-                                    <Draggable key={candidate.id} draggableId={candidate.id} index={index}>
-                                      {(provided, snapshot) => (
-                                        <div
-                                          ref={provided.innerRef}
-                                          {...provided.draggableProps}
-                                          {...provided.dragHandleProps}
-                                          className={cn(
-                                            "mb-3",
-                                            snapshot.isDragging && "rotate-2 scale-105"
-                                          )}
-                                        >
-                                          <CandidateCard
-                                            candidate={candidate}
-                                            onClick={() => setSelectedCandidate(candidate)}
-                                            isDragging={snapshot.isDragging}
-                                            onStageChange={handleStageChange}
-                                            isCompactView={isCompactView}
-                                          />
-                                        </div>
-                                      )}
-                                    </Draggable>
-                                  ))}
-                                  {provided.placeholder}
-                                </div>
-                              )}
-                            </Droppable>
-                          </ScrollArea>
-                        </Card>
+                          <Badge variant="secondary" className="text-xs">
+                            {column.candidates.length}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{column.description}</p>
                       </div>
-                    </ResizablePanel>
-                    
-                    {index < filteredColumns.length - 1 && (
-                      <ResizableHandle className="w-2 bg-muted hover:bg-muted-foreground/20 transition-colors" />
-                    )}
-                  </React.Fragment>
+
+                      {/* Droppable Area with ScrollArea */}
+                      <ScrollArea className="flex-1 max-h-[calc(100vh-400px)]">
+                        <Droppable droppableId={column.id}>
+                          {(provided, snapshot) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.droppableProps}
+                              className={cn(
+                                "p-4 min-h-[500px] transition-colors",
+                                snapshot.isDraggingOver && "bg-primary/5"
+                              )}
+                            >
+                              {column.candidates.map((candidate, index) => (
+                                <Draggable key={candidate.id} draggableId={candidate.id} index={index}>
+                                  {(provided, snapshot) => (
+                                    <div
+                                      ref={provided.innerRef}
+                                      {...provided.draggableProps}
+                                      {...provided.dragHandleProps}
+                                      className={cn(
+                                        "mb-3",
+                                        snapshot.isDragging && "rotate-2 scale-105"
+                                      )}
+                                    >
+                                      <CandidateCard
+                                        candidate={candidate}
+                                        onClick={() => setSelectedCandidate(candidate)}
+                                        isDragging={snapshot.isDragging}
+                                        onStageChange={handleStageChange}
+                                        isCompactView={isCompactView}
+                                      />
+                                    </div>
+                                  )}
+                                </Draggable>
+                              ))}
+                              {provided.placeholder}
+                            </div>
+                          )}
+                        </Droppable>
+                      </ScrollArea>
+                    </Card>
+                  </div>
                 ))}
-              </ResizablePanelGroup>
+              </div>
             </div>
           </DragDropContext>
         </div>
