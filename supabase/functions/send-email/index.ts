@@ -6,6 +6,7 @@ const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Content-Type': 'application/json; charset=utf-8',
 };
 
 interface SendEmailRequest {
@@ -29,8 +30,11 @@ serve(async (req) => {
     const emailResponse = await resend.emails.send({
       from: from || 'Coroa de Flores Nobre <onboarding@resend.dev>',
       to: [to],
-      subject,
-      html,
+      subject: subject,
+      html: html,
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+      },
     });
 
     console.log('Email enviado com sucesso:', emailResponse);
@@ -39,7 +43,10 @@ serve(async (req) => {
       JSON.stringify({ success: true, id: emailResponse.data?.id }),
       {
         status: 200,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        headers: { 
+          'Content-Type': 'application/json; charset=utf-8', 
+          ...corsHeaders 
+        },
       }
     );
 
@@ -49,7 +56,10 @@ serve(async (req) => {
       JSON.stringify({ error: 'Erro ao enviar email' }),
       {
         status: 500,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        headers: { 
+          'Content-Type': 'application/json; charset=utf-8', 
+          ...corsHeaders 
+        },
       }
     );
   }

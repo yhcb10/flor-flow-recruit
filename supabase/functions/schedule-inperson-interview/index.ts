@@ -275,12 +275,16 @@ function createEmailMessage({ to, from, subject, html }: {
   subject: string,
   html: string
 }) {
+  // Encode subject for UTF-8 support (RFC 2047)
+  const encodedSubject = `=?UTF-8?B?${btoa(unescape(encodeURIComponent(subject)))}?=`;
+  
   const message = [
     `To: ${to}`,
     `From: ${from}`,
-    `Subject: ${subject}`,
+    `Subject: ${encodedSubject}`,
     'MIME-Version: 1.0',
     'Content-Type: text/html; charset=utf-8',
+    'Content-Transfer-Encoding: base64',
     '',
     html
   ].join('\n');
@@ -291,10 +295,17 @@ function createEmailMessage({ to, from, subject, html }: {
 async function sendGmailMessage(emailContent: string, accessToken: string) {
   console.log('Enviando email via Gmail API...');
   
-  // Converter string para UTF-8 bytes e depois para base64
+  // Correção para UTF-8: usar TextEncoder para garantir encoding correto
   const encoder = new TextEncoder();
   const utf8Bytes = encoder.encode(emailContent);
-  const encodedMessage = btoa(String.fromCharCode(...utf8Bytes))
+  
+  // Converter para base64 de forma segura para UTF-8
+  let binary = '';
+  for (let i = 0; i < utf8Bytes.length; i++) {
+    binary += String.fromCharCode(utf8Bytes[i]);
+  }
+  
+  const encodedMessage = btoa(binary)
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
     .replace(/=+$/, '');
