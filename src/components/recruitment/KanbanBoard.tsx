@@ -314,10 +314,10 @@ export function KanbanBoard({
           <DragDropContext onDragEnd={handleDragEnd}>
             <div 
               ref={kanbanRef}
-              className="flex gap-4 overflow-x-auto pb-4 scroll-smooth"
+              className="overflow-x-auto pb-4 scroll-smooth"
               style={{ scrollbarWidth: 'thin' }}
             >
-              <ResizablePanelGroup direction="horizontal" className="min-h-[600px]">
+              <ResizablePanelGroup direction="horizontal" className="min-h-[600px] gap-4">
                 {filteredColumns.map((column, index) => (
                   <React.Fragment key={column.id}>
                     <ResizablePanel 
