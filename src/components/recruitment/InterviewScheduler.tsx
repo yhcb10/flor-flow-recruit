@@ -3,13 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { CalendarIcon, Clock, Users, Loader2 } from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
 import { Candidate, Interview } from '@/types/recruitment';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -20,7 +16,9 @@ interface InterviewSchedulerProps {
 }
 
 export function InterviewScheduler({ candidate, onInterviewScheduled }: InterviewSchedulerProps) {
-  const [selectedDate, setSelectedDate] = useState<Date>();
+  const [selectedDay, setSelectedDay] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState('');
+  const [selectedYear, setSelectedYear] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [inviteeEmails, setInviteeEmails] = useState('');
   const [notes, setNotes] = useState('');
@@ -33,7 +31,39 @@ export function InterviewScheduler({ candidate, onInterviewScheduled }: Intervie
     '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00'
   ];
 
+  // Criar arrays para dropdowns
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 3 }, (_, i) => currentYear + i);
+  const months = [
+    { value: '1', label: 'Janeiro' },
+    { value: '2', label: 'Fevereiro' },
+    { value: '3', label: 'Março' },
+    { value: '4', label: 'Abril' },
+    { value: '5', label: 'Maio' },
+    { value: '6', label: 'Junho' },
+    { value: '7', label: 'Julho' },
+    { value: '8', label: 'Agosto' },
+    { value: '9', label: 'Setembro' },
+    { value: '10', label: 'Outubro' },
+    { value: '11', label: 'Novembro' },
+    { value: '12', label: 'Dezembro' }
+  ];
+  
+  // Calcular dias do mês
+  const getDaysInMonth = () => {
+    if (!selectedMonth || !selectedYear) return [];
+    const daysInMonth = new Date(parseInt(selectedYear), parseInt(selectedMonth), 0).getDate();
+    return Array.from({ length: daysInMonth }, (_, i) => i + 1);
+  };
+
+  // Obter data selecionada
+  const getSelectedDate = () => {
+    if (!selectedDay || !selectedMonth || !selectedYear) return undefined;
+    return new Date(parseInt(selectedYear), parseInt(selectedMonth) - 1, parseInt(selectedDay));
+  };
+
   const handleScheduleInterview = async () => {
+    const selectedDate = getSelectedDate();
     if (!selectedDate || !selectedTime) {
       toast({
         title: "Erro",
@@ -142,7 +172,9 @@ export function InterviewScheduler({ candidate, onInterviewScheduled }: Intervie
       });
 
       // Limpar formulário
-      setSelectedDate(undefined);
+      setSelectedDay('');
+      setSelectedMonth('');
+      setSelectedYear('');
       setSelectedTime('');
       setInviteeEmails('');
       setNotes('');
@@ -168,29 +200,67 @@ export function InterviewScheduler({ candidate, onInterviewScheduled }: Intervie
     <Card>
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2">
-          <Calendar className="h-4 w-4" />
+          <CalendarIcon className="h-4 w-4" />
           Agendar Pré-entrevista
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Seleção de Data */}
-          <div className="space-y-2">
+          <div className="space-y-3">
             <Label>Data da Entrevista</Label>
-            <Input
-              type="date"
-              value={selectedDate ? selectedDate.toISOString().split('T')[0] : ''}
-              onChange={(e) => {
-                if (e.target.value) {
-                  setSelectedDate(new Date(e.target.value + 'T12:00:00'));
-                  console.log('Data selecionada via input:', new Date(e.target.value + 'T12:00:00'));
-                } else {
-                  setSelectedDate(undefined);
-                }
-              }}
-              min={new Date().toISOString().split('T')[0]}
-              className="w-full"
-            />
+            <div className="grid grid-cols-3 gap-2">
+              {/* Dia */}
+              <div>
+                <Label className="text-xs text-muted-foreground">Dia</Label>
+                <Select value={selectedDay} onValueChange={setSelectedDay}>
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="Dia" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background z-50">
+                    {getDaysInMonth().map((day) => (
+                      <SelectItem key={day} value={day.toString()}>
+                        {day}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Mês */}
+              <div>
+                <Label className="text-xs text-muted-foreground">Mês</Label>
+                <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="Mês" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background z-50">
+                    {months.map((month) => (
+                      <SelectItem key={month.value} value={month.value}>
+                        {month.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Ano */}
+              <div>
+                <Label className="text-xs text-muted-foreground">Ano</Label>
+                <Select value={selectedYear} onValueChange={setSelectedYear}>
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="Ano" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background z-50">
+                    {years.map((year) => (
+                      <SelectItem key={year} value={year.toString()}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
 
           {/* Seleção de Horário */}
@@ -245,7 +315,7 @@ export function InterviewScheduler({ candidate, onInterviewScheduled }: Intervie
 
         <Button 
           onClick={handleScheduleInterview}
-          disabled={!selectedDate || !selectedTime || isScheduling}
+          disabled={!getSelectedDate() || !selectedTime || isScheduling}
           className="w-full"
         >
           {isScheduling ? (
