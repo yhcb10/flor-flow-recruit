@@ -297,22 +297,7 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, i
       >
         <div className={cn(isCompactView ? "space-y-2" : "space-y-3")}>
           {/* Header */}
-          <div className="flex items-start justify-between relative">
-            {/* Status Badge */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="absolute -top-2 -right-2 z-10">
-                  {getStatusBadge()}
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <div className="max-w-xs">
-                  <div className="font-medium">{getStatusMessage().title}</div>
-                  <div className="text-xs text-muted-foreground">{getStatusMessage().description}</div>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-            
+          <div className="flex items-start justify-between">
             <div className="flex items-center gap-3 min-w-0 flex-1">
               <Avatar className={cn(isCompactView ? "h-8 w-8" : "h-10 w-10")}>
                 <AvatarFallback className={cn("font-semibold", stageColors.text, stageColors.bg)}>
@@ -370,30 +355,47 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, i
               </div>
             </div>
             
-            {/* Compact view - show AI score on the right */}
-            {isCompactView && candidate.aiAnalysis && (
+            {/* Status Badge with Tooltip */}
+            <div className="flex items-center gap-2">
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div className={cn(
-                    "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ml-2",
-                    getScoreColor(candidate.aiAnalysis.score)
-                  )}>
-                    <Star className="h-3 w-3" />
-                    {candidate.aiAnalysis.score.toFixed(1)}
+                  <div className="cursor-pointer">
+                    {getStatusBadge()}
                   </div>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <div>
-                    <div className="font-medium">Pontuação IA: {candidate.aiAnalysis.score}/10</div>
-                    <div className="text-xs text-muted-foreground">
-                      {candidate.aiAnalysis.recommendation === 'advance' && 'Recomendado avançar'}
-                      {candidate.aiAnalysis.recommendation === 'review' && 'Necessita revisão'}
-                      {candidate.aiAnalysis.recommendation === 'reject' && 'Não recomendado'}
-                    </div>
+                  <div className="max-w-xs">
+                    <div className="font-medium">{getStatusMessage().title}</div>
+                    <div className="text-xs text-muted-foreground">{getStatusMessage().description}</div>
                   </div>
                 </TooltipContent>
               </Tooltip>
-            )}
+              
+              {/* Compact view - show AI score on the right */}
+              {isCompactView && candidate.aiAnalysis && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className={cn(
+                      "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium",
+                      getScoreColor(candidate.aiAnalysis.score)
+                    )}>
+                      <Star className="h-3 w-3" />
+                      {candidate.aiAnalysis.score.toFixed(1)}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <div>
+                      <div className="font-medium">Pontuação IA: {candidate.aiAnalysis.score}/10</div>
+                      <div className="text-xs text-muted-foreground">
+                        {candidate.aiAnalysis.recommendation === 'advance' && 'Recomendado avançar'}
+                        {candidate.aiAnalysis.recommendation === 'review' && 'Necessita revisão'}
+                        {candidate.aiAnalysis.recommendation === 'reject' && 'Não recomendado'}
+                      </div>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </div>
           </div>
 
           {/* Contact Info */}
