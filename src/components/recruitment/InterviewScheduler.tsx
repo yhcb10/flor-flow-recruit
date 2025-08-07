@@ -171,7 +171,7 @@ export function InterviewScheduler({ candidate, onInterviewScheduled }: Intervie
                     return date < today;
                   }}
                   initialFocus
-                  className="pointer-events-auto"
+                  className={cn("p-3 pointer-events-auto")}
                 />
               </PopoverContent>
             </Popover>
