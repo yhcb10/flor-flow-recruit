@@ -196,10 +196,9 @@ async function sendEmailsViaGmail({ candidate, interview, accessToken }: {
 
   const positionName = getPositionName(candidate.position);
 
-  // Emails para enviar (sempre incluir o email da empresa)
+  // Emails para enviar - apenas candidato e convidados especificados
   const allEmails = [
     candidate.email,
-    'coroadefloresnobre@gmail.com',
     ...interview.inviteeEmails.filter(email => email.trim())
   ];
 
