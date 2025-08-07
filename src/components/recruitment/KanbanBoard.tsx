@@ -315,7 +315,10 @@ export function KanbanBoard({
             <div 
               ref={kanbanRef}
               className="overflow-x-auto pb-4 scroll-smooth"
-              style={{ scrollbarWidth: 'thin' }}
+              style={{ 
+                scrollbarWidth: 'thin',
+                scrollbarColor: 'hsl(var(--border)) transparent'
+              }}
             >
               <ResizablePanelGroup direction="horizontal" className="min-h-[600px] gap-4">
                 {filteredColumns.map((column, index) => (
