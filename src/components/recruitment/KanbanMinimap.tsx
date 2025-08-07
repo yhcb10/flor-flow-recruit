@@ -57,11 +57,10 @@ const getColumnColor = (columnId: string) => {
 export function KanbanMinimap({ columns, activeColumnId, onColumnClick }: KanbanMinimapProps) {
   return (
     <div className="flex items-center gap-2 p-4 bg-muted/30 rounded-lg border mb-4">
-      <span className="text-sm font-medium text-muted-foreground mr-2">
-        Navegação:
+      <span className="text-sm font-medium text-muted-foreground">
+        Navegação rápida:
       </span>
-      <div className="flex items-center gap-1 overflow-x-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent"
-           style={{ scrollbarWidth: 'thin' }}>
+      <div className="flex items-center gap-1 flex-wrap">
         {columns.map((column) => {
           const isActive = activeColumnId === column.id;
           const columnColor = getColumnColor(column.id);
@@ -74,17 +73,17 @@ export function KanbanMinimap({ columns, activeColumnId, onColumnClick }: Kanban
                   size="sm"
                   onClick={() => onColumnClick(column.id)}
                   className={cn(
-                    "h-10 px-2 transition-all duration-200 relative flex-shrink-0",
+                    "h-10 px-3 transition-all duration-200 relative",
                     columnColor,
                     isActive && "ring-2 ring-primary scale-105 shadow-md"
                   )}
                 >
-                  <span className="text-base mr-1">{getColumnIcon(column.id)}</span>
+                  <span className="text-lg mr-2">{getColumnIcon(column.id)}</span>
                   <div className="flex flex-col items-start">
-                    <span className="text-xs font-medium text-foreground truncate max-w-16">
-                      {column.title.split(' ')[0]}
+                    <span className="text-xs font-medium text-foreground truncate max-w-20">
+                      {column.title}
                     </span>
-                    <Badge variant="secondary" className="text-xs h-3 px-1 min-w-4">
+                    <Badge variant="secondary" className="text-xs h-4 px-1">
                       {column.candidates.length}
                     </Badge>
                   </div>
