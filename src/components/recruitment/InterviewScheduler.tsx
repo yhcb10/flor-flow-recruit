@@ -16,9 +16,10 @@ interface InterviewSchedulerProps {
 }
 
 export function InterviewScheduler({ candidate, onInterviewScheduled }: InterviewSchedulerProps) {
-  const [selectedDay, setSelectedDay] = useState('');
-  const [selectedMonth, setSelectedMonth] = useState('');
-  const [selectedYear, setSelectedYear] = useState('');
+  const today = new Date();
+  const [selectedDay, setSelectedDay] = useState(today.getDate().toString());
+  const [selectedMonth, setSelectedMonth] = useState((today.getMonth() + 1).toString());
+  const [selectedYear, setSelectedYear] = useState(today.getFullYear().toString());
   const [selectedTime, setSelectedTime] = useState('');
   const [inviteeEmails, setInviteeEmails] = useState('');
   const [notes, setNotes] = useState('');
@@ -135,7 +136,8 @@ export function InterviewScheduler({ candidate, onInterviewScheduled }: Intervie
 
       if (error) {
         console.error('Erro na edge function:', error);
-        throw error;
+        console.error('Detalhes do erro:', JSON.stringify(error, null, 2));
+        throw new Error(`Edge function error: ${error.message || JSON.stringify(error)}`);
       }
 
       // Atualizar candidato com a nova entrevista e Google Meet URL
