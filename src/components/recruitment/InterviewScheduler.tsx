@@ -116,7 +116,7 @@ export function InterviewScheduler({ candidate, onInterviewScheduled }: Intervie
       });
 
       // Chamar edge function para criar evento no Google Calendar e enviar emails
-      const { data, error } = await supabase.functions.invoke('schedule-interview', {
+      const response = await supabase.functions.invoke('schedule-interview', {
         body: {
           candidate: {
             id: candidate.id,
@@ -132,13 +132,17 @@ export function InterviewScheduler({ candidate, onInterviewScheduled }: Intervie
         }
       });
 
-      console.log('Resposta da edge function:', { data, error });
+      console.log('Resposta completa da edge function:', response);
+      console.log('Response data:', response.data);
+      console.log('Response error:', response.error);
 
-      if (error) {
-        console.error('Erro na edge function:', error);
-        console.error('Detalhes do erro:', JSON.stringify(error, null, 2));
-        throw new Error(`Edge function error: ${error.message || JSON.stringify(error)}`);
+      if (response.error) {
+        console.error('Erro na edge function:', response.error);
+        console.error('Detalhes do erro:', JSON.stringify(response.error, null, 2));
+        throw new Error(`Edge function error: ${response.error.message || JSON.stringify(response.error)}`);
       }
+
+      const { data, error } = response;
 
       // Atualizar candidato com a nova entrevista e Google Meet URL
       const updatedInterview = {
