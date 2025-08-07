@@ -110,20 +110,36 @@ export function useRecruitmentKanban(positionId?: string) {
     setCandidates(prev => prev.map(candidate => 
       candidate.id === updatedCandidate.id ? updatedCandidate : candidate
     ));
+    
+    // Check for AI automation AFTER updating the candidate
+    checkAndApplyAIAutomation(updatedCandidate);
+  };
 
-    // Auto-promotion rules for AI analysis
-    if (updatedCandidate.aiAnalysis && updatedCandidate.stage === 'analise_ia') {
-      const score = updatedCandidate.aiAnalysis.score;
-      if (score >= 6.5) {
-        // Auto-promote to next stage
+  const checkAndApplyAIAutomation = (candidate: Candidate) => {
+    // Only apply automation for candidates in 'analise_ia' stage with NEW AI analysis
+    if (candidate.stage === 'analise_ia' && candidate.aiAnalysis) {
+      const score = candidate.aiAnalysis.score;
+      
+      console.log('🤖 Automação IA - Candidato:', candidate.name, 'Nota:', score, 'Stage:', candidate.stage);
+      
+      // Check if the analysis is recent (within last 10 seconds) to avoid re-processing old analyses
+      const analysisAge = Date.now() - new Date(candidate.aiAnalysis.analyzedAt).getTime();
+      const isRecentAnalysis = analysisAge < 10000; // 10 seconds
+      
+      console.log('📅 Análise recente?', isRecentAnalysis, 'Idade:', analysisAge, 'ms');
+      
+      if (isRecentAnalysis) {
         setTimeout(() => {
-          moveCandidateToStage(updatedCandidate.id, 'selecao_pre_entrevista');
-        }, 1000); // Small delay to show the analysis first
+          if (score >= 6.5) {
+            console.log('✅ Auto-aprovando candidato com nota >= 6.5');
+            moveCandidateToStage(candidate.id, 'selecao_pre_entrevista');
+          } else {
+            console.log('❌ Auto-reprovando candidato com nota < 6.5');
+            moveCandidateToStage(candidate.id, 'nao_aprovado', 'Pontuação IA abaixo do mínimo (6.5)');
+          }
+        }, 2000); // 2 second delay to show the analysis first
       } else {
-        // Auto-reject
-        setTimeout(() => {
-          moveCandidateToStage(updatedCandidate.id, 'nao_aprovado', 'Pontuação IA abaixo do mínimo (6.5)');
-        }, 1000);
+        console.log('⏭️ Análise antiga, não aplicando automação');
       }
     }
   };
