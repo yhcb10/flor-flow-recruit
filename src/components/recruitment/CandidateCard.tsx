@@ -108,16 +108,29 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, i
   const getInterviewStatus = () => {
     if (candidate.interviews.length === 0) return null;
     const latestInterview = candidate.interviews[candidate.interviews.length - 1];
-    return latestInterview.status;
+    return { status: latestInterview.status, interview: latestInterview };
   };
 
   const getStatusIcon = () => {
-    const status = getInterviewStatus();
-    if (!status) return null;
+    const interviewInfo = getInterviewStatus();
+    if (!interviewInfo) return null;
+    
+    const { status, interview } = interviewInfo;
     
     switch (status) {
       case 'scheduled':
-        return { icon: '⏰', label: 'Agendado', color: 'text-warning' };
+        const scheduledDate = new Date(interview.scheduledAt);
+        const dateStr = format(scheduledDate, 'dd/MM', { locale: ptBR });
+        const timeStr = format(scheduledDate, 'HH:mm', { locale: ptBR });
+        const fullDateStr = format(scheduledDate, 'dd/MM/yyyy \'às\' HH:mm', { locale: ptBR });
+        
+        return { 
+          icon: '⏰', 
+          label: `${dateStr} ${timeStr}`, 
+          color: 'text-warning',
+          fullDate: fullDateStr,
+          interview: interview
+        };
       case 'completed':
         return { icon: '✅', label: 'Realizada', color: 'text-success' };
       case 'no_show':
@@ -372,7 +385,21 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, i
                     </div>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <div>Status da entrevista: {statusIcon.label}</div>
+                    <div>
+                      {statusIcon.fullDate ? (
+                        <div>
+                          <div className="font-medium">Entrevista agendada</div>
+                          <div>{statusIcon.fullDate}</div>
+                          {statusIcon.interview?.type && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {statusIcon.interview.type === 'in_person' ? 'Entrevista Presencial' : 'Pré-entrevista Online'}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        `Status da entrevista: ${statusIcon.label}`
+                      )}
+                    </div>
                   </TooltipContent>
                 </Tooltip>
               )}
