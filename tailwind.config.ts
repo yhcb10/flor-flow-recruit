@@ -69,10 +69,17 @@ export default {
 				},
 				status: {
 					new: 'hsl(var(--status-new))',
+					'new-border': 'hsl(var(--status-new-border))',
 					analysis: 'hsl(var(--status-analysis))',
+					'analysis-border': 'hsl(var(--status-analysis-border))',
+					'pre-interview': 'hsl(var(--status-pre-interview))',
+					'pre-interview-border': 'hsl(var(--status-pre-interview-border))',
 					interview: 'hsl(var(--status-interview))',
+					'interview-border': 'hsl(var(--status-interview-border))',
 					approved: 'hsl(var(--status-approved))',
-					rejected: 'hsl(var(--status-rejected))'
+					'approved-border': 'hsl(var(--status-approved-border))',
+					rejected: 'hsl(var(--status-rejected))',
+					'rejected-border': 'hsl(var(--status-rejected-border))'
 				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',

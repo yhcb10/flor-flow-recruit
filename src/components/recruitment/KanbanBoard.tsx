@@ -4,7 +4,8 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Plus, Filter, Search, X } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Plus, Filter, Search, X, LayoutGrid, Grid3X3 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -28,6 +29,7 @@ export function KanbanBoard({ columns, onCandidateMove, onCandidateSelect, onCan
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [showNewCandidateModal, setShowNewCandidateModal] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [isCompactView, setIsCompactView] = useState(false);
   
   // Filter states
   const [filters, setFilters] = useState({
@@ -117,36 +119,72 @@ export function KanbanBoard({ columns, onCandidateMove, onCandidateSelect, onCan
   const hasActiveFilters = Object.values(filters).some(f => f !== '') || searchTerm !== '';
 
   return (
-    <div className="h-full bg-kanban-bg p-6">
-      {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Processo Seletivo</h1>
-          <p className="text-muted-foreground">Coroa de Flores Nobre</p>
-        </div>
-        
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar candidatos..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 w-64"
-            />
+    <TooltipProvider>
+      <div className="h-full bg-kanban-bg p-6">
+        {/* Header */}
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Processo Seletivo</h1>
+            <p className="text-muted-foreground">Coroa de Flores Nobre</p>
           </div>
-          <Popover open={showFilters} onOpenChange={setShowFilters}>
-            <PopoverTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="sm"
-                className={cn(hasActiveFilters && "bg-primary text-primary-foreground")}
-              >
-                <Filter className="h-4 w-4 mr-2" />
-                Filtros
-                {hasActiveFilters && <Badge variant="secondary" className="ml-2 h-5 w-5 p-0 text-xs">!</Badge>}
-              </Button>
-            </PopoverTrigger>
+          
+          <div className="flex items-center gap-4">
+            {/* View Toggle */}
+            <div className="flex items-center bg-muted rounded-lg p-1">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={!isCompactView ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setIsCompactView(false)}
+                    className="px-3 py-1 h-8"
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <div>Visualização expandida</div>
+                </TooltipContent>
+              </Tooltip>
+              
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={isCompactView ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setIsCompactView(true)}
+                    className="px-3 py-1 h-8"
+                  >
+                    <Grid3X3 className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <div>Visualização compacta</div>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar candidatos..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 w-64"
+              />
+            </div>
+            <Popover open={showFilters} onOpenChange={setShowFilters}>
+              <PopoverTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className={cn(hasActiveFilters && "bg-primary text-primary-foreground")}
+                >
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filtros
+                  {hasActiveFilters && <Badge variant="secondary" className="ml-2 h-5 w-5 p-0 text-xs">!</Badge>}
+                </Button>
+              </PopoverTrigger>
             <PopoverContent className="w-80" align="end">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -282,6 +320,7 @@ export function KanbanBoard({ columns, onCandidateMove, onCandidateSelect, onCan
                                   onClick={() => setSelectedCandidate(candidate)}
                                   isDragging={snapshot.isDragging}
                                   onStageChange={handleStageChange}
+                                  isCompactView={isCompactView}
                                 />
                               </div>
                             )}
@@ -321,6 +360,7 @@ export function KanbanBoard({ columns, onCandidateMove, onCandidateSelect, onCan
         onClose={() => setShowNewCandidateModal(false)}
         selectedPosition={selectedPosition}
       />
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }

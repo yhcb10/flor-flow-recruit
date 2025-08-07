@@ -49,11 +49,18 @@ Todas as cores DEVEM ser HSL. */
     --kanban-card-hover: 210 30% 96%;
 
     /* Status específicos do processo seletivo */
-    --status-new: 200 40% 90%;
-    --status-analysis: 35 60% 90%;
-    --status-interview: 260 40% 90%;
-    --status-approved: 150 40% 90%;
-    --status-rejected: 0 40% 90%;
+    --status-new: 210 60% 92%;
+    --status-new-border: 210 40% 80%;
+    --status-analysis: 45 70% 90%;
+    --status-analysis-border: 45 50% 75%;
+    --status-pre-interview: 200 60% 90%;
+    --status-pre-interview-border: 200 40% 75%;
+    --status-interview: 260 50% 90%;
+    --status-interview-border: 260 30% 75%;
+    --status-approved: 150 50% 88%;
+    --status-approved-border: 150 40% 70%;
+    --status-rejected: 0 50% 90%;
+    --status-rejected-border: 0 40% 75%;
 
     --border: 210 20% 90%;
     --input: 210 20% 95%;
@@ -113,11 +120,18 @@ Todas as cores DEVEM ser HSL. */
     --kanban-card: 210 20% 12%;
     --kanban-card-hover: 210 20% 15%;
 
-    --status-new: 200 20% 20%;
-    --status-analysis: 35 30% 20%;
-    --status-interview: 260 20% 20%;
-    --status-approved: 150 30% 20%;
-    --status-rejected: 0 30% 20%;
+    --status-new: 210 30% 15%;
+    --status-new-border: 210 25% 25%;
+    --status-analysis: 45 40% 15%;
+    --status-analysis-border: 45 30% 25%;
+    --status-pre-interview: 200 30% 15%;
+    --status-pre-interview-border: 200 25% 25%;
+    --status-interview: 260 25% 15%;
+    --status-interview-border: 260 20% 25%;
+    --status-approved: 150 35% 15%;
+    --status-approved-border: 150 25% 25%;
+    --status-rejected: 0 35% 15%;
+    --status-rejected-border: 0 25% 25%;
 
     --border: 210 20% 20%;
     --input: 210 20% 15%;

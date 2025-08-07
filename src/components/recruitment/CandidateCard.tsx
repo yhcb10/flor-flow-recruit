@@ -2,7 +2,8 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { CalendarDays, Mail, Phone, Star, Clock, MessageSquare, Check, X } from 'lucide-react';
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { CalendarDays, Mail, Phone, Star, Clock, MessageSquare, Check, X, User } from 'lucide-react';
 import { Candidate, CandidateStage } from '@/types/recruitment';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -15,9 +16,10 @@ interface CandidateCardProps {
   onClick: () => void;
   isDragging?: boolean;
   onStageChange?: (candidateId: string, newStage: CandidateStage, rejectionReason?: string) => void;
+  isCompactView?: boolean;
 }
 
-export function CandidateCard({ candidate, onClick, isDragging, onStageChange }: CandidateCardProps) {
+export function CandidateCard({ candidate, onClick, isDragging, onStageChange, isCompactView = false }: CandidateCardProps) {
   const [showRejectionModal, setShowRejectionModal] = useState(false);
   const getScoreColor = (score: number) => {
     if (score >= 8) return 'text-success bg-success/10';
@@ -35,6 +37,57 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange }:
   };
 
   const sourceBadge = getSourceBadge(candidate.source);
+
+  const getStageColors = (stage: CandidateStage) => {
+    switch (stage) {
+      case 'nova_candidatura':
+        return {
+          bg: 'bg-status-new',
+          border: 'border-status-new-border',
+          text: 'text-status-new-border'
+        };
+      case 'analise_ia':
+        return {
+          bg: 'bg-status-analysis',
+          border: 'border-status-analysis-border',
+          text: 'text-status-analysis-border'
+        };
+      case 'selecao_pre_entrevista':
+      case 'pre_entrevista':
+        return {
+          bg: 'bg-status-pre-interview',
+          border: 'border-status-pre-interview-border',
+          text: 'text-status-pre-interview-border'
+        };
+      case 'selecao_entrevista_presencial':
+      case 'entrevista_presencial':
+        return {
+          bg: 'bg-status-interview',
+          border: 'border-status-interview-border',
+          text: 'text-status-interview-border'
+        };
+      case 'aprovado':
+        return {
+          bg: 'bg-status-approved',
+          border: 'border-status-approved-border',
+          text: 'text-status-approved-border'
+        };
+      case 'nao_aprovado':
+        return {
+          bg: 'bg-status-rejected',
+          border: 'border-status-rejected-border',
+          text: 'text-status-rejected-border'
+        };
+      default:
+        return {
+          bg: 'bg-muted',
+          border: 'border-muted',
+          text: 'text-muted-foreground'
+        };
+    }
+  };
+
+  const stageColors = getStageColors(candidate.stage);
 
   const getNextStage = (currentStage: CandidateStage): CandidateStage | null => {
     switch (currentStage) {
@@ -98,148 +151,270 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange }:
   };
 
   return (
-    <Card 
-      className={cn(
-        "bg-kanban-card hover:bg-kanban-card-hover cursor-pointer transition-all duration-200",
-        "hover:shadow-md border-border",
-        isDragging && "shadow-lg ring-2 ring-primary/20"
-      )}
-      onClick={onClick}
-    >
-      <div className="p-4">
-        {/* Header */}
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10">
-              <AvatarFallback className="bg-primary/10 text-primary font-medium">
-                {candidate.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <h4 className="font-medium text-foreground text-sm">{candidate.name}</h4>
-              <div className="flex items-center gap-2 mt-1">
-                <Badge {...sourceBadge} className="text-xs">
-                  {sourceBadge.label}
-                </Badge>
-                {candidate.aiAnalysis && (
+    <TooltipProvider>
+      <Card 
+        className={cn(
+          "cursor-pointer transition-all duration-200 border-l-4",
+          "hover:shadow-md hover:scale-[1.02]",
+          stageColors.bg,
+          stageColors.border,
+          isDragging && "shadow-lg ring-2 ring-primary/20",
+          isCompactView ? "p-3" : "p-4"
+        )}
+        onClick={onClick}
+      >
+        <div className={cn(isCompactView ? "space-y-2" : "space-y-3")}>
+          {/* Header */}
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <Avatar className={cn(isCompactView ? "h-8 w-8" : "h-10 w-10")}>
+                <AvatarFallback className={cn("font-semibold", stageColors.text, stageColors.bg)}>
+                  {candidate.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0 flex-1">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <h4 className={cn(
+                      "font-semibold text-foreground truncate",
+                      isCompactView ? "text-sm" : "text-base"
+                    )}>
+                      {candidate.name}
+                    </h4>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      {candidate.name}
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+                
+                {!isCompactView && (
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge {...sourceBadge} className="text-xs">
+                      {sourceBadge.label}
+                    </Badge>
+                    {candidate.aiAnalysis && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className={cn(
+                            "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium",
+                            getScoreColor(candidate.aiAnalysis.score)
+                          )}>
+                            <Star className="h-3 w-3" />
+                            {candidate.aiAnalysis.score.toFixed(1)}
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <div>
+                            <div className="font-medium">Pontuação IA: {candidate.aiAnalysis.score}/10</div>
+                            <div className="text-xs text-muted-foreground">
+                              {candidate.aiAnalysis.recommendation === 'advance' && 'Recomendado avançar'}
+                              {candidate.aiAnalysis.recommendation === 'review' && 'Necessita revisão'}
+                              {candidate.aiAnalysis.recommendation === 'reject' && 'Não recomendado'}
+                            </div>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Compact view - show AI score on the right */}
+            {isCompactView && candidate.aiAnalysis && (
+              <Tooltip>
+                <TooltipTrigger asChild>
                   <div className={cn(
-                    "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium",
+                    "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ml-2",
                     getScoreColor(candidate.aiAnalysis.score)
                   )}>
                     <Star className="h-3 w-3" />
                     {candidate.aiAnalysis.score.toFixed(1)}
                   </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <div>
+                    <div className="font-medium">Pontuação IA: {candidate.aiAnalysis.score}/10</div>
+                    <div className="text-xs text-muted-foreground">
+                      {candidate.aiAnalysis.recommendation === 'advance' && 'Recomendado avançar'}
+                      {candidate.aiAnalysis.recommendation === 'review' && 'Necessita revisão'}
+                      {candidate.aiAnalysis.recommendation === 'reject' && 'Não recomendado'}
+                    </div>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </div>
+
+          {/* Contact Info */}
+          <div className={cn("space-y-1", isCompactView ? "text-xs" : "text-sm")}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
+                  <Mail className={cn(isCompactView ? "h-3 w-3" : "h-4 w-4")} />
+                  <span className="truncate font-normal">{candidate.email}</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <div>Enviar email para {candidate.email}</div>
+              </TooltipContent>
+            </Tooltip>
+            
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
+                  <Phone className={cn(isCompactView ? "h-3 w-3" : "h-4 w-4")} />
+                  <span className="font-normal">{candidate.phone}</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <div>Ligar para {candidate.phone}</div>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+
+          {/* Rejection Reason for rejected candidates */}
+          {candidate.stage === 'nao_aprovado' && candidate.rejectionReason && !isCompactView && (
+            <div className="p-2 bg-destructive/10 rounded-md border border-destructive/20">
+              <div className="text-xs font-semibold text-destructive mb-1">Motivo da Rejeição:</div>
+              <div className="text-xs text-muted-foreground font-normal">
+                {candidate.rejectionReason}
+              </div>
+            </div>
+          )}
+
+          {/* AI Analysis Summary - Only in expanded view */}
+          {candidate.aiAnalysis && !isCompactView && (
+            <div className="p-2 bg-secondary/30 rounded-md">
+              <div className="text-xs font-semibold text-foreground mb-1">Análise IA:</div>
+              <div className="text-xs text-muted-foreground font-normal">
+                {candidate.aiAnalysis.recommendation === 'advance' && (
+                  <span className="text-success font-medium">✓ Recomendado para próxima etapa</span>
+                )}
+                {candidate.aiAnalysis.recommendation === 'review' && (
+                  <span className="text-warning font-medium">⚠ Necessita revisão</span>
+                )}
+                {candidate.aiAnalysis.recommendation === 'reject' && (
+                  <span className="text-destructive font-medium">✗ Não recomendado</span>
                 )}
               </div>
+              {candidate.aiAnalysis.pontoFortes.length > 0 && (
+                <div className="text-xs text-muted-foreground mt-1 font-normal">
+                  <strong>Destaque:</strong> {candidate.aiAnalysis.pontoFortes[0]}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          {canShowActionButtons && !isCompactView && (
+            <div className="flex gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={handleApprove}
+                    className="flex-1 h-8 text-xs font-medium"
+                  >
+                    <Check className="h-3 w-3 mr-1" />
+                    Aprovar
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <div>Avançar para próxima etapa</div>
+                </TooltipContent>
+              </Tooltip>
+              
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={handleReject}
+                    className="flex-1 h-8 text-xs font-medium"
+                  >
+                    <X className="h-3 w-3 mr-1" />
+                    Reprovar
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <div>Rejeitar candidato</div>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          )}
+
+          {/* Footer */}
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-1 cursor-pointer">
+                  <Clock className="h-3 w-3" />
+                  <span className="font-normal">{format(candidate.createdAt, 'dd/MM', { locale: ptBR })}</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <div>Criado em {format(candidate.createdAt, 'dd/MM/yyyy', { locale: ptBR })}</div>
+              </TooltipContent>
+            </Tooltip>
+            
+            <div className="flex items-center gap-2">
+              {statusIcon && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className={cn("flex items-center gap-1 cursor-pointer", statusIcon.color)}>
+                      <span className="text-xs">{statusIcon.icon}</span>
+                      {!isCompactView && <span className="text-xs font-medium">{statusIcon.label}</span>}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <div>Status da entrevista: {statusIcon.label}</div>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              
+              {candidate.notes.length > 0 && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-1 cursor-pointer hover:text-foreground transition-colors">
+                      <MessageSquare className="h-3 w-3" />
+                      <span className="font-medium">{candidate.notes.length}</span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <div>{candidate.notes.length} nota(s) registrada(s)</div>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              
+              {candidate.interviews.length > 0 && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-1 cursor-pointer hover:text-foreground transition-colors">
+                      <CalendarDays className="h-3 w-3" />
+                      <span className="font-medium">{candidate.interviews.length}</span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <div>{candidate.interviews.length} entrevista(s) agendada(s)</div>
+                  </TooltipContent>
+                </Tooltip>
+              )}
             </div>
           </div>
         </div>
-
-        {/* Contact Info */}
-        <div className="space-y-2 mb-3">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Mail className="h-3 w-3" />
-            <span className="truncate">{candidate.email}</span>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Phone className="h-3 w-3" />
-            <span>{candidate.phone}</span>
-          </div>
-        </div>
-
-        {/* Rejection Reason for rejected candidates */}
-        {candidate.stage === 'nao_aprovado' && candidate.rejectionReason && (
-          <div className="mb-3 p-2 bg-destructive/10 rounded-md border border-destructive/20">
-            <div className="text-xs font-medium text-destructive mb-1">Motivo da Rejeição:</div>
-            <div className="text-xs text-muted-foreground">
-              {candidate.rejectionReason}
-            </div>
-          </div>
-        )}
-
-        {/* AI Analysis Summary */}
-        {candidate.aiAnalysis && (
-          <div className="mb-3 p-2 bg-secondary/50 rounded-md">
-            <div className="text-xs font-medium text-foreground mb-1">Análise IA:</div>
-            <div className="text-xs text-muted-foreground">
-              {candidate.aiAnalysis.recommendation === 'advance' && (
-                <span className="text-success">✓ Recomendado para próxima etapa</span>
-              )}
-              {candidate.aiAnalysis.recommendation === 'review' && (
-                <span className="text-warning">⚠ Necessita revisão</span>
-              )}
-              {candidate.aiAnalysis.recommendation === 'reject' && (
-                <span className="text-destructive">✗ Não recomendado</span>
-              )}
-            </div>
-            {candidate.aiAnalysis.pontoFortes.length > 0 && (
-              <div className="text-xs text-muted-foreground mt-1">
-                <strong>Destaque:</strong> {candidate.aiAnalysis.pontoFortes[0]}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        {canShowActionButtons && (
-          <div className="flex gap-2 mb-3">
-            <Button
-              size="sm"
-              variant="default"
-              onClick={handleApprove}
-              className="flex-1 h-8 text-xs"
-            >
-              <Check className="h-3 w-3 mr-1" />
-              Aprovar
-            </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={handleReject}
-              className="flex-1 h-8 text-xs"
-            >
-              <X className="h-3 w-3 mr-1" />
-              Reprovar
-            </Button>
-          </div>
-        )}
-
-        {/* Footer */}
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            {format(candidate.createdAt, 'dd/MM', { locale: ptBR })}
-          </div>
-          
-          <div className="flex items-center gap-2">
-            {statusIcon && (
-              <div className={cn("flex items-center gap-1", statusIcon.color)}>
-                <span className="text-xs">{statusIcon.icon}</span>
-                <span className="text-xs font-medium">{statusIcon.label}</span>
-              </div>
-            )}
-            {candidate.notes.length > 0 && (
-              <div className="flex items-center gap-1">
-                <MessageSquare className="h-3 w-3" />
-                <span>{candidate.notes.length}</span>
-              </div>
-            )}
-            {candidate.interviews.length > 0 && (
-              <div className="flex items-center gap-1">
-                <CalendarDays className="h-3 w-3" />
-                <span>{candidate.interviews.length}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-      
-      <RejectionReasonModal
-        isOpen={showRejectionModal}
-        onClose={() => setShowRejectionModal(false)}
-        onConfirm={handleRejectConfirm}
-        candidateName={candidate.name}
-      />
-    </Card>
+        
+        <RejectionReasonModal
+          isOpen={showRejectionModal}
+          onClose={() => setShowRejectionModal(false)}
+          onConfirm={handleRejectConfirm}
+          candidateName={candidate.name}
+        />
+      </Card>
+    </TooltipProvider>
   );
 }
