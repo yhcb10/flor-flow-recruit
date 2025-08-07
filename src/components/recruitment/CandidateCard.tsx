@@ -51,6 +51,33 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange }:
 
   const canShowActionButtons = ['analise_ia', 'pre_entrevista', 'entrevista_presencial'].includes(candidate.stage);
 
+  // Get interview status for visual indicators
+  const getInterviewStatus = () => {
+    if (candidate.interviews.length === 0) return null;
+    const latestInterview = candidate.interviews[candidate.interviews.length - 1];
+    return latestInterview.status;
+  };
+
+  const getStatusIcon = () => {
+    const status = getInterviewStatus();
+    if (!status) return null;
+    
+    switch (status) {
+      case 'scheduled':
+        return { icon: '⏰', label: 'Agendado', color: 'text-warning' };
+      case 'completed':
+        return { icon: '✅', label: 'Realizada', color: 'text-success' };
+      case 'no_show':
+        return { icon: '⚠️', label: 'Faltou', color: 'text-destructive' };
+      case 'cancelled':
+        return { icon: '❌', label: 'Cancelada', color: 'text-muted-foreground' };
+      default:
+        return null;
+    }
+  };
+
+  const statusIcon = getStatusIcon();
+
   const handleApprove = (e: React.MouseEvent) => {
     e.stopPropagation();
     const nextStage = getNextStage(candidate.stage);
@@ -185,6 +212,12 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange }:
           </div>
           
           <div className="flex items-center gap-2">
+            {statusIcon && (
+              <div className={cn("flex items-center gap-1", statusIcon.color)}>
+                <span className="text-xs">{statusIcon.icon}</span>
+                <span className="text-xs font-medium">{statusIcon.label}</span>
+              </div>
+            )}
             {candidate.notes.length > 0 && (
               <div className="flex items-center gap-1">
                 <MessageSquare className="h-3 w-3" />

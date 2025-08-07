@@ -110,6 +110,22 @@ export function useRecruitmentKanban(positionId?: string) {
     setCandidates(prev => prev.map(candidate => 
       candidate.id === updatedCandidate.id ? updatedCandidate : candidate
     ));
+
+    // Auto-promotion rules for AI analysis
+    if (updatedCandidate.aiAnalysis && updatedCandidate.stage === 'analise_ia') {
+      const score = updatedCandidate.aiAnalysis.score;
+      if (score >= 6.5) {
+        // Auto-promote to next stage
+        setTimeout(() => {
+          moveCandidateToStage(updatedCandidate.id, 'selecao_pre_entrevista');
+        }, 1000); // Small delay to show the analysis first
+      } else {
+        // Auto-reject
+        setTimeout(() => {
+          moveCandidateToStage(updatedCandidate.id, 'nao_aprovado', 'Pontuação IA abaixo do mínimo (6.5)');
+        }, 1000);
+      }
+    }
   };
 
   const addCandidate = (newCandidate: Candidate) => {
