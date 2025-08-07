@@ -22,10 +22,11 @@ interface InterviewSchedulerProps {
 export function InterviewScheduler({ candidate, onInterviewScheduled }: InterviewSchedulerProps) {
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState('');
-  const [duration, setDuration] = useState(30);
   const [inviteeEmails, setInviteeEmails] = useState('');
   const [notes, setNotes] = useState('');
   const [isScheduling, setIsScheduling] = useState(false);
+
+  const duration = 15; // Duração fixa de 15 minutos
 
   const timeSlots = [
     '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
@@ -118,7 +119,6 @@ export function InterviewScheduler({ candidate, onInterviewScheduled }: Intervie
       // Limpar formulário
       setSelectedDate(undefined);
       setSelectedTime('');
-      setDuration(30);
       setInviteeEmails('');
       setNotes('');
 
@@ -196,27 +196,10 @@ export function InterviewScheduler({ candidate, onInterviewScheduled }: Intervie
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          {/* Duração */}
-          <div className="space-y-2">
-            <Label htmlFor="duration">Duração (minutos)</Label>
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <Input
-                id="duration"
-                type="number"
-                value={duration}
-                onChange={(e) => setDuration(Number(e.target.value))}
-                min={15}
-                max={120}
-                step={15}
-              />
-            </div>
-          </div>
-
+        <div className="grid grid-cols-1 gap-4">
           {/* Convidados */}
           <div className="space-y-2">
-            <Label htmlFor="invitees">Convidados (emails)</Label>
+            <Label htmlFor="invitees">Convidados (emails) - Opcional</Label>
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-muted-foreground" />
               <Input
