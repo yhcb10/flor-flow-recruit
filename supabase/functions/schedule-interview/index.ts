@@ -193,6 +193,17 @@ async function sendEmailsViaGmail({ candidate, interview, meetingUrl, accessToke
     minute: '2-digit',
   });
 
+  // Mapear positionId para nome da vaga
+  const getPositionName = (positionId?: string) => {
+    const positions: { [key: string]: string } = {
+      '1': 'Vendedor',
+      'gestor-ads': 'Gestor de Ads'
+    };
+    return positions[positionId || ''] || 'Não especificada';
+  };
+
+  const positionName = getPositionName(candidate.position);
+
   // Emails para enviar (sempre incluir o email da empresa)
   const allEmails = [
     candidate.email,
@@ -221,12 +232,13 @@ async function sendEmailsViaGmail({ candidate, interview, meetingUrl, accessToke
       emailContent = createEmailMessage({
         to: email,
         from: 'coroadefloresnobre@gmail.com',
-        subject: `Pre-entrevista agendada - ${candidate.name}`,
+        subject: `Pré-entrevista agendada - ${candidate.name}`,
         html: `<h2>Sua pré-entrevista foi agendada!</h2>
-<p>Olá ${candidate.name}${candidate.position ? ` - ${candidate.position}` : ''},</p>
+<p>Olá ${candidate.name},</p>
 <p>Sua pré-entrevista foi agendada para:</p>
 <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
   <h3>Detalhes da Entrevista:</h3>
+  <p><strong>Vaga:</strong> ${positionName}</p>
   <p><strong>Data:</strong> ${formattedDate}</p>
   <p><strong>Horário:</strong> ${formattedTime}</p>
   <p><strong>Duração:</strong> ${interview.duration} minutos</p>
@@ -241,13 +253,14 @@ async function sendEmailsViaGmail({ candidate, interview, meetingUrl, accessToke
       emailContent = createEmailMessage({
         to: email,
         from: 'coroadefloresnobre@gmail.com',
-        subject: `Pre-entrevista com ${candidate.name}`,
+        subject: `Pré-entrevista com ${candidate.name}`,
         html: `<h2>Pré-entrevista agendada</h2>
 <p>Nova pré-entrevista foi agendada:</p>
 <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
   <h3>Detalhes:</h3>
-  <p><strong>Candidato:</strong> ${candidate.name}${candidate.position ? ` - ${candidate.position}` : ''}</p>
+  <p><strong>Candidato:</strong> ${candidate.name}</p>
   <p><strong>Email:</strong> ${candidate.email}</p>
+  <p><strong>Vaga:</strong> ${positionName}</p>
   <p><strong>Data:</strong> ${formattedDate}</p>
   <p><strong>Horário:</strong> ${formattedTime}</p>
   <p><strong>Duração:</strong> ${interview.duration} minutos</p>
