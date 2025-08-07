@@ -45,10 +45,10 @@ export function KanbanBoard({
   
   // Filter states
   const [filters, setFilters] = useState({
-    source: '',
-    aiScore: '',
-    interviewStatus: '',
-    dateRange: ''
+    source: 'all',
+    aiScore: 'all',
+    interviewStatus: 'all',
+    dateRange: 'all'
   });
 
   const handleStageChange = (candidateId: string, newStage: CandidateStage, rejectionReason?: string) => {
@@ -66,10 +66,10 @@ export function KanbanBoard({
 
   const clearFilters = () => {
     setFilters({
-      source: '',
-      aiScore: '',
-      interviewStatus: '',
-      dateRange: ''
+      source: 'all',
+      aiScore: 'all',
+      interviewStatus: 'all',
+      dateRange: 'all'
     });
     setSearchTerm('');
   };
@@ -89,10 +89,10 @@ export function KanbanBoard({
         candidate.email.toLowerCase().includes(searchTerm.toLowerCase());
 
       // Source filter
-      const matchesSource = filters.source === '' || candidate.source === filters.source;
+      const matchesSource = filters.source === 'all' || candidate.source === filters.source;
 
       // AI Score filter
-      const matchesAiScore = filters.aiScore === '' || (() => {
+      const matchesAiScore = filters.aiScore === 'all' || (() => {
         if (!candidate.aiAnalysis) return filters.aiScore === 'none';
         const score = candidate.aiAnalysis.score;
         switch (filters.aiScore) {
@@ -104,11 +104,11 @@ export function KanbanBoard({
       })();
 
       // Interview Status filter
-      const matchesInterviewStatus = filters.interviewStatus === '' || 
+      const matchesInterviewStatus = filters.interviewStatus === 'all' || 
         getInterviewStatus(candidate) === filters.interviewStatus;
 
       // Date range filter
-      const matchesDateRange = filters.dateRange === '' || (() => {
+      const matchesDateRange = filters.dateRange === 'all' || (() => {
         const now = new Date();
         const candidateDate = candidate.createdAt;
         switch (filters.dateRange) {
@@ -128,7 +128,7 @@ export function KanbanBoard({
     })
   }));
 
-  const hasActiveFilters = Object.values(filters).some(f => f !== '') || searchTerm !== '';
+  const hasActiveFilters = Object.values(filters).some(f => f !== 'all') || searchTerm !== '';
 
   return (
     <TooltipProvider>
@@ -227,7 +227,7 @@ export function KanbanBoard({
                               <SelectValue placeholder="Todas" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">Todas</SelectItem>
+                              <SelectItem value="all">Todas</SelectItem>
                               <SelectItem value="indeed">Indeed</SelectItem>
                               <SelectItem value="manual">Manual</SelectItem>
                               <SelectItem value="referral">Indicação</SelectItem>
@@ -242,7 +242,7 @@ export function KanbanBoard({
                               <SelectValue placeholder="Todas" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">Todas</SelectItem>
+                              <SelectItem value="all">Todas</SelectItem>
                               <SelectItem value="high">Alta (8.0+)</SelectItem>
                               <SelectItem value="medium">Média (6.5-7.9)</SelectItem>
                               <SelectItem value="low">Baixa (abaixo 6.5)</SelectItem>
@@ -258,7 +258,7 @@ export function KanbanBoard({
                               <SelectValue placeholder="Todos" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">Todos</SelectItem>
+                              <SelectItem value="all">Todos</SelectItem>
                               <SelectItem value="none">Sem entrevista</SelectItem>
                               <SelectItem value="scheduled">Agendada</SelectItem>
                               <SelectItem value="completed">Realizada</SelectItem>
@@ -275,7 +275,7 @@ export function KanbanBoard({
                               <SelectValue placeholder="Todos" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">Todos</SelectItem>
+                              <SelectItem value="all">Todos</SelectItem>
                               <SelectItem value="today">Hoje</SelectItem>
                               <SelectItem value="week">Esta semana</SelectItem>
                               <SelectItem value="month">Este mês</SelectItem>
