@@ -297,9 +297,15 @@ function createEmailMessage({ to, from, subject, html }: {
 }
 
 async function sendGmailMessage(emailContent: string, accessToken: string) {
-  const encodedMessage = btoa(emailContent).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-
   console.log('Enviando email via Gmail API...');
+  
+  // Converter string para UTF-8 bytes e depois para base64
+  const encoder = new TextEncoder();
+  const utf8Bytes = encoder.encode(emailContent);
+  const encodedMessage = btoa(String.fromCharCode(...utf8Bytes))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
   
   const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
     method: 'POST',
