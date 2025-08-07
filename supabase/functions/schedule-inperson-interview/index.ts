@@ -140,7 +140,7 @@ async function createGoogleCalendarEvent({ candidate, interview, accessToken }: 
     location: interview.location,
     attendees: [
       { email: candidate.email },
-      ...interview.inviteeEmails.map(email => ({ email })),
+      ...interview.inviteeEmails.filter(email => email.trim()).map(email => ({ email })),
     ],
   };
 
@@ -196,9 +196,10 @@ async function sendEmailsViaGmail({ candidate, interview, accessToken }: {
 
   const positionName = getPositionName(candidate.position);
 
-  // Emails para enviar - apenas candidato e convidados especificados
+  // Emails para enviar - sempre incluir empresa e convidados especificados
   const allEmails = [
     candidate.email,
+    'coroadefloresnobre@gmail.com',
     ...interview.inviteeEmails.filter(email => email.trim())
   ];
 
