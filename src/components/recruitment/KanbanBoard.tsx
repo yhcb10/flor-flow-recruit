@@ -1,19 +1,23 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Plus, Filter, Search, X, LayoutGrid, Grid3X3 } from 'lucide-react';
+import { Plus, Filter, Search, X, LayoutGrid, Grid3X3, GripVertical } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { CandidateCard } from './CandidateCard';
 import { CandidateModal } from './CandidateModal';
+import { NewCandidateModal } from './NewCandidateModal';
+import { KanbanMinimap } from './KanbanMinimap';
+import { KanbanColumnsList } from './KanbanColumnsList';
+import { useKanbanNavigation } from '@/hooks/useKanbanNavigation';
 import { Candidate, CandidateStage, KanbanColumn, JobPosition } from '@/types/recruitment';
 import { cn } from '@/lib/utils';
-import { NewCandidateModal } from './NewCandidateModal';
 
 interface KanbanBoardProps {
   columns: KanbanColumn[];
@@ -24,12 +28,20 @@ interface KanbanBoardProps {
   selectedPosition?: JobPosition | null;
 }
 
-export function KanbanBoard({ columns, onCandidateMove, onCandidateSelect, onCandidateAdd, onCandidateDelete, selectedPosition }: KanbanBoardProps) {
+export function KanbanBoard({ 
+  columns, 
+  onCandidateMove, 
+  onCandidateSelect, 
+  onCandidateAdd, 
+  onCandidateDelete, 
+  selectedPosition 
+}: KanbanBoardProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [showNewCandidateModal, setShowNewCandidateModal] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [isCompactView, setIsCompactView] = useState(false);
+  const { activeColumnId, kanbanRef, scrollToColumn } = useKanbanNavigation();
   
   // Filter states
   const [filters, setFilters] = useState({
@@ -120,246 +132,296 @@ export function KanbanBoard({ columns, onCandidateMove, onCandidateSelect, onCan
 
   return (
     <TooltipProvider>
-      <div className="h-full bg-kanban-bg p-6">
-        {/* Header */}
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Processo Seletivo</h1>
-            <p className="text-muted-foreground">Coroa de Flores Nobre</p>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            {/* View Toggle */}
-            <div className="flex items-center bg-muted rounded-lg p-1">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant={!isCompactView ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => setIsCompactView(false)}
-                    className="px-3 py-1 h-8"
-                  >
-                    <LayoutGrid className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <div>Visualização expandida</div>
-                </TooltipContent>
-              </Tooltip>
+      <div className="h-full flex flex-col">
+        {/* Sticky Header */}
+        <div className="sticky top-0 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+          <div className="bg-kanban-bg p-6">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">Processo Seletivo</h1>
+                <p className="text-muted-foreground">Coroa de Flores Nobre</p>
+              </div>
               
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant={isCompactView ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => setIsCompactView(true)}
-                    className="px-3 py-1 h-8"
-                  >
-                    <Grid3X3 className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <div>Visualização compacta</div>
-                </TooltipContent>
-              </Tooltip>
-            </div>
+              <div className="flex items-center gap-3">
+                {/* Mobile Columns List */}
+                <KanbanColumnsList 
+                  columns={filteredColumns} 
+                  onColumnClick={scrollToColumn} 
+                />
 
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar candidatos..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-64"
-              />
-            </div>
-            <Popover open={showFilters} onOpenChange={setShowFilters}>
-              <PopoverTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className={cn(hasActiveFilters && "bg-primary text-primary-foreground")}
-                >
-                  <Filter className="h-4 w-4 mr-2" />
-                  Filtros
-                  {hasActiveFilters && <Badge variant="secondary" className="ml-2 h-5 w-5 p-0 text-xs">!</Badge>}
-                </Button>
-              </PopoverTrigger>
-            <PopoverContent className="w-80" align="end">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium">Filtros</h4>
-                  {hasActiveFilters && (
-                    <Button variant="ghost" size="sm" onClick={clearFilters}>
-                      <X className="h-4 w-4 mr-1" />
-                      Limpar
-                    </Button>
-                  )}
+                {/* View Toggle */}
+                <div className="flex items-center bg-muted rounded-lg p-1">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant={!isCompactView ? "default" : "ghost"}
+                        size="sm"
+                        onClick={() => setIsCompactView(false)}
+                        className="px-3 py-1 h-8"
+                      >
+                        <LayoutGrid className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <div>Visualização expandida</div>
+                    </TooltipContent>
+                  </Tooltip>
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant={isCompactView ? "default" : "ghost"}
+                        size="sm"
+                        onClick={() => setIsCompactView(true)}
+                        className="px-3 py-1 h-8"
+                      >
+                        <Grid3X3 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <div>Visualização compacta</div>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar candidatos..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 w-64"
+                  />
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Origem</label>
-                    <Select value={filters.source} onValueChange={(value) => setFilters(prev => ({ ...prev, source: value }))}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Todas" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">Todas</SelectItem>
-                        <SelectItem value="indeed">Indeed</SelectItem>
-                        <SelectItem value="manual">Manual</SelectItem>
-                        <SelectItem value="referral">Indicação</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Nota IA</label>
-                    <Select value={filters.aiScore} onValueChange={(value) => setFilters(prev => ({ ...prev, aiScore: value }))}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Todas" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">Todas</SelectItem>
-                        <SelectItem value="high">Alta (8.0+)</SelectItem>
-                        <SelectItem value="medium">Média (6.5-7.9)</SelectItem>
-                        <SelectItem value="low">Baixa (abaixo 6.5)</SelectItem>
-                        <SelectItem value="none">Sem análise</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Status Entrevista</label>
-                    <Select value={filters.interviewStatus} onValueChange={(value) => setFilters(prev => ({ ...prev, interviewStatus: value }))}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Todos" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">Todos</SelectItem>
-                        <SelectItem value="none">Sem entrevista</SelectItem>
-                        <SelectItem value="scheduled">Agendada</SelectItem>
-                        <SelectItem value="completed">Realizada</SelectItem>
-                        <SelectItem value="no_show">Faltou</SelectItem>
-                        <SelectItem value="cancelled">Cancelada</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Período</label>
-                    <Select value={filters.dateRange} onValueChange={(value) => setFilters(prev => ({ ...prev, dateRange: value }))}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Todos" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">Todos</SelectItem>
-                        <SelectItem value="today">Hoje</SelectItem>
-                        <SelectItem value="week">Esta semana</SelectItem>
-                        <SelectItem value="month">Este mês</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
-          <Button 
-            size="sm"
-            onClick={() => setShowNewCandidateModal(true)}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Candidatura
-          </Button>
-        </div>
-      </div>
-
-      {/* Kanban Board */}
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex gap-4 overflow-x-auto pb-4">
-          {filteredColumns.map((column) => (
-            <div key={column.id} className="min-w-80 max-w-80">
-              <Card className="bg-kanban-column border-border h-full flex flex-col">
-                {/* Column Header */}
-                <div className="p-4 border-b border-border">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold text-foreground">{column.title}</h3>
-                    <Badge variant="secondary" className="text-xs">
-                      {column.candidates.length}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground">{column.description}</p>
-                </div>
-
-                {/* Droppable Area with ScrollArea */}
-                <ScrollArea className="flex-1 max-h-[calc(100vh-300px)]">
-                  <Droppable droppableId={column.id}>
-                    {(provided, snapshot) => (
-                      <div
-                        ref={provided.innerRef}
-                        {...provided.droppableProps}
-                        className={cn(
-                          "p-4 min-h-[500px] transition-colors",
-                          snapshot.isDraggingOver && "bg-primary/5"
+                <Popover open={showFilters} onOpenChange={setShowFilters}>
+                  <PopoverTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className={cn(hasActiveFilters && "bg-primary text-primary-foreground")}
+                    >
+                      <Filter className="h-4 w-4 mr-2" />
+                      Filtros
+                      {hasActiveFilters && <Badge variant="secondary" className="ml-2 h-5 w-5 p-0 text-xs">!</Badge>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80" align="end">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium">Filtros</h4>
+                        {hasActiveFilters && (
+                          <Button variant="ghost" size="sm" onClick={clearFilters}>
+                            <X className="h-4 w-4 mr-1" />
+                            Limpar
+                          </Button>
                         )}
-                      >
-                        {column.candidates.map((candidate, index) => (
-                          <Draggable key={candidate.id} draggableId={candidate.id} index={index}>
-                            {(provided, snapshot) => (
-                              <div
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                {...provided.dragHandleProps}
-                                className={cn(
-                                  "mb-3",
-                                  snapshot.isDragging && "rotate-2 scale-105"
-                                )}
-                              >
-                                <CandidateCard
-                                  candidate={candidate}
-                                  onClick={() => setSelectedCandidate(candidate)}
-                                  isDragging={snapshot.isDragging}
-                                  onStageChange={handleStageChange}
-                                  isCompactView={isCompactView}
-                                />
-                              </div>
-                            )}
-                          </Draggable>
-                        ))}
-                        {provided.placeholder}
                       </div>
-                    )}
-                  </Droppable>
-                </ScrollArea>
-              </Card>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Origem</label>
+                          <Select value={filters.source} onValueChange={(value) => setFilters(prev => ({ ...prev, source: value }))}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Todas" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="">Todas</SelectItem>
+                              <SelectItem value="indeed">Indeed</SelectItem>
+                              <SelectItem value="manual">Manual</SelectItem>
+                              <SelectItem value="referral">Indicação</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Nota IA</label>
+                          <Select value={filters.aiScore} onValueChange={(value) => setFilters(prev => ({ ...prev, aiScore: value }))}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Todas" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="">Todas</SelectItem>
+                              <SelectItem value="high">Alta (8.0+)</SelectItem>
+                              <SelectItem value="medium">Média (6.5-7.9)</SelectItem>
+                              <SelectItem value="low">Baixa (abaixo 6.5)</SelectItem>
+                              <SelectItem value="none">Sem análise</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Status Entrevista</label>
+                          <Select value={filters.interviewStatus} onValueChange={(value) => setFilters(prev => ({ ...prev, interviewStatus: value }))}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Todos" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="">Todos</SelectItem>
+                              <SelectItem value="none">Sem entrevista</SelectItem>
+                              <SelectItem value="scheduled">Agendada</SelectItem>
+                              <SelectItem value="completed">Realizada</SelectItem>
+                              <SelectItem value="no_show">Faltou</SelectItem>
+                              <SelectItem value="cancelled">Cancelada</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Período</label>
+                          <Select value={filters.dateRange} onValueChange={(value) => setFilters(prev => ({ ...prev, dateRange: value }))}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Todos" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="">Todos</SelectItem>
+                              <SelectItem value="today">Hoje</SelectItem>
+                              <SelectItem value="week">Esta semana</SelectItem>
+                              <SelectItem value="month">Este mês</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                
+                <Button 
+                  size="sm"
+                  onClick={() => setShowNewCandidateModal(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nova Candidatura
+                </Button>
+              </div>
             </div>
-          ))}
+
+            {/* Minimapa */}
+            <div className="hidden md:block">
+              <KanbanMinimap 
+                columns={filteredColumns} 
+                activeColumnId={activeColumnId}
+                onColumnClick={scrollToColumn} 
+              />
+            </div>
+          </div>
         </div>
-      </DragDropContext>
 
-      {/* Candidate Detail Modal */}
-      {selectedCandidate && (
-        <CandidateModal
-          candidate={selectedCandidate}
-          isOpen={!!selectedCandidate}
-          onClose={() => setSelectedCandidate(null)}
-          onUpdate={(updatedCandidate) => {
-            onCandidateSelect(updatedCandidate);
-            setSelectedCandidate(null);
-          }}
-          onDelete={onCandidateDelete ? (candidateId) => {
-            onCandidateDelete(candidateId);
-            setSelectedCandidate(null);
-          } : undefined}
+        {/* Kanban Board Container */}
+        <div className="flex-1 bg-kanban-bg px-6 pb-6">
+          {/* Kanban Board */}
+          <DragDropContext onDragEnd={handleDragEnd}>
+            <div 
+              ref={kanbanRef}
+              className="flex gap-4 overflow-x-auto pb-4 scroll-smooth"
+              style={{ scrollbarWidth: 'thin' }}
+            >
+              <ResizablePanelGroup direction="horizontal" className="min-h-[600px]">
+                {filteredColumns.map((column, index) => (
+                  <React.Fragment key={column.id}>
+                    <ResizablePanel 
+                      defaultSize={100 / filteredColumns.length}
+                      minSize={20}
+                      maxSize={50}
+                      className="min-w-80"
+                    >
+                      <div 
+                        data-column-id={column.id}
+                        className="h-full"
+                      >
+                        <Card className="bg-kanban-column border-border h-full flex flex-col">
+                          {/* Column Header */}
+                          <div className="p-4 border-b border-border">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
+                                <h3 className="font-semibold text-foreground">{column.title}</h3>
+                              </div>
+                              <Badge variant="secondary" className="text-xs">
+                                {column.candidates.length}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">{column.description}</p>
+                          </div>
+
+                          {/* Droppable Area with ScrollArea */}
+                          <ScrollArea className="flex-1 max-h-[calc(100vh-400px)]">
+                            <Droppable droppableId={column.id}>
+                              {(provided, snapshot) => (
+                                <div
+                                  ref={provided.innerRef}
+                                  {...provided.droppableProps}
+                                  className={cn(
+                                    "p-4 min-h-[500px] transition-colors",
+                                    snapshot.isDraggingOver && "bg-primary/5"
+                                  )}
+                                >
+                                  {column.candidates.map((candidate, index) => (
+                                    <Draggable key={candidate.id} draggableId={candidate.id} index={index}>
+                                      {(provided, snapshot) => (
+                                        <div
+                                          ref={provided.innerRef}
+                                          {...provided.draggableProps}
+                                          {...provided.dragHandleProps}
+                                          className={cn(
+                                            "mb-3",
+                                            snapshot.isDragging && "rotate-2 scale-105"
+                                          )}
+                                        >
+                                          <CandidateCard
+                                            candidate={candidate}
+                                            onClick={() => setSelectedCandidate(candidate)}
+                                            isDragging={snapshot.isDragging}
+                                            onStageChange={handleStageChange}
+                                            isCompactView={isCompactView}
+                                          />
+                                        </div>
+                                      )}
+                                    </Draggable>
+                                  ))}
+                                  {provided.placeholder}
+                                </div>
+                              )}
+                            </Droppable>
+                          </ScrollArea>
+                        </Card>
+                      </div>
+                    </ResizablePanel>
+                    
+                    {index < filteredColumns.length - 1 && (
+                      <ResizableHandle className="w-2 bg-muted hover:bg-muted-foreground/20 transition-colors" />
+                    )}
+                  </React.Fragment>
+                ))}
+              </ResizablePanelGroup>
+            </div>
+          </DragDropContext>
+        </div>
+
+        {/* Candidate Detail Modal */}
+        {selectedCandidate && (
+          <CandidateModal
+            candidate={selectedCandidate}
+            isOpen={!!selectedCandidate}
+            onClose={() => setSelectedCandidate(null)}
+            onUpdate={(updatedCandidate) => {
+              onCandidateSelect(updatedCandidate);
+              setSelectedCandidate(null);
+            }}
+            onDelete={onCandidateDelete ? (candidateId) => {
+              onCandidateDelete(candidateId);
+              setSelectedCandidate(null);
+            } : undefined}
+          />
+        )}
+
+        {/* New Candidate Modal */}
+        <NewCandidateModal
+          isOpen={showNewCandidateModal}
+          onClose={() => setShowNewCandidateModal(false)}
+          selectedPosition={selectedPosition}
         />
-      )}
-
-      {/* New Candidate Modal */}
-      <NewCandidateModal
-        isOpen={showNewCandidateModal}
-        onClose={() => setShowNewCandidateModal(false)}
-        selectedPosition={selectedPosition}
-      />
       </div>
     </TooltipProvider>
   );
