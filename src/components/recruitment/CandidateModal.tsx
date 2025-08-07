@@ -19,6 +19,7 @@ import { Candidate } from '@/types/recruitment';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ResumeUpload } from './ResumeUpload';
+import { InterviewScheduler } from './InterviewScheduler';
 
 interface CandidateModalProps {
   candidate: Candidate;
@@ -354,6 +355,15 @@ export function CandidateModal({ candidate, isOpen, onClose, onUpdate, onDelete 
 
           {/* Interviews Tab */}
           <TabsContent value="interviews" className="space-y-4">
+            {candidate.stage === 'selecao_rh' && (
+              <InterviewScheduler 
+                candidate={candidate}
+                onInterviewScheduled={(updatedCandidate) => {
+                  onUpdate(updatedCandidate);
+                }}
+              />
+            )}
+            
             {candidate.interviews.length > 0 ? (
               candidate.interviews.map((interview) => (
                 <Card key={interview.id}>
@@ -400,14 +410,13 @@ export function CandidateModal({ candidate, isOpen, onClose, onUpdate, onDelete 
                   </CardContent>
                 </Card>
               ))
-            ) : (
+            ) : candidate.stage !== 'selecao_rh' ? (
               <Card>
                 <CardContent className="pt-6 text-center">
-                  <div className="text-muted-foreground mb-4">Nenhuma entrevista agendada</div>
-                  <Button size="sm">Agendar Entrevista</Button>
+                  <div className="text-muted-foreground">Nenhuma entrevista agendada</div>
                 </CardContent>
               </Card>
-            )}
+            ) : null}
           </TabsContent>
 
           {/* Notes Tab */}
