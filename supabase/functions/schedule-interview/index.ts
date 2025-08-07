@@ -29,6 +29,12 @@ serve(async (req) => {
   try {
     const { candidate, interview }: ScheduleInterviewRequest = await req.json();
 
+    console.log('=== EDGE FUNCTION SCHEDULE-INTERVIEW ===');
+    console.log('Dados recebidos:');
+    console.log('- Candidato:', candidate);
+    console.log('- Entrevista:', interview);
+    console.log('- Data da entrevista:', interview.scheduledAt);
+
     console.log('Agendando entrevista para:', candidate.name);
 
     // Obter access token do Google
@@ -64,9 +70,17 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Erro ao agendar entrevista:', error);
+    console.error('=== ERRO NA EDGE FUNCTION ===');
+    console.error('Erro completo:', error);
+    console.error('Message:', error.message);
+    console.error('Stack:', error.stack);
+    console.error('=====================================');
+    
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message || 'Erro interno do servidor',
+        details: error.toString()
+      }),
       {
         status: 500,
         headers: { 'Content-Type': 'application/json', ...corsHeaders },

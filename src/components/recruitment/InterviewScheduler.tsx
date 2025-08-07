@@ -43,6 +43,11 @@ export function InterviewScheduler({ candidate, onInterviewScheduled }: Intervie
       return;
     }
 
+    console.log('=== INICIANDO AGENDAMENTO ===');
+    console.log('Data selecionada:', selectedDate);
+    console.log('Horário selecionado:', selectedTime);
+    console.log('Candidato:', candidate);
+    
     setIsScheduling(true);
 
     try {
@@ -50,6 +55,9 @@ export function InterviewScheduler({ candidate, onInterviewScheduled }: Intervie
       const [hours, minutes] = selectedTime.split(':').map(Number);
       const scheduledAt = new Date(selectedDate);
       scheduledAt.setHours(hours, minutes, 0, 0);
+      
+      console.log('Data/hora combinada:', scheduledAt);
+      console.log('ISO String:', scheduledAt.toISOString());
 
       // Criar nova entrevista
       const newInterview: Interview = {
@@ -61,6 +69,20 @@ export function InterviewScheduler({ candidate, onInterviewScheduled }: Intervie
         interviewerIds: [],
         status: 'scheduled',
       };
+
+      console.log('Dados sendo enviados para edge function:', {
+        candidate: {
+          id: candidate.id,
+          name: candidate.name,
+          email: candidate.email,
+        },
+        interview: {
+          scheduledAt: scheduledAt.toISOString(),
+          duration,
+          notes,
+          inviteeEmails: inviteeEmails.split(',').map(email => email.trim()).filter(Boolean),
+        }
+      });
 
       // Chamar edge function para criar evento no Google Calendar e enviar emails
       const { data, error } = await supabase.functions.invoke('schedule-interview', {
@@ -79,7 +101,10 @@ export function InterviewScheduler({ candidate, onInterviewScheduled }: Intervie
         }
       });
 
+      console.log('Resposta da edge function:', { data, error });
+
       if (error) {
+        console.error('Erro na edge function:', error);
         throw error;
       }
 
@@ -123,10 +148,15 @@ export function InterviewScheduler({ candidate, onInterviewScheduled }: Intervie
       setNotes('');
 
     } catch (error) {
-      console.error('Erro ao agendar entrevista:', error);
+      console.error('=== ERRO COMPLETO NO AGENDAMENTO ===');
+      console.error('Erro detalhado:', error);
+      console.error('Stack trace:', error.stack);
+      console.error('Tipo do erro:', typeof error);
+      console.error('Propriedades do erro:', Object.keys(error));
+      
       toast({
         title: "Erro ao agendar",
-        description: "Não foi possível agendar a entrevista. Tente novamente.",
+        description: `Erro: ${error.message || error.toString()}`,
         variant: "destructive",
       });
     } finally {
@@ -144,37 +174,23 @@ export function InterviewScheduler({ candidate, onInterviewScheduled }: Intervie
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
-          {/* Seleção de Data */}
+          {/* Seleção de Data - Formato Simples */}
           <div className="space-y-2">
             <Label>Data da Entrevista</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !selectedDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {selectedDate ? format(selectedDate, "PPP", { locale: ptBR }) : "Selecionar data"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={setSelectedDate}
-                  disabled={(date) => {
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    return date < today;
-                  }}
-                  initialFocus
-                  className={cn("p-3 pointer-events-auto")}
-                />
-              </PopoverContent>
-            </Popover>
+            <Input
+              type="date"
+              value={selectedDate ? selectedDate.toISOString().split('T')[0] : ''}
+              onChange={(e) => {
+                if (e.target.value) {
+                  setSelectedDate(new Date(e.target.value + 'T12:00:00'));
+                  console.log('Data selecionada via input:', new Date(e.target.value + 'T12:00:00'));
+                } else {
+                  setSelectedDate(undefined);
+                }
+              }}
+              min={new Date().toISOString().split('T')[0]}
+              className="w-full"
+            />
           </div>
 
           {/* Seleção de Horário */}
@@ -186,7 +202,10 @@ export function InterviewScheduler({ candidate, onInterviewScheduled }: Intervie
                   key={time}
                   variant={selectedTime === time ? "default" : "outline"}
                   size="sm"
-                  onClick={() => setSelectedTime(time)}
+                  onClick={() => {
+                    setSelectedTime(time);
+                    console.log('Horário selecionado:', time);
+                  }}
                   className="text-xs"
                 >
                   {time}
