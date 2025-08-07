@@ -106,7 +106,7 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, i
 
   // Get interview status for visual indicators
   const getInterviewStatus = () => {
-    if (candidate.interviews.length === 0) return null;
+    if (!candidate.interviews || candidate.interviews.length === 0) return null;
     const latestInterview = candidate.interviews[candidate.interviews.length - 1];
     return { status: latestInterview.status, interview: latestInterview };
   };
@@ -166,7 +166,7 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, i
           </div>
         );
       case 'pre_entrevista':
-        const hasScheduledInterview = candidate.interviews.some(i => i.status === 'scheduled' && i.type === 'pre_interview');
+        const hasScheduledInterview = (candidate.interviews || []).some(i => i.status === 'scheduled' && i.type === 'pre_interview');
         return (
           <div className={cn(
             "rounded-full p-1.5 shadow-md border",
@@ -184,7 +184,7 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, i
           </div>
         );
       case 'entrevista_presencial':
-        const hasScheduledInPersonInterview = candidate.interviews.some(i => i.status === 'scheduled' && i.type === 'in_person');
+        const hasScheduledInPersonInterview = (candidate.interviews || []).some(i => i.status === 'scheduled' && i.type === 'in_person');
         return (
           <div className={cn(
             "rounded-full p-1.5 shadow-md border",
@@ -229,7 +229,7 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, i
           description: 'Você precisa agendar a pré-entrevista com este candidato.'
         };
       case 'pre_entrevista':
-        const hasScheduledInterview = candidate.interviews.some(i => i.status === 'scheduled' && i.type === 'pre_interview');
+        const hasScheduledInterview = (candidate.interviews || []).some(i => i.status === 'scheduled' && i.type === 'pre_interview');
         return {
           title: hasScheduledInterview ? 'Pré-entrevista Agendada' : 'Aguardando Agendamento',
           description: hasScheduledInterview 
@@ -242,7 +242,7 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, i
           description: 'Você precisa agendar a entrevista presencial com este candidato.'
         };
       case 'entrevista_presencial':
-        const hasScheduledInPersonInterview = candidate.interviews.some(i => i.status === 'scheduled' && i.type === 'in_person');
+        const hasScheduledInPersonInterview = (candidate.interviews || []).some(i => i.status === 'scheduled' && i.type === 'in_person');
         return {
           title: hasScheduledInPersonInterview ? 'Entrevista Presencial Agendada' : 'Aguardando Agendamento',
           description: hasScheduledInPersonInterview 
@@ -540,16 +540,16 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, i
                 </Tooltip>
               )}
               
-              {candidate.interviews.length > 0 && (
+              {(candidate.interviews || []).length > 0 && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <div className="flex items-center gap-1 cursor-pointer hover:text-foreground transition-colors">
                       <CalendarDays className="h-3 w-3" />
-                      <span className="font-medium">{candidate.interviews.length}</span>
+                      <span className="font-medium">{(candidate.interviews || []).length}</span>
                     </div>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <div>{candidate.interviews.length} entrevista(s) agendada(s)</div>
+                    <div>{(candidate.interviews || []).length} entrevista(s) agendada(s)</div>
                   </TooltipContent>
                 </Tooltip>
               )}
