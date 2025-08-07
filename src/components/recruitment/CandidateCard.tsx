@@ -144,6 +144,125 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, i
 
   const statusIcon = getStatusIcon();
 
+  // Get status badge and message based on stage
+  const getStatusBadge = () => {
+    switch (candidate.stage) {
+      case 'aprovado':
+        return (
+          <div className="bg-success text-success-foreground rounded-full p-1.5 shadow-md border border-success/20">
+            <span className="text-sm">✅</span>
+          </div>
+        );
+      case 'nao_aprovado':
+        return (
+          <div className="bg-destructive text-destructive-foreground rounded-full p-1.5 shadow-md border border-destructive/20">
+            <span className="text-sm">❌</span>
+          </div>
+        );
+      case 'selecao_pre_entrevista':
+        return (
+          <div className="bg-warning text-warning-foreground rounded-full p-1.5 shadow-md border border-warning/20">
+            <span className="text-sm">⚠️</span>
+          </div>
+        );
+      case 'pre_entrevista':
+        const hasScheduledInterview = candidate.interviews.some(i => i.status === 'scheduled' && i.type === 'pre_interview');
+        return (
+          <div className={cn(
+            "rounded-full p-1.5 shadow-md border",
+            hasScheduledInterview 
+              ? "bg-info text-info-foreground border-info/20" 
+              : "bg-warning text-warning-foreground border-warning/20"
+          )}>
+            <span className="text-sm">{hasScheduledInterview ? '📅' : '⚠️'}</span>
+          </div>
+        );
+      case 'selecao_entrevista_presencial':
+        return (
+          <div className="bg-warning text-warning-foreground rounded-full p-1.5 shadow-md border border-warning/20">
+            <span className="text-sm">⚠️</span>
+          </div>
+        );
+      case 'entrevista_presencial':
+        const hasScheduledInPersonInterview = candidate.interviews.some(i => i.status === 'scheduled' && i.type === 'in_person');
+        return (
+          <div className={cn(
+            "rounded-full p-1.5 shadow-md border",
+            hasScheduledInPersonInterview 
+              ? "bg-info text-info-foreground border-info/20" 
+              : "bg-warning text-warning-foreground border-warning/20"
+          )}>
+            <span className="text-sm">{hasScheduledInPersonInterview ? '📅' : '⚠️'}</span>
+          </div>
+        );
+      case 'analise_ia':
+        return (
+          <div className="bg-primary text-primary-foreground rounded-full p-1.5 shadow-md border border-primary/20">
+            <span className="text-sm">🤖</span>
+          </div>
+        );
+      case 'nova_candidatura':
+      default:
+        return (
+          <div className="bg-secondary text-secondary-foreground rounded-full p-1.5 shadow-md border border-secondary/20">
+            <span className="text-sm">🆕</span>
+          </div>
+        );
+    }
+  };
+
+  const getStatusMessage = () => {
+    switch (candidate.stage) {
+      case 'aprovado':
+        return {
+          title: 'Candidato Aprovado',
+          description: 'Processo seletivo concluído com sucesso.'
+        };
+      case 'nao_aprovado':
+        return {
+          title: 'Candidato Rejeitado',
+          description: candidate.rejectionReason || 'Não atendeu aos critérios do processo.'
+        };
+      case 'selecao_pre_entrevista':
+        return {
+          title: 'Aguardando Agendamento',
+          description: 'Você precisa agendar a pré-entrevista com este candidato.'
+        };
+      case 'pre_entrevista':
+        const hasScheduledInterview = candidate.interviews.some(i => i.status === 'scheduled' && i.type === 'pre_interview');
+        return {
+          title: hasScheduledInterview ? 'Pré-entrevista Agendada' : 'Aguardando Agendamento',
+          description: hasScheduledInterview 
+            ? 'Pré-entrevista agendada. Aguardando realização.'
+            : 'Você precisa agendar a pré-entrevista com este candidato.'
+        };
+      case 'selecao_entrevista_presencial':
+        return {
+          title: 'Aguardando Agendamento',
+          description: 'Você precisa agendar a entrevista presencial com este candidato.'
+        };
+      case 'entrevista_presencial':
+        const hasScheduledInPersonInterview = candidate.interviews.some(i => i.status === 'scheduled' && i.type === 'in_person');
+        return {
+          title: hasScheduledInPersonInterview ? 'Entrevista Presencial Agendada' : 'Aguardando Agendamento',
+          description: hasScheduledInPersonInterview 
+            ? 'Entrevista presencial agendada. Aguardando realização.'
+            : 'Você precisa agendar a entrevista presencial com este candidato.'
+        };
+      case 'analise_ia':
+        return {
+          title: 'Análise em Andamento',
+          description: 'IA está analisando o perfil do candidato.'
+        };
+      case 'nova_candidatura':
+      default:
+        return {
+          title: 'Nova Candidatura',
+          description: 'Candidato recém cadastrado. Aguardando análise inicial.'
+        };
+    }
+  };
+
   const handleApprove = (e: React.MouseEvent) => {
     e.stopPropagation();
     const nextStage = getNextStage(candidate.stage);
@@ -178,7 +297,22 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, i
       >
         <div className={cn(isCompactView ? "space-y-2" : "space-y-3")}>
           {/* Header */}
-          <div className="flex items-start justify-between">
+          <div className="flex items-start justify-between relative">
+            {/* Status Badge */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="absolute -top-2 -right-2 z-10">
+                  {getStatusBadge()}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <div className="max-w-xs">
+                  <div className="font-medium">{getStatusMessage().title}</div>
+                  <div className="text-xs text-muted-foreground">{getStatusMessage().description}</div>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+            
             <div className="flex items-center gap-3 min-w-0 flex-1">
               <Avatar className={cn(isCompactView ? "h-8 w-8" : "h-10 w-10")}>
                 <AvatarFallback className={cn("font-semibold", stageColors.text, stageColors.bg)}>
