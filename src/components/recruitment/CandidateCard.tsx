@@ -489,12 +489,12 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, i
                   {getStatusBadge()}
                 </div>
               </TooltipTrigger>
-              <TooltipContent>
-                <div className="max-w-xs">
-                  <div className="font-medium">{getStatusMessage().title}</div>
-                  <div className="text-xs text-muted-foreground">{getStatusMessage().description}</div>
-                </div>
-              </TooltipContent>
+                  <TooltipContent className="z-[9999] max-w-xs">
+                    <div>
+                      <div className="font-medium">{getStatusMessage().title}</div>
+                      <div className="text-xs text-muted-foreground">{getStatusMessage().description}</div>
+                    </div>
+                  </TooltipContent>
             </Tooltip>
             
             <div className="flex items-center gap-2">
