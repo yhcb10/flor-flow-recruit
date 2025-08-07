@@ -374,8 +374,8 @@ export function CandidateModal({ candidate, isOpen, onClose, onUpdate, onDelete 
               />
             )}
             
-            {candidate.interviews.length > 0 ? (
-              candidate.interviews.map((interview) => (
+            {(candidate.interviews || []).length > 0 ? (
+              (candidate.interviews || []).map((interview) => (
                 <Card key={interview.id}>
                   <CardHeader>
                     <CardTitle className="text-base flex items-center gap-2">
