@@ -64,6 +64,18 @@ const Index = () => {
 
       <div className="container mx-auto p-4">
 
+        {/* Job Position Selector */}
+        <div className="mb-6">
+          <JobPositionSelector
+            positions={mockJobPositions}
+            selectedPosition={selectedPosition}
+            onPositionSelect={setSelectedPosition}
+            onNewPosition={() => {
+              // TODO: Implement new position creation
+              console.log('Create new position');
+            }}
+          />
+        </div>
 
         <Tabs defaultValue="kanban" className="w-full">
           <TabsList className="grid w-full grid-cols-3 max-w-2xl bg-muted/50 p-1 h-12 rounded-lg">
