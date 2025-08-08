@@ -4,9 +4,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Plus, Briefcase, Users, Target, X, Pause } from 'lucide-react';
+import { Plus, Briefcase, Users, Target, X, Pause, Eye } from 'lucide-react';
 import { JobPosition } from '@/types/recruitment';
 import { useToast } from '@/hooks/use-toast';
+import { JobPositionDetailsModal } from './JobPositionDetailsModal';
 
 interface JobPositionSelectorProps {
   positions: JobPosition[];
@@ -26,6 +27,7 @@ export function JobPositionSelector({
   onPositionPause
 }: JobPositionSelectorProps) {
   const { toast } = useToast();
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   const handleClosePosition = (positionId: string) => {
     const position = positions.find(p => p.id === positionId);
@@ -59,16 +61,28 @@ export function JobPositionSelector({
     const config = statusConfig[status];
     return <Badge variant="outline" className={config.className}>{config.label}</Badge>;
   };
+
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader>
-            <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Briefcase className="h-5 w-5 text-primary" />
               <CardTitle>Selecionar Vaga</CardTitle>
             </div>
             <div className="flex gap-2">
+              {selectedPosition && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowDetailsModal(true)}
+                  className="gap-2"
+                >
+                  <Eye className="h-4 w-4" />
+                  Ver Detalhes
+                </Button>
+              )}
               {selectedPosition && selectedPosition.status === 'active' && (
                 <>
                   <AlertDialog>
@@ -163,7 +177,12 @@ export function JobPositionSelector({
         </CardContent>
       </Card>
 
-
+      {/* Job Position Details Modal */}
+      <JobPositionDetailsModal
+        position={selectedPosition}
+        open={showDetailsModal}
+        onOpenChange={setShowDetailsModal}
+      />
     </div>
   );
 }
