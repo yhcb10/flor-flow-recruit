@@ -151,6 +151,24 @@ export const useJobPositions = () => {
     return updateJobPosition(id, { status: 'paused' });
   };
 
+  const deleteJobPosition = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('job_positions')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setJobPositions(prev => prev.filter(position => position.id !== id));
+      return true;
+    } catch (err) {
+      console.error('Error deleting job position:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete job position');
+      throw err;
+    }
+  };
+
   useEffect(() => {
     loadJobPositions();
   }, []);
@@ -163,6 +181,7 @@ export const useJobPositions = () => {
     updateJobPosition,
     closeJobPosition,
     pauseJobPosition,
+    deleteJobPosition,
     refetch: loadJobPositions
   };
 };

@@ -10,7 +10,7 @@ import { JobPosition } from '@/types/recruitment';
 import flowNobreLogo from '@/assets/flow-nobre-logo.png';
 
 const Index = () => {
-  const { jobPositions, loading: positionsLoading, createJobPosition, closeJobPosition, pauseJobPosition } = useJobPositions();
+  const { jobPositions, loading: positionsLoading, createJobPosition, closeJobPosition, pauseJobPosition, deleteJobPosition } = useJobPositions();
   
   const [selectedPosition, setSelectedPosition] = useState<JobPosition | null>(() => {
     const saved = localStorage.getItem('selectedPosition');
@@ -87,6 +87,26 @@ const Index = () => {
     }
   };
 
+  const handleDeleteJobPosition = async (positionId: string) => {
+    try {
+      await deleteJobPosition(positionId);
+      
+      // Se a vaga removida for a selecionada, selecionar outra vaga ativa
+      if (selectedPosition?.id === positionId) {
+        const remainingPositions = jobPositions.filter(p => p.id !== positionId);
+        if (remainingPositions.length > 0) {
+          setSelectedPosition(remainingPositions[0]);
+          localStorage.setItem('selectedPosition', JSON.stringify(remainingPositions[0]));
+        } else {
+          setSelectedPosition(null);
+          localStorage.removeItem('selectedPosition');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to delete job position:', error);
+    }
+  };
+
   // Atualizar localStorage quando selectedPosition mudar
   const handlePositionSelect = (position: JobPosition) => {
     setSelectedPosition(position);
@@ -131,6 +151,7 @@ const Index = () => {
             onNewPosition={() => setShowNewPositionModal(true)}
             onPositionClose={handleCloseJobPosition}
             onPositionPause={handlePauseJobPosition}
+            onPositionDelete={handleDeleteJobPosition}
           />
         </div>
 

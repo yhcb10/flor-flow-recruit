@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Plus, Briefcase, Users, Target, X, Pause, Eye } from 'lucide-react';
+import { Plus, Briefcase, Pause, X, Eye, Trash2 } from 'lucide-react';
 import { JobPosition } from '@/types/recruitment';
 import { useToast } from '@/hooks/use-toast';
 import { JobPositionDetailsModal } from './JobPositionDetailsModal';
@@ -16,6 +16,7 @@ interface JobPositionSelectorProps {
   onNewPosition: () => void;
   onPositionClose: (positionId: string) => void;
   onPositionPause: (positionId: string) => void;
+  onPositionDelete: (positionId: string) => void;
 }
 
 export function JobPositionSelector({ 
@@ -24,7 +25,8 @@ export function JobPositionSelector({
   onPositionSelect, 
   onNewPosition,
   onPositionClose,
-  onPositionPause
+  onPositionPause,
+  onPositionDelete
 }: JobPositionSelectorProps) {
   const { toast } = useToast();
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -47,6 +49,17 @@ export function JobPositionSelector({
       toast({
         title: "Vaga pausada",
         description: `A vaga de ${position.title} foi pausada com sucesso.`
+      });
+    }
+  };
+
+  const handleDeletePosition = (positionId: string) => {
+    const position = positions.find(p => p.id === positionId);
+    if (position) {
+      onPositionDelete(positionId);
+      toast({
+        title: "Vaga removida",
+        description: `A vaga de ${position.title} foi removida permanentemente.`
       });
     }
   };
@@ -89,7 +102,7 @@ export function JobPositionSelector({
                     <AlertDialogTrigger asChild>
                       <Button variant="outline" size="sm" className="text-orange-600 hover:text-orange-700 hover:bg-orange-50">
                         <Pause className="h-4 w-4 mr-2" />
-                        Pausar Vaga
+                        Pausar
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
@@ -115,7 +128,7 @@ export function JobPositionSelector({
                     <AlertDialogTrigger asChild>
                       <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50">
                         <X className="h-4 w-4 mr-2" />
-                        Encerrar Vaga
+                        Encerrar
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
@@ -139,7 +152,35 @@ export function JobPositionSelector({
                   </AlertDialog>
                 </>
               )}
-              <Button onClick={onNewPosition} variant="outline" size="sm">
+              {selectedPosition && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Remover
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Remover Vaga</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Tem certeza que deseja remover permanentemente a vaga de "{selectedPosition.title}"? 
+                        Esta ação não pode ser desfeita e todos os dados relacionados à vaga serão perdidos.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={() => handleDeletePosition(selectedPosition.id)}
+                        className="bg-red-600 hover:bg-red-700"
+                      >
+                        Remover Permanentemente
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+              <Button onClick={onNewPosition} variant="outline" size="sm" className="text-green-600 hover:text-green-700 hover:bg-green-50">
                 <Plus className="h-4 w-4 mr-2" />
                 Nova Vaga
               </Button>
