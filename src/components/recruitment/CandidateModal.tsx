@@ -145,7 +145,7 @@ export function CandidateModal({ candidate, isOpen, onClose, onUpdate, onDelete 
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span>Candidatura: {format(candidate.createdAt, 'dd/MM/yyyy', { locale: ptBR })}</span>
+                    <span>Candidatura: {candidate.createdAt ? format(new Date(candidate.createdAt), 'dd/MM/yyyy', { locale: ptBR }) : 'Data não disponível'}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -236,7 +236,7 @@ export function CandidateModal({ candidate, isOpen, onClose, onUpdate, onDelete 
                   <Card>
                     <CardContent className="pt-6 text-center">
                       <div className="text-lg font-semibold text-foreground">
-                        {format(candidate.aiAnalysis.analyzedAt, 'dd/MM')}
+                        {candidate.aiAnalysis.analyzedAt ? format(new Date(candidate.aiAnalysis.analyzedAt), 'dd/MM') : '--'}
                       </div>
                       <div className="text-sm text-muted-foreground">Data da Análise</div>
                     </CardContent>
@@ -387,7 +387,7 @@ export function CandidateModal({ candidate, isOpen, onClose, onUpdate, onDelete 
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
-                        {format(interview.scheduledAt, 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                        {interview.scheduledAt ? format(new Date(interview.scheduledAt), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : 'Data não definida'}
                       </div>
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-muted-foreground" />
