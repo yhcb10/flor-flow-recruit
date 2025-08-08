@@ -7,6 +7,7 @@ import { NewJobPositionModal } from '@/components/recruitment/NewJobPositionModa
 import { useRecruitmentKanban } from '@/hooks/useRecruitmentKanban';
 import { mockJobPositions } from '@/data/mockData';
 import { JobPosition } from '@/types/recruitment';
+import flowNobreLogo from '@/assets/flow-nobre-logo.png';
 
 const Index = () => {
   // Carregar posições do localStorage ou usar mock como fallback
@@ -115,14 +116,11 @@ const Index = () => {
                 <span className="text-primary-foreground font-bold text-sm">FN</span>
               </div>
               <div>
-                <h1 className="text-xl font-bold text-foreground flex items-center gap-1">
-                  Flow N
-                  <span className="relative">
-                    <span className="absolute -top-2 left-1/2 transform -translate-x-1/2 text-xs">👑</span>
-                    o
-                  </span>
-                  bre
-                </h1>
+                <img 
+                  src={flowNobreLogo} 
+                  alt="Flow Nobre" 
+                  className="h-8 w-auto"
+                />
                 <p className="text-sm text-muted-foreground">Sistema de Gestão de Processo Seletivo</p>
               </div>
             </div>
