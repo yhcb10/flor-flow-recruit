@@ -112,10 +112,17 @@ const Index = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-sm">CF</span>
+                <span className="text-primary-foreground font-bold text-sm">FN</span>
               </div>
               <div>
-                <h1 className="text-xl font-bold text-foreground">Coroa de Flores Nobre</h1>
+                <h1 className="text-xl font-bold text-foreground flex items-center gap-1">
+                  Flow N
+                  <span className="relative">
+                    <span className="absolute -top-2 left-1/2 transform -translate-x-1/2 text-xs">👑</span>
+                    o
+                  </span>
+                  bre
+                </h1>
                 <p className="text-sm text-muted-foreground">Sistema de Gestão de Processo Seletivo</p>
               </div>
             </div>
