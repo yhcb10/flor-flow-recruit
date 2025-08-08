@@ -149,63 +149,71 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, i
     switch (candidate.stage) {
       case 'aprovado':
         return (
-          <div className="bg-success text-success-foreground rounded-full p-1.5 shadow-md border border-success/20">
+          <div className="bg-success text-success-foreground rounded-full px-2 py-1 shadow-md border border-success/20 flex items-center gap-1">
             <span className="text-sm">✅</span>
+            {!isCompactView && <span className="text-xs font-medium">Aprovado</span>}
           </div>
         );
       case 'nao_aprovado':
         return (
-          <div className="bg-destructive text-destructive-foreground rounded-full p-1.5 shadow-md border border-destructive/20">
+          <div className="bg-destructive text-destructive-foreground rounded-full px-2 py-1 shadow-md border border-destructive/20 flex items-center gap-1">
             <span className="text-sm">❌</span>
+            {!isCompactView && <span className="text-xs font-medium">Rejeitado</span>}
           </div>
         );
       case 'selecao_pre_entrevista':
         return (
-          <div className="bg-warning text-warning-foreground rounded-full p-1.5 shadow-md border border-warning/20">
+          <div className="bg-warning text-warning-foreground rounded-full px-2 py-1 shadow-md border border-warning/20 flex items-center gap-1">
             <span className="text-sm">⚠️</span>
+            {!isCompactView && <span className="text-xs font-medium">Agendar</span>}
           </div>
         );
       case 'pre_entrevista':
         const hasScheduledInterview = Array.isArray(candidate.interviews) && candidate.interviews.some(i => i.status === 'scheduled' && i.type === 'pre_interview');
         return (
           <div className={cn(
-            "rounded-full p-1.5 shadow-md border",
+            "rounded-full px-2 py-1 shadow-md border flex items-center gap-1",
             hasScheduledInterview 
               ? "bg-info text-info-foreground border-info/20" 
               : "bg-warning text-warning-foreground border-warning/20"
           )}>
             <span className="text-sm">{hasScheduledInterview ? '📅' : '⚠️'}</span>
+            {!isCompactView && <span className="text-xs font-medium">{hasScheduledInterview ? 'Agendado' : 'Agendar'}</span>}
           </div>
         );
       case 'selecao_entrevista_presencial':
         return (
-          <div className="bg-warning text-warning-foreground rounded-full p-1.5 shadow-md border border-warning/20">
+          <div className="bg-warning text-warning-foreground rounded-full px-2 py-1 shadow-md border border-warning/20 flex items-center gap-1">
             <span className="text-sm">⚠️</span>
+            {!isCompactView && <span className="text-xs font-medium">Agendar</span>}
           </div>
         );
       case 'entrevista_presencial':
         const hasScheduledInPersonInterview = Array.isArray(candidate.interviews) && candidate.interviews.some(i => i.status === 'scheduled' && i.type === 'in_person');
         return (
           <div className={cn(
-            "rounded-full p-1.5 shadow-md border",
+            "rounded-full px-2 py-1 shadow-md border flex items-center gap-1",
             hasScheduledInPersonInterview 
               ? "bg-info text-info-foreground border-info/20" 
               : "bg-warning text-warning-foreground border-warning/20"
           )}>
             <span className="text-sm">{hasScheduledInPersonInterview ? '📅' : '⚠️'}</span>
+            {!isCompactView && <span className="text-xs font-medium">{hasScheduledInPersonInterview ? 'Agendado' : 'Agendar'}</span>}
           </div>
         );
       case 'analise_ia':
         return (
-          <div className="bg-primary text-primary-foreground rounded-full p-1.5 shadow-md border border-primary/20">
+          <div className="bg-primary text-primary-foreground rounded-full px-2 py-1 shadow-md border border-primary/20 flex items-center gap-1">
             <span className="text-sm">🤖</span>
+            {!isCompactView && <span className="text-xs font-medium">Analisando</span>}
           </div>
         );
       case 'nova_candidatura':
       default:
         return (
-          <div className="bg-secondary text-secondary-foreground rounded-full p-1.5 shadow-md border border-secondary/20">
+          <div className="bg-secondary text-secondary-foreground rounded-full px-2 py-1 shadow-md border border-secondary/20 flex items-center gap-1">
             <span className="text-sm">🆕</span>
+            {!isCompactView && <span className="text-xs font-medium">Nova</span>}
           </div>
         );
     }
