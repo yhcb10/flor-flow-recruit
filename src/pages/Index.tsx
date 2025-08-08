@@ -2,13 +2,16 @@ import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { KanbanBoard } from '@/components/recruitment/KanbanBoard';
 import { RecruitmentDashboard } from '@/components/recruitment/RecruitmentDashboard';
-
 import { JobPositionSelector } from '@/components/recruitment/JobPositionSelector';
+import { NewJobPositionModal } from '@/components/recruitment/NewJobPositionModal';
 import { useRecruitmentKanban } from '@/hooks/useRecruitmentKanban';
 import { mockJobPositions } from '@/data/mockData';
+import { JobPosition } from '@/types/recruitment';
 
 const Index = () => {
   const [selectedPosition, setSelectedPosition] = useState(mockJobPositions[0]);
+  const [jobPositions, setJobPositions] = useState(mockJobPositions);
+  const [showNewPositionModal, setShowNewPositionModal] = useState(false);
   const { columns, candidates, loading, moveCandidateToStage, updateCandidate, addCandidate, deleteCandidate, stats } = useRecruitmentKanban(selectedPosition?.id);
   
   // Filter candidates by selected position
@@ -39,6 +42,29 @@ const Index = () => {
       (positionCandidates.filter(c => c.stage === 'aprovado').length / positionCandidates.length) * 100 : 0
   };
 
+  const handleNewJobPosition = (newPosition: JobPosition) => {
+    setJobPositions(prev => [...prev, newPosition]);
+    setSelectedPosition(newPosition);
+  };
+
+  const handleCloseJobPosition = (positionId: string) => {
+    setJobPositions(prev => 
+      prev.map(position => 
+        position.id === positionId 
+          ? { ...position, status: 'closed' as const }
+          : position
+      )
+    );
+    
+    // Se a vaga encerrada for a selecionada, selecionar outra vaga ativa
+    if (selectedPosition?.id === positionId) {
+      const activePositions = jobPositions.filter(p => p.status === 'active' && p.id !== positionId);
+      if (activePositions.length > 0) {
+        setSelectedPosition(activePositions[0]);
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-kanban-bg">
       {/* Compact Header */}
@@ -67,13 +93,11 @@ const Index = () => {
         {/* Job Position Selector */}
         <div className="mb-6">
           <JobPositionSelector
-            positions={mockJobPositions}
+            positions={jobPositions}
             selectedPosition={selectedPosition}
             onPositionSelect={setSelectedPosition}
-            onNewPosition={() => {
-              // TODO: Implement new position creation
-              console.log('Create new position');
-            }}
+            onNewPosition={() => setShowNewPositionModal(true)}
+            onPositionClose={handleCloseJobPosition}
           />
         </div>
 
@@ -118,6 +142,13 @@ const Index = () => {
           </TabsContent>
 
         </Tabs>
+
+        {/* New Job Position Modal */}
+        <NewJobPositionModal
+          open={showNewPositionModal}
+          onOpenChange={setShowNewPositionModal}
+          onJobPositionCreate={handleNewJobPosition}
+        />
       </div>
     </div>
   );

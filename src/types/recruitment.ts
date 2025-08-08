@@ -12,6 +12,16 @@ export interface JobPosition {
   createdBy: string;
   targetHires: number;
   aiAnalysisPrompt?: string;
+  // Campos específicos do formulário
+  salarioFixo?: string;
+  escala?: string;
+  idadePreferencial?: string;
+  competenciasComportamentais?: string;
+  experienciasDesejadas?: string;
+  mindsetEsperado?: string;
+  criteriosAvaliacao?: string;
+  diferenciais?: string;
+  itensNaoPontuaveis?: string;
 }
 
 export interface Candidate {
