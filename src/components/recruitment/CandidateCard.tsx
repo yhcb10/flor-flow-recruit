@@ -446,7 +446,9 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, i
               {Array.isArray(candidate.interviews) && candidate.interviews.length > 0 && (
                 <div className="flex items-center gap-1">
                   <CalendarDays className="h-3 w-3" />
-                  <span className="font-medium">{candidate.interviews.length}</span>
+                  <span className="font-medium">
+                    {Array.from(new Set(candidate.interviews.map(i => i.id))).length}
+                  </span>
                 </div>
               )}
             </div>

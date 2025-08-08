@@ -35,7 +35,20 @@ export function useRecruitmentKanban(positionId?: string) {
             stage: candidate.stage as CandidateStage,
             aiAnalysis: candidate.ai_analysis as any || undefined,
             notes: (candidate.notes as any) || [],
-            interviews: (candidate.interviews as any) || [],
+            interviews: Array.isArray(candidate.interviews) ? 
+              (candidate.interviews as any[]).filter((interview: any, index: number, self: any[]) => 
+                interview && interview.id && self.findIndex((i: any) => i?.id === interview.id) === index
+              ).map((interview: any) => ({
+                id: interview.id,
+                type: interview.type,
+                scheduledAt: interview.scheduledAt,
+                duration: interview.duration,
+                meetingUrl: interview.meetingUrl,
+                interviewerIds: interview.interviewerIds || [],
+                status: interview.status,
+                location: interview.location,
+                notes: interview.notes
+              })) : [],
             rejectionReason: candidate.rejection_reason,
             createdAt: new Date(candidate.created_at),
             updatedAt: new Date(candidate.updated_at)
