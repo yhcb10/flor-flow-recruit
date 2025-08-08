@@ -41,19 +41,28 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-kanban-bg">
-      <div className="container mx-auto p-4">
-        <header className="mb-6">
+      {/* Compact Header */}
+      <header className="bg-card border-b border-border shadow-sm">
+        <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">Coroa de Flores Nobre</h1>
-              <p className="text-lg text-muted-foreground">Sistema de Gestão de Processo Seletivo</p>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                <span className="text-primary-foreground font-bold text-sm">CF</span>
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-foreground">Coroa de Flores Nobre</h1>
+                <p className="text-sm text-muted-foreground">Sistema de Gestão de Processo Seletivo</p>
+              </div>
             </div>
             <div className="text-right">
-              <div className="text-sm text-muted-foreground">Versão 1.0</div>
-              <div className="text-sm text-muted-foreground">RH • Recursos Humanos</div>
+              <div className="text-xs text-muted-foreground opacity-75">v1.0</div>
+              <div className="text-xs text-muted-foreground opacity-75">RH • Recursos Humanos</div>
             </div>
           </div>
-        </header>
+        </div>
+      </header>
+
+      <div className="container mx-auto p-4">
 
         {/* Job Position Selector */}
         <div className="mb-6">
@@ -69,10 +78,25 @@ const Index = () => {
         </div>
 
         <Tabs defaultValue="kanban" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 max-w-lg">
-            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-            <TabsTrigger value="kanban">Processo Seletivo</TabsTrigger>
-            <TabsTrigger value="ai">Análise IA</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 max-w-2xl bg-muted/50 p-1 h-12 rounded-lg">
+            <TabsTrigger 
+              value="dashboard" 
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md font-medium transition-all duration-200"
+            >
+              📊 Dashboard
+            </TabsTrigger>
+            <TabsTrigger 
+              value="kanban" 
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md font-medium transition-all duration-200"
+            >
+              🎯 Processo Seletivo
+            </TabsTrigger>
+            <TabsTrigger 
+              value="ai" 
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md font-medium transition-all duration-200"
+            >
+              🤖 Análise IA
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="mt-6">
