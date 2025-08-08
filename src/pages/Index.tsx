@@ -66,14 +66,24 @@ const Index = () => {
   };
 
   const handleRemoveJobPosition = (positionId: string) => {
-    setJobPositions(prev => prev.filter(position => position.id !== positionId));
+    console.log('🏠 handleRemoveJobPosition chamado com ID:', positionId);
+    console.log('📋 Posições antes da remoção:', jobPositions.map(p => ({ id: p.id, title: p.title })));
+    
+    setJobPositions(prev => {
+      const newPositions = prev.filter(position => position.id !== positionId);
+      console.log('📋 Posições após remoção:', newPositions.map(p => ({ id: p.id, title: p.title })));
+      return newPositions;
+    });
     
     // Se a vaga removida for a selecionada, selecionar outra vaga
     if (selectedPosition?.id === positionId) {
+      console.log('🎯 Vaga removida era a selecionada, buscando nova...');
       const remainingPositions = jobPositions.filter(p => p.id !== positionId);
       if (remainingPositions.length > 0) {
+        console.log('✅ Nova posição selecionada:', remainingPositions[0].title);
         setSelectedPosition(remainingPositions[0]);
       } else {
+        console.log('❌ Nenhuma posição restante');
         setSelectedPosition(null);
       }
     }

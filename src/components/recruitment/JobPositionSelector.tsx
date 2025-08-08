@@ -39,14 +39,19 @@ export function JobPositionSelector({
   };
 
   const handleRemovePosition = (positionId: string) => {
+    console.log('🗑️ handleRemovePosition chamado com ID:', positionId);
     const position = positions.find(p => p.id === positionId);
+    console.log('🔍 Posição encontrada:', position);
     if (position) {
+      console.log('✅ Chamando onPositionRemove...');
       onPositionRemove(positionId);
       toast({
         title: "Vaga removida",
         description: `A vaga de ${position.title} foi removida permanentemente.`,
         variant: "destructive"
       });
+    } else {
+      console.log('❌ Posição não encontrada');
     }
   };
 
