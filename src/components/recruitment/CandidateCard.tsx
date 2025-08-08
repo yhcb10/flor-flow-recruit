@@ -2,7 +2,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+
 import { CalendarDays, Mail, Phone, Star, Clock, MessageSquare, Check, X, User } from 'lucide-react';
 import { Candidate, CandidateStage } from '@/types/recruitment';
 import { cn } from '@/lib/utils';
@@ -283,18 +283,17 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, i
   };
 
   return (
-    <TooltipProvider>
-      <Card 
-        className={cn(
-          "cursor-pointer transition-all duration-200 border-l-4",
-          "hover:shadow-md hover:scale-[1.02]",
-          stageColors.bg,
-          stageColors.border,
-          isDragging && "shadow-lg ring-2 ring-primary/20",
-          isCompactView ? "p-3" : "p-4"
-        )}
-        onClick={onClick}
-      >
+    <Card 
+      className={cn(
+        "cursor-pointer transition-all duration-200 border-l-4",
+        "hover:shadow-md hover:scale-[1.02]",
+        stageColors.bg,
+        stageColors.border,
+        isDragging && "shadow-lg ring-2 ring-primary/20",
+        isCompactView ? "p-3" : "p-4"
+      )}
+      onClick={onClick}
+    >
         <div className={cn(isCompactView ? "space-y-2" : "space-y-3")}>
           {/* Header */}
           <div className="flex items-start justify-between">
@@ -305,22 +304,12 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, i
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0 flex-1">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <h4 className={cn(
-                      "font-semibold text-foreground truncate",
-                      isCompactView ? "text-sm" : "text-base"
-                    )}>
-                      {candidate.name}
-                    </h4>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4" />
-                      {candidate.name}
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
+                <h4 className={cn(
+                  "font-semibold text-foreground truncate",
+                  isCompactView ? "text-sm" : "text-base"
+                )}>
+                  {candidate.name}
+                </h4>
                 
                 {!isCompactView && (
                   <div className="flex items-center gap-2 mt-1">
@@ -328,27 +317,13 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, i
                       {sourceBadge.label}
                     </Badge>
                     {candidate.aiAnalysis && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className={cn(
-                            "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium",
-                            getScoreColor(candidate.aiAnalysis.score)
-                          )}>
-                            <Star className="h-3 w-3" />
-                            {candidate.aiAnalysis.score.toFixed(1)}
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <div>
-                            <div className="font-medium">Pontuação IA: {candidate.aiAnalysis.score}/10</div>
-                            <div className="text-xs text-muted-foreground">
-                              {candidate.aiAnalysis.recommendation === 'advance' && 'Recomendado avançar'}
-                              {candidate.aiAnalysis.recommendation === 'review' && 'Necessita revisão'}
-                              {candidate.aiAnalysis.recommendation === 'reject' && 'Não recomendado'}
-                            </div>
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
+                      <div className={cn(
+                        "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium",
+                        getScoreColor(candidate.aiAnalysis.score)
+                      )}>
+                        <Star className="h-3 w-3" />
+                        {candidate.aiAnalysis.score.toFixed(1)}
+                      </div>
                     )}
                   </div>
                 )}
@@ -357,55 +332,27 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, i
             
             {/* Compact view - show AI score on the right */}
             {isCompactView && candidate.aiAnalysis && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className={cn(
-                    "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ml-2",
-                    getScoreColor(candidate.aiAnalysis.score)
-                  )}>
-                    <Star className="h-3 w-3" />
-                    {candidate.aiAnalysis.score.toFixed(1)}
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <div>
-                    <div className="font-medium">Pontuação IA: {candidate.aiAnalysis.score}/10</div>
-                    <div className="text-xs text-muted-foreground">
-                      {candidate.aiAnalysis.recommendation === 'advance' && 'Recomendado avançar'}
-                      {candidate.aiAnalysis.recommendation === 'review' && 'Necessita revisão'}
-                      {candidate.aiAnalysis.recommendation === 'reject' && 'Não recomendado'}
-                    </div>
-                  </div>
-                </TooltipContent>
-              </Tooltip>
+              <div className={cn(
+                "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ml-2",
+                getScoreColor(candidate.aiAnalysis.score)
+              )}>
+                <Star className="h-3 w-3" />
+                {candidate.aiAnalysis.score.toFixed(1)}
+              </div>
             )}
           </div>
 
           {/* Contact Info */}
           <div className={cn("space-y-1", isCompactView ? "text-xs" : "text-sm")}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
-                  <Mail className={cn(isCompactView ? "h-3 w-3" : "h-4 w-4")} />
-                  <span className="truncate font-normal">{candidate.email}</span>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <div>Enviar email para {candidate.email}</div>
-              </TooltipContent>
-            </Tooltip>
+            <div className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
+              <Mail className={cn(isCompactView ? "h-3 w-3" : "h-4 w-4")} />
+              <span className="truncate font-normal">{candidate.email}</span>
+            </div>
             
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
-                  <Phone className={cn(isCompactView ? "h-3 w-3" : "h-4 w-4")} />
-                  <span className="font-normal">{candidate.phone}</span>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <div>Ligar para {candidate.phone}</div>
-              </TooltipContent>
-            </Tooltip>
+            <div className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
+              <Phone className={cn(isCompactView ? "h-3 w-3" : "h-4 w-4")} />
+              <span className="font-normal">{candidate.phone}</span>
+            </div>
           </div>
 
           {/* Rejection Reason for rejected candidates */}
@@ -444,114 +391,55 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, i
           {/* Action Buttons */}
           {canShowActionButtons && !isCompactView && (
             <div className="flex gap-2">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="default"
-                    onClick={handleApprove}
-                    className="flex-1 h-8 text-xs font-medium"
-                  >
-                    <Check className="h-3 w-3 mr-1" />
-                    Aprovar
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <div>Avançar para próxima etapa</div>
-                </TooltipContent>
-              </Tooltip>
+              <Button
+                size="sm"
+                variant="default"
+                onClick={handleApprove}
+                className="flex-1 h-8 text-xs font-medium"
+              >
+                <Check className="h-3 w-3 mr-1" />
+                Aprovar
+              </Button>
               
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={handleReject}
-                    className="flex-1 h-8 text-xs font-medium"
-                  >
-                    <X className="h-3 w-3 mr-1" />
-                    Reprovar
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <div>Rejeitar candidato</div>
-                </TooltipContent>
-              </Tooltip>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={handleReject}
+                className="flex-1 h-8 text-xs font-medium"
+              >
+                <X className="h-3 w-3 mr-1" />
+                Reprovar
+              </Button>
             </div>
           )}
 
           {/* Footer */}
           <div className="flex items-center justify-between text-xs text-muted-foreground">
-            {/* Status Badge with Action Tooltip */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="cursor-pointer">
-                  {getStatusBadge()}
-                </div>
-              </TooltipTrigger>
-                  <TooltipContent className="z-[9999] max-w-xs">
-                    <div>
-                      <div className="font-medium">{getStatusMessage().title}</div>
-                      <div className="text-xs text-muted-foreground">{getStatusMessage().description}</div>
-                    </div>
-                  </TooltipContent>
-            </Tooltip>
+            {/* Status Badge */}
+            <div className="cursor-pointer">
+              {getStatusBadge()}
+            </div>
             
             <div className="flex items-center gap-2">
               {statusIcon && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className={cn("flex items-center gap-1 cursor-pointer", statusIcon.color)}>
-                      <span className="text-xs">{statusIcon.icon}</span>
-                      {!isCompactView && <span className="text-xs font-medium">{statusIcon.label}</span>}
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <div>
-                      {statusIcon.fullDate ? (
-                        <div>
-                          <div className="font-medium">Entrevista agendada</div>
-                          <div>{statusIcon.fullDate}</div>
-                          {statusIcon.interview?.type && (
-                            <div className="text-xs text-muted-foreground mt-1">
-                              {statusIcon.interview.type === 'in_person' ? 'Entrevista Presencial' : 'Pré-entrevista Online'}
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        `Status da entrevista: ${statusIcon.label}`
-                      )}
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
+                <div className={cn("flex items-center gap-1 cursor-pointer", statusIcon.color)}>
+                  <span className="text-xs">{statusIcon.icon}</span>
+                  {!isCompactView && <span className="text-xs font-medium">{statusIcon.label}</span>}
+                </div>
               )}
               
               {candidate.notes.length > 0 && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex items-center gap-1 cursor-pointer hover:text-foreground transition-colors">
-                      <MessageSquare className="h-3 w-3" />
-                      <span className="font-medium">{candidate.notes.length}</span>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <div>{candidate.notes.length} nota(s) registrada(s)</div>
-                  </TooltipContent>
-                </Tooltip>
+                <div className="flex items-center gap-1 cursor-pointer hover:text-foreground transition-colors">
+                  <MessageSquare className="h-3 w-3" />
+                  <span className="font-medium">{candidate.notes.length}</span>
+                </div>
               )}
               
               {Array.isArray(candidate.interviews) && candidate.interviews.length > 0 && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex items-center gap-1 cursor-pointer hover:text-foreground transition-colors">
-                      <CalendarDays className="h-3 w-3" />
-                      <span className="font-medium">{candidate.interviews.length}</span>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <div>{candidate.interviews.length} entrevista(s) agendada(s)</div>
-                  </TooltipContent>
-                </Tooltip>
+                <div className="flex items-center gap-1 cursor-pointer hover:text-foreground transition-colors">
+                  <CalendarDays className="h-3 w-3" />
+                  <span className="font-medium">{candidate.interviews.length}</span>
+                </div>
               )}
             </div>
           </div>
@@ -563,7 +451,6 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, i
           onConfirm={handleRejectConfirm}
           candidateName={candidate.name}
         />
-      </Card>
-    </TooltipProvider>
+    </Card>
   );
 }
