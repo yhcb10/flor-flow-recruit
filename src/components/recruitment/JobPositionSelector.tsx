@@ -64,55 +64,6 @@ export function JobPositionSelector({
         </CardContent>
       </Card>
 
-      {selectedPosition && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="h-5 w-5 text-primary" />
-              {selectedPosition.title}
-            </CardTitle>
-            <CardDescription>
-              {selectedPosition.department}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <p className="text-sm text-muted-foreground mb-2">Descrição:</p>
-              <p className="text-sm">{selectedPosition.description}</p>
-            </div>
-            
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">Meta: {selectedPosition.targetHires} contratações</span>
-              </div>
-              <Badge variant={selectedPosition.status === 'active' ? 'default' : 'secondary'}>
-                {selectedPosition.status === 'active' ? 'Ativa' : 
-                 selectedPosition.status === 'paused' ? 'Pausada' : 
-                 selectedPosition.status === 'closed' ? 'Fechada' : 'Rascunho'}
-              </Badge>
-            </div>
-
-            {selectedPosition.requirements.length > 0 && (
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">Requisitos principais:</p>
-                <div className="flex flex-wrap gap-1">
-                  {selectedPosition.requirements.slice(0, 3).map((req, index) => (
-                    <Badge key={index} variant="outline" className="text-xs">
-                      {req}
-                    </Badge>
-                  ))}
-                  {selectedPosition.requirements.length > 3 && (
-                    <Badge variant="outline" className="text-xs">
-                      +{selectedPosition.requirements.length - 3} mais
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
