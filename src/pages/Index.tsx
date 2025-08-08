@@ -7,7 +7,7 @@ import { NewJobPositionModal } from '@/components/recruitment/NewJobPositionModa
 import { useRecruitmentKanban } from '@/hooks/useRecruitmentKanban';
 import { useJobPositions } from '@/hooks/useJobPositions';
 import { JobPosition } from '@/types/recruitment';
-import flowNobreLogo from '@/assets/flow-nobre-logo.png';
+import flowNobreLogo from '/lovable-uploads/67eb7c82-39ed-418b-a2e4-7372542bb87d.png';
 
 const Index = () => {
   const { jobPositions, loading: positionsLoading, createJobPosition, closeJobPosition, pauseJobPosition, deleteJobPosition } = useJobPositions();
@@ -120,16 +120,13 @@ const Index = () => {
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-sm">FN</span>
-              </div>
+              <img 
+                src={flowNobreLogo} 
+                alt="Flow Nobre" 
+                className="h-10 w-auto"
+              />
               <div>
-                <img 
-                  src={flowNobreLogo} 
-                  alt="Flow Nobre" 
-                  className="h-8 w-auto"
-                />
-                <p className="text-sm text-muted-foreground">Sistema de Gestão de Processo Seletivo</p>
+                <p className="text-lg font-semibold text-foreground">Sistema de Gestão de Processo Seletivo</p>
               </div>
             </div>
             <div className="text-right">
