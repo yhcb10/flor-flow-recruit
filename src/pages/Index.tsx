@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { KanbanBoard } from '@/components/recruitment/KanbanBoard';
 import { RecruitmentDashboard } from '@/components/recruitment/RecruitmentDashboard';
-import { AIAnalysisPanel } from '@/components/recruitment/AIAnalysisPanel';
+
 import { JobPositionSelector } from '@/components/recruitment/JobPositionSelector';
 import { useRecruitmentKanban } from '@/hooks/useRecruitmentKanban';
 import { mockJobPositions } from '@/data/mockData';
@@ -78,7 +78,7 @@ const Index = () => {
         </div>
 
         <Tabs defaultValue="kanban" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 max-w-2xl bg-muted/50 p-1 h-12 rounded-lg">
+          <TabsList className="grid w-full grid-cols-2 max-w-2xl bg-muted/50 p-1 h-12 rounded-lg">
             <TabsTrigger 
               value="dashboard" 
               className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md font-medium transition-all duration-200"
@@ -90,12 +90,6 @@ const Index = () => {
               className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md font-medium transition-all duration-200"
             >
               🎯 Processo Seletivo
-            </TabsTrigger>
-            <TabsTrigger 
-              value="ai" 
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md font-medium transition-all duration-200"
-            >
-              🤖 Análise IA
             </TabsTrigger>
           </TabsList>
 
@@ -123,13 +117,6 @@ const Index = () => {
             )}
           </TabsContent>
 
-          <TabsContent value="ai" className="mt-6">
-            <AIAnalysisPanel 
-              selectedPosition={selectedPosition} 
-              candidates={positionCandidates}
-              onCandidateUpdate={updateCandidate}
-            />
-          </TabsContent>
         </Tabs>
       </div>
     </div>
