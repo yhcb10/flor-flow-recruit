@@ -121,47 +121,52 @@ export function JobPositionSelector({
             </SelectTrigger>
             <SelectContent>
               {positions.map((position) => (
-                <SelectItem key={position.id} value={position.id}>
-                  <div className="flex items-center justify-between w-full group">
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">{position.title}</div>
-                      <div className="text-sm text-muted-foreground truncate">{position.department}</div>
+                <div key={position.id} className="relative">
+                  <SelectItem value={position.id}>
+                    <div className="flex items-center justify-between w-full pr-8">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate">{position.title}</div>
+                        <div className="text-sm text-muted-foreground truncate">{position.department}</div>
+                      </div>
+                      <div className="flex items-center gap-2 ml-2">
+                        {getStatusBadge(position.status)}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 ml-2">
-                      {getStatusBadge(position.status)}
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-red-600 hover:text-red-700 hover:bg-red-50"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Remover Vaga</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Tem certeza que deseja remover permanentemente a vaga de "{position.title}"? 
-                              Esta ação não pode ser desfeita e todos os candidatos associados serão perdidos.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction 
-                              onClick={() => handleRemovePosition(position.id)}
-                              className="bg-red-600 hover:bg-red-700"
-                            >
-                              Remover Permanentemente
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </div>
-                </SelectItem>
+                  </SelectItem>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 z-10"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Remover Vaga</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Tem certeza que deseja remover permanentemente a vaga de "{position.title}"? 
+                          Esta ação não pode ser desfeita e todos os candidatos associados serão perdidos.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={() => handleRemovePosition(position.id)}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Remover Permanentemente
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               ))}
             </SelectContent>
           </Select>
