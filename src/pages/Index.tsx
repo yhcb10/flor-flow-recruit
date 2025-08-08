@@ -86,30 +86,16 @@ const Index = () => {
     }
   };
 
-  const handleRemoveJobPosition = (positionId: string) => {
-    console.log('🏠 handleRemoveJobPosition chamado com ID:', positionId);
-    console.log('📋 Posições antes da remoção:', jobPositions.map(p => ({ id: p.id, title: p.title })));
-    
-    const updatedPositions = jobPositions.filter(position => position.id !== positionId);
+  const handlePauseJobPosition = (positionId: string) => {
+    const updatedPositions = jobPositions.map(position => 
+      position.id === positionId 
+        ? { ...position, status: 'paused' as const }
+        : position
+    );
     setJobPositions(updatedPositions);
     
     // Persistir no localStorage
     localStorage.setItem('jobPositions', JSON.stringify(updatedPositions));
-    console.log('📋 Posições após remoção:', updatedPositions.map(p => ({ id: p.id, title: p.title })));
-    
-    // Se a vaga removida for a selecionada, selecionar outra vaga
-    if (selectedPosition?.id === positionId) {
-      console.log('🎯 Vaga removida era a selecionada, buscando nova...');
-      if (updatedPositions.length > 0) {
-        console.log('✅ Nova posição selecionada:', updatedPositions[0].title);
-        setSelectedPosition(updatedPositions[0]);
-        localStorage.setItem('selectedPosition', JSON.stringify(updatedPositions[0]));
-      } else {
-        console.log('❌ Nenhuma posição restante');
-        setSelectedPosition(null);
-        localStorage.removeItem('selectedPosition');
-      }
-    }
   };
 
   // Atualizar localStorage quando selectedPosition mudar
@@ -151,7 +137,7 @@ const Index = () => {
             onPositionSelect={handlePositionSelect}
             onNewPosition={() => setShowNewPositionModal(true)}
             onPositionClose={handleCloseJobPosition}
-            onPositionRemove={handleRemoveJobPosition}
+            onPositionPause={handlePauseJobPosition}
           />
         </div>
 
