@@ -9,8 +9,21 @@ import { mockJobPositions } from '@/data/mockData';
 import { JobPosition } from '@/types/recruitment';
 
 const Index = () => {
-  const [selectedPosition, setSelectedPosition] = useState(mockJobPositions[0]);
-  const [jobPositions, setJobPositions] = useState(mockJobPositions);
+  // Carregar posições do localStorage ou usar mock como fallback
+  const [jobPositions, setJobPositions] = useState<JobPosition[]>(() => {
+    const saved = localStorage.getItem('jobPositions');
+    return saved ? JSON.parse(saved) : mockJobPositions;
+  });
+  
+  const [selectedPosition, setSelectedPosition] = useState<JobPosition | null>(() => {
+    const saved = localStorage.getItem('selectedPosition');
+    if (saved) {
+      const savedPosition = JSON.parse(saved);
+      return jobPositions.find(p => p.id === savedPosition.id) || jobPositions[0] || null;
+    }
+    return jobPositions[0] || null;
+  });
+  
   const [showNewPositionModal, setShowNewPositionModal] = useState(false);
   const { columns, candidates, loading, moveCandidateToStage, updateCandidate, addCandidate, deleteCandidate, stats } = useRecruitmentKanban(selectedPosition?.id);
   
@@ -43,24 +56,32 @@ const Index = () => {
   };
 
   const handleNewJobPosition = (newPosition: JobPosition) => {
-    setJobPositions(prev => [...prev, newPosition]);
+    const updatedPositions = [...jobPositions, newPosition];
+    setJobPositions(updatedPositions);
     setSelectedPosition(newPosition);
+    
+    // Persistir no localStorage
+    localStorage.setItem('jobPositions', JSON.stringify(updatedPositions));
+    localStorage.setItem('selectedPosition', JSON.stringify(newPosition));
   };
 
   const handleCloseJobPosition = (positionId: string) => {
-    setJobPositions(prev => 
-      prev.map(position => 
-        position.id === positionId 
-          ? { ...position, status: 'closed' as const }
-          : position
-      )
+    const updatedPositions = jobPositions.map(position => 
+      position.id === positionId 
+        ? { ...position, status: 'closed' as const }
+        : position
     );
+    setJobPositions(updatedPositions);
+    
+    // Persistir no localStorage
+    localStorage.setItem('jobPositions', JSON.stringify(updatedPositions));
     
     // Se a vaga encerrada for a selecionada, selecionar outra vaga ativa
     if (selectedPosition?.id === positionId) {
-      const activePositions = jobPositions.filter(p => p.status === 'active' && p.id !== positionId);
+      const activePositions = updatedPositions.filter(p => p.status === 'active' && p.id !== positionId);
       if (activePositions.length > 0) {
         setSelectedPosition(activePositions[0]);
+        localStorage.setItem('selectedPosition', JSON.stringify(activePositions[0]));
       }
     }
   };
@@ -69,24 +90,32 @@ const Index = () => {
     console.log('🏠 handleRemoveJobPosition chamado com ID:', positionId);
     console.log('📋 Posições antes da remoção:', jobPositions.map(p => ({ id: p.id, title: p.title })));
     
-    setJobPositions(prev => {
-      const newPositions = prev.filter(position => position.id !== positionId);
-      console.log('📋 Posições após remoção:', newPositions.map(p => ({ id: p.id, title: p.title })));
-      return newPositions;
-    });
+    const updatedPositions = jobPositions.filter(position => position.id !== positionId);
+    setJobPositions(updatedPositions);
+    
+    // Persistir no localStorage
+    localStorage.setItem('jobPositions', JSON.stringify(updatedPositions));
+    console.log('📋 Posições após remoção:', updatedPositions.map(p => ({ id: p.id, title: p.title })));
     
     // Se a vaga removida for a selecionada, selecionar outra vaga
     if (selectedPosition?.id === positionId) {
       console.log('🎯 Vaga removida era a selecionada, buscando nova...');
-      const remainingPositions = jobPositions.filter(p => p.id !== positionId);
-      if (remainingPositions.length > 0) {
-        console.log('✅ Nova posição selecionada:', remainingPositions[0].title);
-        setSelectedPosition(remainingPositions[0]);
+      if (updatedPositions.length > 0) {
+        console.log('✅ Nova posição selecionada:', updatedPositions[0].title);
+        setSelectedPosition(updatedPositions[0]);
+        localStorage.setItem('selectedPosition', JSON.stringify(updatedPositions[0]));
       } else {
         console.log('❌ Nenhuma posição restante');
         setSelectedPosition(null);
+        localStorage.removeItem('selectedPosition');
       }
     }
+  };
+
+  // Atualizar localStorage quando selectedPosition mudar
+  const handlePositionSelect = (position: JobPosition) => {
+    setSelectedPosition(position);
+    localStorage.setItem('selectedPosition', JSON.stringify(position));
   };
 
   return (
@@ -119,7 +148,7 @@ const Index = () => {
           <JobPositionSelector
             positions={jobPositions}
             selectedPosition={selectedPosition}
-            onPositionSelect={setSelectedPosition}
+            onPositionSelect={handlePositionSelect}
             onNewPosition={() => setShowNewPositionModal(true)}
             onPositionClose={handleCloseJobPosition}
             onPositionRemove={handleRemoveJobPosition}
