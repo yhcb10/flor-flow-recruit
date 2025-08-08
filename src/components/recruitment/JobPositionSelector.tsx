@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Plus, Briefcase, Users, Target, X } from 'lucide-react';
+import { Plus, Briefcase, Users, Target, X, Trash2 } from 'lucide-react';
 import { JobPosition } from '@/types/recruitment';
 import { useToast } from '@/hooks/use-toast';
 
@@ -14,6 +14,7 @@ interface JobPositionSelectorProps {
   onPositionSelect: (position: JobPosition) => void;
   onNewPosition: () => void;
   onPositionClose: (positionId: string) => void;
+  onPositionRemove: (positionId: string) => void;
 }
 
 export function JobPositionSelector({ 
@@ -21,7 +22,8 @@ export function JobPositionSelector({
   selectedPosition, 
   onPositionSelect, 
   onNewPosition,
-  onPositionClose
+  onPositionClose,
+  onPositionRemove
 }: JobPositionSelectorProps) {
   const { toast } = useToast();
 
@@ -32,6 +34,18 @@ export function JobPositionSelector({
       toast({
         title: "Vaga encerrada",
         description: `A vaga de ${position.title} foi encerrada com sucesso.`
+      });
+    }
+  };
+
+  const handleRemovePosition = (positionId: string) => {
+    const position = positions.find(p => p.id === positionId);
+    if (position) {
+      onPositionRemove(positionId);
+      toast({
+        title: "Vaga removida",
+        description: `A vaga de ${position.title} foi removida permanentemente.`,
+        variant: "destructive"
       });
     }
   };
@@ -108,13 +122,43 @@ export function JobPositionSelector({
             <SelectContent>
               {positions.map((position) => (
                 <SelectItem key={position.id} value={position.id}>
-                  <div className="flex items-center justify-between w-full">
-                    <div className="flex-1">
-                      <div className="font-medium">{position.title}</div>
-                      <div className="text-sm text-muted-foreground">{position.department}</div>
+                  <div className="flex items-center justify-between w-full group">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium truncate">{position.title}</div>
+                      <div className="text-sm text-muted-foreground truncate">{position.department}</div>
                     </div>
-                    <div className="ml-2">
+                    <div className="flex items-center gap-2 ml-2">
                       {getStatusBadge(position.status)}
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Remover Vaga</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Tem certeza que deseja remover permanentemente a vaga de "{position.title}"? 
+                              Esta ação não pode ser desfeita e todos os candidatos associados serão perdidos.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction 
+                              onClick={() => handleRemovePosition(position.id)}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              Remover Permanentemente
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </div>
                 </SelectItem>

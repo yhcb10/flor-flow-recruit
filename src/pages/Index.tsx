@@ -65,6 +65,20 @@ const Index = () => {
     }
   };
 
+  const handleRemoveJobPosition = (positionId: string) => {
+    setJobPositions(prev => prev.filter(position => position.id !== positionId));
+    
+    // Se a vaga removida for a selecionada, selecionar outra vaga
+    if (selectedPosition?.id === positionId) {
+      const remainingPositions = jobPositions.filter(p => p.id !== positionId);
+      if (remainingPositions.length > 0) {
+        setSelectedPosition(remainingPositions[0]);
+      } else {
+        setSelectedPosition(null);
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-kanban-bg">
       {/* Compact Header */}
@@ -98,6 +112,7 @@ const Index = () => {
             onPositionSelect={setSelectedPosition}
             onNewPosition={() => setShowNewPositionModal(true)}
             onPositionClose={handleCloseJobPosition}
+            onPositionRemove={handleRemoveJobPosition}
           />
         </div>
 
