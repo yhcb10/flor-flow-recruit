@@ -5,16 +5,12 @@ import { RecruitmentDashboard } from '@/components/recruitment/RecruitmentDashbo
 import { JobPositionSelector } from '@/components/recruitment/JobPositionSelector';
 import { NewJobPositionModal } from '@/components/recruitment/NewJobPositionModal';
 import { useRecruitmentKanban } from '@/hooks/useRecruitmentKanban';
-import { mockJobPositions } from '@/data/mockData';
+import { useJobPositions } from '@/hooks/useJobPositions';
 import { JobPosition } from '@/types/recruitment';
 import flowNobreLogo from '@/assets/flow-nobre-logo.png';
 
 const Index = () => {
-  // Carregar posições do localStorage ou usar mock como fallback
-  const [jobPositions, setJobPositions] = useState<JobPosition[]>(() => {
-    const saved = localStorage.getItem('jobPositions');
-    return saved ? JSON.parse(saved) : mockJobPositions;
-  });
+  const { jobPositions, loading: positionsLoading, createJobPosition, closeJobPosition, pauseJobPosition } = useJobPositions();
   
   const [selectedPosition, setSelectedPosition] = useState<JobPosition | null>(() => {
     const saved = localStorage.getItem('selectedPosition');
@@ -56,47 +52,39 @@ const Index = () => {
       (positionCandidates.filter(c => c.stage === 'aprovado').length / positionCandidates.length) * 100 : 0
   };
 
-  const handleNewJobPosition = (newPosition: JobPosition) => {
-    const updatedPositions = [...jobPositions, newPosition];
-    setJobPositions(updatedPositions);
-    setSelectedPosition(newPosition);
-    
-    // Persistir no localStorage
-    localStorage.setItem('jobPositions', JSON.stringify(updatedPositions));
-    localStorage.setItem('selectedPosition', JSON.stringify(newPosition));
-  };
-
-  const handleCloseJobPosition = (positionId: string) => {
-    const updatedPositions = jobPositions.map(position => 
-      position.id === positionId 
-        ? { ...position, status: 'closed' as const }
-        : position
-    );
-    setJobPositions(updatedPositions);
-    
-    // Persistir no localStorage
-    localStorage.setItem('jobPositions', JSON.stringify(updatedPositions));
-    
-    // Se a vaga encerrada for a selecionada, selecionar outra vaga ativa
-    if (selectedPosition?.id === positionId) {
-      const activePositions = updatedPositions.filter(p => p.status === 'active' && p.id !== positionId);
-      if (activePositions.length > 0) {
-        setSelectedPosition(activePositions[0]);
-        localStorage.setItem('selectedPosition', JSON.stringify(activePositions[0]));
-      }
+  const handleNewJobPosition = async (newPosition: Omit<JobPosition, 'id' | 'created_at' | 'updated_at'>) => {
+    try {
+      const createdPosition = await createJobPosition(newPosition);
+      setSelectedPosition(createdPosition);
+      localStorage.setItem('selectedPosition', JSON.stringify(createdPosition));
+    } catch (error) {
+      console.error('Failed to create job position:', error);
     }
   };
 
-  const handlePauseJobPosition = (positionId: string) => {
-    const updatedPositions = jobPositions.map(position => 
-      position.id === positionId 
-        ? { ...position, status: 'paused' as const }
-        : position
-    );
-    setJobPositions(updatedPositions);
-    
-    // Persistir no localStorage
-    localStorage.setItem('jobPositions', JSON.stringify(updatedPositions));
+  const handleCloseJobPosition = async (positionId: string) => {
+    try {
+      await closeJobPosition(positionId);
+      
+      // Se a vaga encerrada for a selecionada, selecionar outra vaga ativa
+      if (selectedPosition?.id === positionId) {
+        const activePositions = jobPositions.filter(p => p.status === 'active' && p.id !== positionId);
+        if (activePositions.length > 0) {
+          setSelectedPosition(activePositions[0]);
+          localStorage.setItem('selectedPosition', JSON.stringify(activePositions[0]));
+        }
+      }
+    } catch (error) {
+      console.error('Failed to close job position:', error);
+    }
+  };
+
+  const handlePauseJobPosition = async (positionId: string) => {
+    try {
+      await pauseJobPosition(positionId);
+    } catch (error) {
+      console.error('Failed to pause job position:', error);
+    }
   };
 
   // Atualizar localStorage quando selectedPosition mudar
@@ -167,9 +155,11 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="kanban" className="mt-6">
-            {loading ? (
+            {loading || positionsLoading ? (
               <div className="flex items-center justify-center h-64">
-                <div className="text-lg text-muted-foreground">Carregando candidatos...</div>
+                <div className="text-lg text-muted-foreground">
+                  {positionsLoading ? 'Carregando vagas...' : 'Carregando candidatos...'}
+                </div>
               </div>
             ) : (
               <KanbanBoard

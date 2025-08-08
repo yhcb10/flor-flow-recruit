@@ -71,6 +71,54 @@ export type Database = {
         }
         Relationships: []
       }
+      job_positions: {
+        Row: {
+          benefits: string[] | null
+          created_at: string
+          department: string
+          description: string | null
+          id: string
+          location: string
+          requirements: string[] | null
+          responsibilities: string[] | null
+          salary_range: string | null
+          status: string
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          benefits?: string[] | null
+          created_at?: string
+          department: string
+          description?: string | null
+          id?: string
+          location: string
+          requirements?: string[] | null
+          responsibilities?: string[] | null
+          salary_range?: string | null
+          status?: string
+          title: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          benefits?: string[] | null
+          created_at?: string
+          department?: string
+          description?: string | null
+          id?: string
+          location?: string
+          requirements?: string[] | null
+          responsibilities?: string[] | null
+          salary_range?: string | null
+          status?: string
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
