@@ -3,8 +3,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Plus, Briefcase, Users, Target, X, Trash2 } from 'lucide-react';
+import { Plus, Briefcase, Users, Target, X, Trash2, MoreHorizontal } from 'lucide-react';
 import { JobPosition } from '@/types/recruitment';
 import { useToast } from '@/hooks/use-toast';
 
@@ -26,6 +27,8 @@ export function JobPositionSelector({
   onPositionRemove
 }: JobPositionSelectorProps) {
   const { toast } = useToast();
+  const [showRemoveDialog, setShowRemoveDialog] = useState(false);
+  const [positionToRemove, setPositionToRemove] = useState<string | null>(null);
 
   const handleClosePosition = (positionId: string) => {
     const position = positions.find(p => p.id === positionId);
@@ -53,6 +56,14 @@ export function JobPositionSelector({
     } else {
       console.log('❌ Posição não encontrada');
     }
+    setShowRemoveDialog(false);
+    setPositionToRemove(null);
+  };
+
+  const initiateRemove = (positionId: string) => {
+    console.log('🚀 Iniciando remoção para:', positionId);
+    setPositionToRemove(positionId);
+    setShowRemoveDialog(true);
   };
 
   const getStatusBadge = (status: JobPosition['status']) => {
@@ -126,61 +137,88 @@ export function JobPositionSelector({
             </SelectTrigger>
             <SelectContent>
               {positions.map((position) => (
-                <div key={position.id} className="flex items-center justify-between px-3 py-2 hover:bg-accent cursor-pointer relative group">
-                  <div 
-                    className="flex-1 min-w-0 flex items-center gap-3"
-                    onClick={() => onPositionSelect(position)}
-                  >
-                    <div className="flex-1">
-                      <div className="font-medium truncate">{position.title}</div>
-                      <div className="text-sm text-muted-foreground truncate">{position.department}</div>
+                <SelectItem key={position.id} value={position.id}>
+                  <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="flex-1">
+                        <div className="font-medium truncate">{position.title}</div>
+                        <div className="text-sm text-muted-foreground truncate">{position.department}</div>
+                      </div>
+                      {getStatusBadge(position.status)}
                     </div>
-                    {getStatusBadge(position.status)}
-                  </div>
-                  
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity ml-2"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          console.log('🗑️ Botão clicado para posição:', position.id);
-                        }}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Remover Vaga</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Tem certeza que deseja remover permanentemente a vaga de "{position.title}"? 
-                          Esta ação não pode ser desfeita e todos os candidatos associados serão perdidos.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction 
-                          onClick={() => {
-                            console.log('🗑️ Confirmando remoção da posição:', position.id);
-                            handleRemovePosition(position.id);
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 ml-2"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
                           }}
-                          className="bg-red-600 hover:bg-red-700"
                         >
-                          Remover Permanentemente
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
+                          <MoreHorizontal className="h-3 w-3" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log('📋 Menu item clicado para remover:', position.id);
+                            initiateRemove(position.id);
+                          }}
+                          className="text-red-600 focus:text-red-600"
+                        >
+                          <Trash2 className="h-3 w-3 mr-2" />
+                          Remover Vaga
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </CardContent>
       </Card>
+
+      {/* Dialog de confirmação separado */}
+      <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover Vaga</AlertDialogTitle>
+            <AlertDialogDescription>
+              {positionToRemove && (
+                <>
+                  Tem certeza que deseja remover permanentemente a vaga de "
+                  {positions.find(p => p.id === positionToRemove)?.title}"? 
+                  Esta ação não pode ser desfeita e todos os candidatos associados serão perdidos.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setShowRemoveDialog(false);
+              setPositionToRemove(null);
+            }}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                if (positionToRemove) {
+                  console.log('🗑️ Confirmando remoção final:', positionToRemove);
+                  handleRemovePosition(positionToRemove);
+                }
+              }}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Remover Permanentemente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
     </div>
   );
