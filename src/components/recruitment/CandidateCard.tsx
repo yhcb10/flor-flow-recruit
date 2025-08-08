@@ -422,21 +422,21 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, i
             
             <div className="flex items-center gap-2">
               {statusIcon && (
-                <div className={cn("flex items-center gap-1 cursor-pointer", statusIcon.color)}>
+                <div className={cn("flex items-center gap-1", statusIcon.color)}>
                   <span className="text-xs">{statusIcon.icon}</span>
                   {!isCompactView && <span className="text-xs font-medium">{statusIcon.label}</span>}
                 </div>
               )}
               
               {candidate.notes.length > 0 && (
-                <div className="flex items-center gap-1 cursor-pointer hover:text-foreground transition-colors">
+                <div className="flex items-center gap-1">
                   <MessageSquare className="h-3 w-3" />
                   <span className="font-medium">{candidate.notes.length}</span>
                 </div>
               )}
               
               {Array.isArray(candidate.interviews) && candidate.interviews.length > 0 && (
-                <div className="flex items-center gap-1 cursor-pointer hover:text-foreground transition-colors">
+                <div className="flex items-center gap-1">
                   <CalendarDays className="h-3 w-3" />
                   <span className="font-medium">{candidate.interviews.length}</span>
                 </div>
