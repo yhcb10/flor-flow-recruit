@@ -16,6 +16,7 @@ type DatabaseJobPosition = {
   benefits: string[];
   salary_range: string;
   description: string;
+  endpoint_id: string;
   created_at: string;
   updated_at: string;
 };
@@ -30,6 +31,7 @@ const convertDbToJobPosition = (dbPosition: DatabaseJobPosition): JobPosition =>
   responsibilities: dbPosition.responsibilities,
   status: dbPosition.status as JobPosition['status'],
   createdAt: new Date(dbPosition.created_at),
+  endpointId: dbPosition.endpoint_id,
   // Default values for missing fields
   culturalValues: [],
   minimumQualification: 'Ensino Médio completo',
@@ -48,7 +50,8 @@ const convertJobPositionToDb = (position: Omit<JobPosition, 'id' | 'createdAt' |
   responsibilities: position.responsibilities,
   benefits: [], // Default empty benefits
   salary_range: '', // Default empty salary range
-  description: position.description || ''
+  description: position.description || '',
+  endpoint_id: position.endpointId || ''
 });
 
 export const useJobPositions = () => {

@@ -77,6 +77,7 @@ export type Database = {
           created_at: string
           department: string
           description: string | null
+          endpoint_id: string | null
           id: string
           location: string
           requirements: string[] | null
@@ -92,6 +93,7 @@ export type Database = {
           created_at?: string
           department: string
           description?: string | null
+          endpoint_id?: string | null
           id?: string
           location: string
           requirements?: string[] | null
@@ -107,6 +109,7 @@ export type Database = {
           created_at?: string
           department?: string
           description?: string | null
+          endpoint_id?: string | null
           id?: string
           location?: string
           requirements?: string[] | null
