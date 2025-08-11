@@ -192,7 +192,7 @@ export function CandidateModal({ candidate, isOpen, onClose, onUpdate, onDelete 
                     <div>
                       <div className="text-sm text-muted-foreground mb-1">Pontuação IA:</div>
                       <div className={`text-lg font-bold ${getScoreColor(candidate.aiAnalysis.score)}`}>
-                        {candidate.aiAnalysis.score.toFixed(1)}/10
+                        {Number(candidate.aiAnalysis.score).toFixed(1)}/10
                       </div>
                     </div>
                   )}
@@ -265,7 +265,7 @@ export function CandidateModal({ candidate, isOpen, onClose, onUpdate, onDelete 
                   <Card>
                     <CardContent className="pt-6 text-center">
                       <div className={`text-3xl font-bold ${getScoreColor(candidate.aiAnalysis.score)}`}>
-                        {candidate.aiAnalysis.score.toFixed(1)}
+                        {Number(candidate.aiAnalysis.score).toFixed(1)}
                       </div>
                       <div className="text-sm text-muted-foreground">Pontuação Geral</div>
                     </CardContent>
