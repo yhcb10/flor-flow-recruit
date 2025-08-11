@@ -22,6 +22,8 @@ interface N8NCandidateData {
   proximos_passos?: string;
   data_processamento?: string;
   id?: string; // ID da vaga para vincular automaticamente (ex: "vendedor_001")
+  curriculo_pdf?: string; // PDF em base64
+  nome_arquivo?: string; // Nome do arquivo PDF
 }
 
 serve(async (req) => {
@@ -48,6 +50,45 @@ serve(async (req) => {
 
     const mappedPositionId = candidateData.id ? positionMapping[candidateData.id] || null : null;
 
+    // Handle PDF upload if provided
+    let resumeUrl = null;
+    let resumeFileName = null;
+    
+    if (candidateData.curriculo_pdf && candidateData.nome_arquivo) {
+      try {
+        // Decode base64 PDF
+        const pdfBuffer = Uint8Array.from(atob(candidateData.curriculo_pdf), c => c.charCodeAt(0));
+        
+        // Generate unique filename
+        const timestamp = new Date().getTime();
+        const sanitizedName = candidateData.nome_completo.replace(/[^a-zA-Z0-9]/g, '_');
+        const fileName = `${sanitizedName}_${timestamp}_${candidateData.nome_arquivo}`;
+        
+        // Upload to Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('resumes')
+          .upload(fileName, pdfBuffer, {
+            contentType: 'application/pdf',
+            upsert: false
+          });
+
+        if (uploadError) {
+          console.error('Error uploading PDF:', uploadError);
+        } else {
+          // Get public URL
+          const { data: urlData } = supabase.storage
+            .from('resumes')
+            .getPublicUrl(fileName);
+          
+          resumeUrl = urlData.publicUrl;
+          resumeFileName = candidateData.nome_arquivo;
+          console.log('PDF uploaded successfully:', resumeUrl);
+        }
+      } catch (pdfError) {
+        console.error('Error processing PDF:', pdfError);
+      }
+    }
+
     // Transform N8N data to candidate format
     const candidate = {
       name: candidateData.nome_completo,
@@ -56,6 +97,8 @@ serve(async (req) => {
       position_id: mappedPositionId,
       source: 'manual',
       stage: 'analise_ia',
+      resume_url: resumeUrl,
+      resume_file_name: resumeFileName,
       ai_analysis: {
         score: candidateData.nota_final || 0,
         reasoning: candidateData.justificativa || '',
