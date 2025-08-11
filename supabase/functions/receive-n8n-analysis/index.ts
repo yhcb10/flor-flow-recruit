@@ -45,7 +45,8 @@ serve(async (req) => {
 
     // Map position IDs
     const positionMapping: { [key: string]: string } = {
-      'vendedor_001': '4b941ff1-0efc-4c43-a654-f37ed43286d3' // UUID da vaga de Vendedor
+      'vendedor_001': '4b941ff1-0efc-4c43-a654-f37ed43286d3', // UUID da vaga de Vendedor
+      'gestor_ads_001': '5c852ff2-1fdc-4d54-b765-948fe54397e4' // UUID da vaga de Gestor de Ads
     };
 
     const mappedPositionId = candidateData.id ? positionMapping[candidateData.id] || null : null;
