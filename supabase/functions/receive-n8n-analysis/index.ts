@@ -23,6 +23,7 @@ interface N8NCandidateData {
   data_processamento?: string;
   id?: string; // ID da vaga para vincular automaticamente (ex: "vendedor_001")
   download_url?: string; // URL para download do PDF
+  curriculo_pdf?: string; // PDF em base64 (compatibilidade)
   nome_arquivo?: string; // Nome do arquivo PDF
 }
 
@@ -55,47 +56,66 @@ serve(async (req) => {
   let resumeUrl = null;
   let resumeFileName = null;
   
-  if (candidateData.download_url && candidateData.nome_arquivo) {
+  console.log('PDF fields received:', {
+    download_url: candidateData.download_url,
+    curriculo_pdf: candidateData.curriculo_pdf,
+    nome_arquivo: candidateData.nome_arquivo
+  });
+  
+  const pdfUrl = candidateData.download_url || candidateData.curriculo_pdf;
+  
+  if (pdfUrl && candidateData.nome_arquivo) {
     try {
-      console.log('Downloading PDF from:', candidateData.download_url);
-      
-      // Download the PDF file
-      const downloadResponse = await fetch(candidateData.download_url);
-      
-      if (!downloadResponse.ok) {
-        throw new Error(`Failed to download PDF: ${downloadResponse.status}`);
-      }
-      
-      const pdfBuffer = await downloadResponse.arrayBuffer();
-      
-      // Generate unique filename
-      const timestamp = new Date().getTime();
-      const sanitizedName = candidateData.nome_completo.replace(/[^a-zA-Z0-9]/g, '_');
-      const fileName = `curriculums/${sanitizedName}_${timestamp}_${candidateData.nome_arquivo}`;
-      
-      // Upload to Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('resumes')
-        .upload(fileName, pdfBuffer, {
-          contentType: 'application/pdf',
-          upsert: false
-        });
-
-      if (uploadError) {
-        console.error('Error uploading PDF:', uploadError);
-      } else {
-        // Get public URL
-        const { data: urlData } = supabase.storage
-          .from('resumes')
-          .getPublicUrl(fileName);
+      // Check if it's a URL (starts with http) or base64 data
+      if (pdfUrl.startsWith('http')) {
+        console.log('Downloading PDF from URL:', pdfUrl);
         
-        resumeUrl = urlData.publicUrl;
+        // Download the PDF file
+        const downloadResponse = await fetch(pdfUrl);
+        
+        if (!downloadResponse.ok) {
+          throw new Error(`Failed to download PDF: ${downloadResponse.status}`);
+        }
+        
+        const pdfBuffer = await downloadResponse.arrayBuffer();
+        
+        // Generate unique filename
+        const timestamp = new Date().getTime();
+        const sanitizedName = candidateData.nome_completo.replace(/[^a-zA-Z0-9]/g, '_');
+        const fileName = `curriculums/${sanitizedName}_${timestamp}_${candidateData.nome_arquivo}`;
+        
+        console.log('Uploading PDF to Storage:', fileName);
+        
+        // Upload to Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('resumes')
+          .upload(fileName, pdfBuffer, {
+            contentType: 'application/pdf',
+            upsert: false
+          });
+
+        if (uploadError) {
+          console.error('Error uploading PDF:', uploadError);
+        } else {
+          // Get public URL
+          const { data: urlData } = supabase.storage
+            .from('resumes')
+            .getPublicUrl(fileName);
+          
+          resumeUrl = urlData.publicUrl;
+          resumeFileName = candidateData.nome_arquivo;
+          console.log('PDF downloaded and uploaded successfully:', resumeUrl);
+        }
+      } else {
+        console.log('Using existing PDF URL directly:', pdfUrl);
+        resumeUrl = pdfUrl;
         resumeFileName = candidateData.nome_arquivo;
-        console.log('PDF downloaded and uploaded successfully:', resumeUrl);
       }
     } catch (pdfError) {
       console.error('Error downloading/processing PDF:', pdfError);
     }
+  } else {
+    console.log('No PDF URL or filename provided');
   }
 
     // Transform N8N data to candidate format
