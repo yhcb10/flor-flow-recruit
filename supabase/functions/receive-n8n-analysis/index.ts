@@ -21,6 +21,7 @@ interface N8NCandidateData {
   recomendacao?: string;
   proximos_passos?: string;
   data_processamento?: string;
+  position_id?: string; // ID da vaga para vincular automaticamente
 }
 
 serve(async (req) => {
@@ -45,7 +46,7 @@ serve(async (req) => {
       name: candidateData.nome_completo,
       email: candidateData.email || '',
       phone: candidateData.telefone || '',
-      position_id: null,
+      position_id: candidateData.position_id || null,
       source: 'manual',
       stage: 'analise_ia',
       ai_analysis: {
