@@ -22,7 +22,7 @@ interface N8NCandidateData {
   proximos_passos?: string;
   data_processamento?: string;
   id?: string; // ID da vaga para vincular automaticamente (ex: "vendedor_001")
-  curriculo_pdf?: string; // PDF em base64
+  download_url?: string; // URL para download do PDF
   nome_arquivo?: string; // Nome do arquivo PDF
 }
 
@@ -51,50 +51,50 @@ serve(async (req) => {
 
     const mappedPositionId = candidateData.id ? positionMapping[candidateData.id] || null : null;
 
-  // Handle PDF URL if provided
+  // Handle PDF download if provided
   let resumeUrl = null;
   let resumeFileName = null;
   
-  if (candidateData.curriculo_pdf && candidateData.nome_arquivo) {
+  if (candidateData.download_url && candidateData.nome_arquivo) {
     try {
-      // Check if curriculo_pdf is a URL or base64 data
-      if (candidateData.curriculo_pdf.startsWith('http')) {
-        // It's already a URL, use it directly
-        resumeUrl = candidateData.curriculo_pdf;
-        resumeFileName = candidateData.nome_arquivo;
-        console.log('Using existing PDF URL:', resumeUrl);
-      } else {
-        // It's base64 data, decode and upload
-        const pdfBuffer = Uint8Array.from(atob(candidateData.curriculo_pdf), c => c.charCodeAt(0));
-        
-        // Generate unique filename
-        const timestamp = new Date().getTime();
-        const sanitizedName = candidateData.nome_completo.replace(/[^a-zA-Z0-9]/g, '_');
-        const fileName = `${sanitizedName}_${timestamp}_${candidateData.nome_arquivo}`;
-        
-        // Upload to Supabase Storage
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('resumes')
-          .upload(fileName, pdfBuffer, {
-            contentType: 'application/pdf',
-            upsert: false
-          });
+      console.log('Downloading PDF from:', candidateData.download_url);
+      
+      // Download the PDF file
+      const downloadResponse = await fetch(candidateData.download_url);
+      
+      if (!downloadResponse.ok) {
+        throw new Error(`Failed to download PDF: ${downloadResponse.status}`);
+      }
+      
+      const pdfBuffer = await downloadResponse.arrayBuffer();
+      
+      // Generate unique filename
+      const timestamp = new Date().getTime();
+      const sanitizedName = candidateData.nome_completo.replace(/[^a-zA-Z0-9]/g, '_');
+      const fileName = `curriculums/${sanitizedName}_${timestamp}_${candidateData.nome_arquivo}`;
+      
+      // Upload to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('resumes')
+        .upload(fileName, pdfBuffer, {
+          contentType: 'application/pdf',
+          upsert: false
+        });
 
-        if (uploadError) {
-          console.error('Error uploading PDF:', uploadError);
-        } else {
-          // Get public URL
-          const { data: urlData } = supabase.storage
-            .from('resumes')
-            .getPublicUrl(fileName);
-          
-          resumeUrl = urlData.publicUrl;
-          resumeFileName = candidateData.nome_arquivo;
-          console.log('PDF uploaded successfully:', resumeUrl);
-        }
+      if (uploadError) {
+        console.error('Error uploading PDF:', uploadError);
+      } else {
+        // Get public URL
+        const { data: urlData } = supabase.storage
+          .from('resumes')
+          .getPublicUrl(fileName);
+        
+        resumeUrl = urlData.publicUrl;
+        resumeFileName = candidateData.nome_arquivo;
+        console.log('PDF downloaded and uploaded successfully:', resumeUrl);
       }
     } catch (pdfError) {
-      console.error('Error processing PDF:', pdfError);
+      console.error('Error downloading/processing PDF:', pdfError);
     }
   }
 
