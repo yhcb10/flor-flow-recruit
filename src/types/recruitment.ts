@@ -11,6 +11,7 @@ export interface JobPosition {
   createdAt: Date;
   createdBy: string;
   targetHires: number;
+  endpointId?: string; // ID único para o endpoint N8N
   aiAnalysisPrompt?: string;
   // Campos específicos do formulário
   salarioFixo?: string;

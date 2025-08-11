@@ -2,8 +2,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
 import { JobPosition } from '@/types/recruitment';
-import { Calendar, MapPin, Users, Briefcase } from 'lucide-react';
+import { Calendar, MapPin, Users, Briefcase, Copy } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface JobPositionDetailsModalProps {
   position: JobPosition | null;
@@ -12,7 +14,19 @@ interface JobPositionDetailsModalProps {
 }
 
 export const JobPositionDetailsModal = ({ position, open, onOpenChange }: JobPositionDetailsModalProps) => {
+  const { toast } = useToast();
+  
   if (!position) return null;
+
+  const copyEndpointId = () => {
+    if (position.endpointId) {
+      navigator.clipboard.writeText(position.endpointId);
+      toast({
+        title: "ID copiado!",
+        description: "O ID do endpoint foi copiado para a área de transferência."
+      });
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -192,26 +206,56 @@ export const JobPositionDetailsModal = ({ position, open, onOpenChange }: JobPos
             </Card>
           )}
 
-          {/* Informações de Criação */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Informações de Criação</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="font-medium">Criado por:</span>
-                  <p className="text-muted-foreground">{position.createdBy}</p>
+          {/* Informações de Criação e Endpoint */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Informações de Criação</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4 text-sm">
+                  <div>
+                    <span className="font-medium">Criado por:</span>
+                    <p className="text-muted-foreground">{position.createdBy}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium">Data de criação:</span>
+                    <p className="text-muted-foreground">
+                      {new Date(position.createdAt).toLocaleString('pt-BR')}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <span className="font-medium">Data de criação:</span>
-                  <p className="text-muted-foreground">
-                    {new Date(position.createdAt).toLocaleString('pt-BR')}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">ID do Endpoint N8N</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Use este ID para configurar o N8N e receber currículos automaticamente:
                   </p>
+                  <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+                    <code className="flex-1 text-sm font-mono">
+                      {position.endpointId || 'ID não disponível'}
+                    </code>
+                    {position.endpointId && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={copyEndpointId}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

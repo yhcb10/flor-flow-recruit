@@ -45,6 +45,16 @@ export function NewJobPositionModal({ open, onOpenChange, onJobPositionCreate }:
       return;
     }
 
+    // Gerar ID único para o endpoint baseado no título da vaga
+    const endpointId = formData.title
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+      .replace(/[^a-z0-9]/g, '_') // Substitui caracteres especiais por underscore
+      .replace(/_+/g, '_') // Remove underscores duplicados
+      .replace(/^_|_$/g, '') // Remove underscores do início e fim
+      + '_' + Date.now().toString().slice(-6); // Adiciona timestamp para garantir unicidade
+
     const newPosition: JobPosition = {
       id: Date.now().toString(),
       title: formData.title,
@@ -62,6 +72,7 @@ export function NewJobPositionModal({ open, onOpenChange, onJobPositionCreate }:
       createdAt: new Date(),
       createdBy: 'current-user',
       targetHires: 1,
+      endpointId: endpointId, // Novo campo para o ID do endpoint
       aiAnalysisPrompt: `
 Analise este candidato considerando:
 
@@ -112,7 +123,7 @@ ${formData.itensNaoPontuaveis}
     
     toast({
       title: "Vaga criada com sucesso!",
-      description: `A vaga de ${formData.title} foi criada e está ativa.`
+      description: `A vaga de ${formData.title} foi criada. ID do endpoint: ${endpointId}`
     });
   };
 
