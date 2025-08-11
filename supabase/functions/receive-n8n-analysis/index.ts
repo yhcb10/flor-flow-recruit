@@ -61,11 +61,6 @@ serve(async (req) => {
   let resumeUrl = null;
   let resumeFileName = null;
   
-  console.log('=== PDF PROCESSING DEBUG ===');
-  console.log('candidateData.download_url:', candidateData.download_url);
-  console.log('candidateData.curriculo_pdf:', candidateData.curriculo_pdf);
-  console.log('candidateData.nome_arquivo:', candidateData.nome_arquivo);
-  
   // Try multiple possible field names for the PDF URL
   const pdfUrl = candidateData.download_url || 
                  candidateData.curriculo_pdf || 
@@ -78,62 +73,62 @@ serve(async (req) => {
                    (candidateData as any).file_name ||
                    'curriculum.pdf';
   
-  console.log('Determined pdfUrl:', pdfUrl);
-  console.log('Determined fileName:', fileName);
-  console.log('============================');
-  
   if (pdfUrl && fileName) {
     try {
       // Check if it's a URL (starts with http) or base64 data
       if (pdfUrl.startsWith('http')) {
-        console.log('Downloading PDF from URL:', pdfUrl);
-        
-        // Download the PDF file
-        const downloadResponse = await fetch(pdfUrl);
-        
-        if (!downloadResponse.ok) {
-          throw new Error(`Failed to download PDF: ${downloadResponse.status}`);
-        }
-        
-        const pdfBuffer = await downloadResponse.arrayBuffer();
-        
-        // Generate unique filename
-        const timestamp = new Date().getTime();
-        const sanitizedName = candidateData.nome_completo.replace(/[^a-zA-Z0-9]/g, '_');
-        const fileName = `curriculums/${sanitizedName}_${timestamp}_${candidateData.nome_arquivo}`;
-        
-        console.log('Uploading PDF to Storage:', fileName);
-        
-        // Upload to Supabase Storage
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('resumes')
-          .upload(fileName, pdfBuffer, {
-            contentType: 'application/pdf',
-            upsert: false
-          });
-
-        if (uploadError) {
-          console.error('Error uploading PDF:', uploadError);
+        // If it's already a Supabase Storage URL, use it directly
+        if (pdfUrl.includes('supabase.co/storage')) {
+          resumeUrl = pdfUrl;
+          resumeFileName = fileName;
         } else {
-          // Get public URL
-          const { data: urlData } = supabase.storage
-            .from('resumes')
-            .getPublicUrl(fileName);
+          // Download and re-upload to our storage
+          const downloadResponse = await fetch(pdfUrl);
           
-          resumeUrl = urlData.publicUrl;
-          resumeFileName = candidateData.nome_arquivo;
-          console.log('PDF downloaded and uploaded successfully:', resumeUrl);
+          if (!downloadResponse.ok) {
+            throw new Error(`Failed to download PDF: ${downloadResponse.status}`);
+          }
+          
+          const pdfBuffer = await downloadResponse.arrayBuffer();
+          
+          // Generate unique filename
+          const timestamp = new Date().getTime();
+          const sanitizedName = candidateData.nome_completo.replace(/[^a-zA-Z0-9]/g, '_');
+          const storagePath = `curriculums/${sanitizedName}_${timestamp}_${fileName}`;
+          
+          // Upload to Supabase Storage
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('resumes')
+            .upload(storagePath, pdfBuffer, {
+              contentType: 'application/pdf',
+              upsert: false
+            });
+
+          if (uploadError) {
+            console.error('Error uploading PDF:', uploadError);
+            // Fallback to original URL if upload fails
+            resumeUrl = pdfUrl;
+            resumeFileName = fileName;
+          } else {
+            // Get public URL
+            const { data: urlData } = supabase.storage
+              .from('resumes')
+              .getPublicUrl(storagePath);
+            
+            resumeUrl = urlData.publicUrl;
+            resumeFileName = fileName;
+          }
         }
       } else {
-        console.log('Using existing PDF URL directly:', pdfUrl);
         resumeUrl = pdfUrl;
-        resumeFileName = candidateData.nome_arquivo;
+        resumeFileName = fileName;
       }
     } catch (pdfError) {
       console.error('Error downloading/processing PDF:', pdfError);
+      // Fallback: use original URL if processing fails
+      resumeUrl = pdfUrl;
+      resumeFileName = fileName;
     }
-  } else {
-    console.log('No PDF URL or filename provided');
   }
 
     // Transform N8N data to candidate format
