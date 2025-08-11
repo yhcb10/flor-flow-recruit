@@ -21,6 +21,7 @@ import { ptBR } from 'date-fns/locale';
 import { ResumeUpload } from './ResumeUpload';
 import { InterviewScheduler } from './InterviewScheduler';
 import { InPersonInterviewScheduler } from './InPersonInterviewScheduler';
+import { PDFViewer } from './PDFViewer';
 
 interface CandidateModalProps {
   candidate: Candidate;
@@ -117,8 +118,9 @@ export function CandidateModal({ candidate, isOpen, onClose, onUpdate, onDelete 
         </DialogHeader>
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+            <TabsTrigger value="curriculum">Currículo</TabsTrigger>
             <TabsTrigger value="ai-analysis">Análise IA</TabsTrigger>
             <TabsTrigger value="interviews">Entrevistas</TabsTrigger>
             <TabsTrigger value="notes">Anotações</TabsTrigger>
@@ -231,6 +233,26 @@ export function CandidateModal({ candidate, isOpen, onClose, onUpdate, onDelete 
                     onUploadComplete={handleResumeUpload}
                   />
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Curriculum Tab */}
+          <TabsContent value="curriculum" className="space-y-4">
+            <PDFViewer 
+              pdfUrl={candidate.resumeUrl || ''}
+              fileName={candidate.resumeFileName}
+            />
+            {/* Upload Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Atualizar Currículo</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResumeUpload
+                  candidateId={candidate.id}
+                  onUploadComplete={handleResumeUpload}
+                />
               </CardContent>
             </Card>
           </TabsContent>
