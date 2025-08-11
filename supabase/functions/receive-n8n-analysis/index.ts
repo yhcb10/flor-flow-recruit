@@ -42,7 +42,12 @@ serve(async (req) => {
     // Log the received data
     const candidateData: N8NCandidateData = await req.json();
     
-    console.log('Received N8N analysis data:', candidateData);
+    console.log('=== RECEIVED N8N DATA ===');
+    console.log('Full payload:', JSON.stringify(candidateData, null, 2));
+    console.log('download_url:', candidateData.download_url);
+    console.log('curriculo_pdf:', candidateData.curriculo_pdf);
+    console.log('nome_arquivo:', candidateData.nome_arquivo);
+    console.log('========================');
 
     // Map position IDs
     const positionMapping: { [key: string]: string } = {
