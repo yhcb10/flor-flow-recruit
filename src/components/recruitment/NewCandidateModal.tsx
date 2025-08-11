@@ -7,6 +7,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import { Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { JobPosition } from '@/types/recruitment';
@@ -17,36 +19,72 @@ interface NewCandidateModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedPosition?: JobPosition | null;
+  availablePositions?: JobPosition[];
 }
 
-export function NewCandidateModal({ isOpen, onClose, selectedPosition }: NewCandidateModalProps) {
+export function NewCandidateModal({ isOpen, onClose, selectedPosition, availablePositions = [] }: NewCandidateModalProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<string>('');
+  const [selectedJobPosition, setSelectedJobPosition] = useState<string>(selectedPosition?.id || '');
   const { toast } = useToast();
 
   const handleResumeUpload = async (url: string, fileName: string) => {
+    if (!selectedJobPosition) {
+      toast({
+        title: "Selecione uma vaga",
+        description: "É necessário selecionar uma vaga antes de enviar o currículo.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setUploadedFile(fileName);
     setIsProcessing(true);
     
     try {
-      // Enviar para o N8N via edge function
-      const { data, error } = await supabase.functions.invoke('send-resume-to-n8n', {
-        body: {
-          resumeUrl: url,
-          fileName: fileName,
-          positionId: selectedPosition?.id || 'vendedor',
-          positionTitle: selectedPosition?.title || 'Vendedor'
+      const position = availablePositions.find(p => p.id === selectedJobPosition);
+      
+      // Verificar se é vaga de gestor de ads para enviar para webhook específico
+      if (position?.title.toLowerCase().includes('gestor') && position?.title.toLowerCase().includes('ads')) {
+        // Enviar para webhook específico do gestor de ads
+        const { data, error } = await supabase.functions.invoke('send-to-external-webhook', {
+          body: {
+            resumeUrl: url,
+            fileName: fileName,
+            positionId: position.endpointId || 'gestor_ads_001',
+            positionTitle: position.title,
+            webhookUrl: 'https://n8nwebhook.agentenobre.store/webhook/curriculo-upload-gestor-ads'
+          }
+        });
+
+        if (error) {
+          throw error;
         }
-      });
 
-      if (error) {
-        throw error;
+        toast({
+          title: "Currículo enviado para Gestor de Ads",
+          description: "O currículo foi enviado para análise específica de Gestor de Ads.",
+        });
+      } else {
+        // Enviar para o N8N padrão via edge function existente
+        const { data, error } = await supabase.functions.invoke('send-resume-to-n8n', {
+          body: {
+            resumeUrl: url,
+            fileName: fileName,
+            positionId: position?.endpointId || selectedJobPosition,
+            positionTitle: position?.title || 'Posição não especificada'
+          }
+        });
+
+        if (error) {
+          throw error;
+        }
+
+        toast({
+          title: "Currículo enviado para análise",
+          description: "O currículo foi enviado para processamento no N8N.",
+        });
       }
-
-      toast({
-        title: "Currículo enviado para análise",
-        description: "O currículo foi enviado para processamento no N8N.",
-      });
       
       // Fechar modal após sucesso
       setTimeout(() => {
@@ -54,7 +92,7 @@ export function NewCandidateModal({ isOpen, onClose, selectedPosition }: NewCand
       }, 2000);
       
     } catch (error) {
-      console.error('Erro ao enviar para N8N:', error);
+      console.error('Erro ao enviar currículo:', error);
       toast({
         title: "Erro no envio",
         description: "Falha ao enviar currículo para análise.",
@@ -83,20 +121,47 @@ export function NewCandidateModal({ isOpen, onClose, selectedPosition }: NewCand
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Upload de Currículo</CardTitle>
-            {selectedPosition && (
-              <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
-                <div className="text-sm font-medium text-primary">
-                  Vaga: {selectedPosition.title}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {selectedPosition.department}
-                </div>
+            <CardTitle className="text-lg">Seleção de Vaga e Upload</CardTitle>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="position-select">Vaga *</Label>
+                <Select value={selectedJobPosition} onValueChange={setSelectedJobPosition}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a vaga para este candidato" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availablePositions.map((position) => (
+                      <SelectItem key={position.id} value={position.id}>
+                        {position.title} - {position.department}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            )}
+              
+              {selectedJobPosition && (
+                <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
+                  <div className="text-sm font-medium text-primary">
+                    Vaga: {availablePositions.find(p => p.id === selectedJobPosition)?.title}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {availablePositions.find(p => p.id === selectedJobPosition)?.department}
+                  </div>
+                  {availablePositions.find(p => p.id === selectedJobPosition)?.endpointId && (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      ID: {availablePositions.find(p => p.id === selectedJobPosition)?.endpointId}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
-            {!isProcessing ? (
+            {!selectedJobPosition ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Selecione uma vaga para habilitar o upload
+              </div>
+            ) : !isProcessing ? (
               <ResumeUpload
                 candidateId="temp"
                 onUploadComplete={handleResumeUpload}
@@ -106,7 +171,7 @@ export function NewCandidateModal({ isOpen, onClose, selectedPosition }: NewCand
                 <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
                 <p className="text-lg font-medium">Enviando para análise...</p>
                 <p className="text-sm text-muted-foreground">
-                  O currículo "{uploadedFile}" está sendo processado pelo N8N
+                  O currículo "{uploadedFile}" está sendo processado
                 </p>
               </div>
             )}

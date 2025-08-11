@@ -22,10 +22,11 @@ import { cn } from '@/lib/utils';
 interface KanbanBoardProps {
   columns: KanbanColumn[];
   onCandidateMove: (candidateId: string, newStage: CandidateStage, rejectionReason?: string) => void;
-  onCandidateSelect: (candidate: Candidate) => void;
-  onCandidateAdd: (candidate: Candidate) => void;
+  onCandidateSelect?: (candidate: Candidate) => void;
+  onCandidateAdd?: (newCandidate: Candidate) => void;
   onCandidateDelete?: (candidateId: string) => void;
   selectedPosition?: JobPosition | null;
+  availablePositions?: JobPosition[];
 }
 
 export function KanbanBoard({ 
@@ -34,7 +35,8 @@ export function KanbanBoard({
   onCandidateSelect, 
   onCandidateAdd, 
   onCandidateDelete, 
-  selectedPosition 
+  selectedPosition,
+  availablePositions = []
 }: KanbanBoardProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
@@ -412,6 +414,7 @@ export function KanbanBoard({
           isOpen={showNewCandidateModal}
           onClose={() => setShowNewCandidateModal(false)}
           selectedPosition={selectedPosition}
+          availablePositions={availablePositions}
         />
       </div>
     </TooltipProvider>

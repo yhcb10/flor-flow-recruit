@@ -190,6 +190,7 @@ const Index = () => {
                 })}
                 onCandidateDelete={deleteCandidate}
                 selectedPosition={selectedPosition}
+                availablePositions={jobPositions}
               />
             )}
           </TabsContent>
