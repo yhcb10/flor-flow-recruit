@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { 
   User, Mail, Phone, Calendar, Star, TrendingUp, TrendingDown, 
-  MessageSquare, Video, MapPin, Clock, ExternalLink, Trash2 
+  MessageSquare, Video, MapPin, Clock, ExternalLink, Trash2, MessageCircle 
 } from 'lucide-react';
 import { Candidate } from '@/types/recruitment';
 import { format } from 'date-fns';
@@ -142,6 +142,29 @@ export function CandidateModal({ candidate, isOpen, onClose, onUpdate, onDelete 
                   <div className="flex items-center gap-2 text-sm">
                     <Phone className="h-4 w-4 text-muted-foreground" />
                     <span>{candidate.phone}</span>
+                    {candidate.phone && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0 ml-1 hover:bg-success/20 hover:text-success"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Remove all non-numeric characters
+                          let phoneNumber = candidate.phone.replace(/\D/g, '');
+                          
+                          // Check if already has country code 55
+                          if (!phoneNumber.startsWith('55')) {
+                            phoneNumber = '55' + phoneNumber;
+                          }
+                          
+                          const whatsappUrl = `https://wa.me/${phoneNumber}`;
+                          window.open(whatsappUrl, '_blank');
+                        }}
+                        title="Abrir WhatsApp"
+                      >
+                        <MessageCircle className="h-3 w-3" />
+                      </Button>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
