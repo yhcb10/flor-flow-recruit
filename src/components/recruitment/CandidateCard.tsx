@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 
-import { CalendarDays, Mail, Phone, Star, Clock, MessageSquare, Check, X, User } from 'lucide-react';
+import { CalendarDays, Mail, Phone, Star, Clock, MessageSquare, Check, X, User, MessageCircle } from 'lucide-react';
 import { Candidate, CandidateStage } from '@/types/recruitment';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -357,9 +357,25 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, i
               <span className="truncate font-normal">{candidate.email}</span>
             </div>
             
-            <div className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
+            <div className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
               <Phone className={cn(isCompactView ? "h-3 w-3" : "h-4 w-4")} />
               <span className="font-normal">{candidate.phone}</span>
+              {candidate.phone && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 w-6 p-0 ml-1 hover:bg-success/20 hover:text-success"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const phoneNumber = candidate.phone.replace(/\D/g, '');
+                    const whatsappUrl = `https://wa.me/55${phoneNumber}`;
+                    window.open(whatsappUrl, '_blank');
+                  }}
+                  title="Abrir WhatsApp"
+                >
+                  <MessageCircle className="h-3 w-3" />
+                </Button>
+              )}
             </div>
           </div>
 
