@@ -57,19 +57,32 @@ serve(async (req) => {
 
     const mappedPositionId = candidateData.id ? positionMapping[candidateData.id] || null : null;
 
-  // Handle PDF download if provided
+  // Handle PDF download if provided - try multiple field variations
   let resumeUrl = null;
   let resumeFileName = null;
   
-  console.log('PDF fields received:', {
-    download_url: candidateData.download_url,
-    curriculo_pdf: candidateData.curriculo_pdf,
-    nome_arquivo: candidateData.nome_arquivo
-  });
+  console.log('=== PDF PROCESSING DEBUG ===');
+  console.log('candidateData.download_url:', candidateData.download_url);
+  console.log('candidateData.curriculo_pdf:', candidateData.curriculo_pdf);
+  console.log('candidateData.nome_arquivo:', candidateData.nome_arquivo);
   
-  const pdfUrl = candidateData.download_url || candidateData.curriculo_pdf;
+  // Try multiple possible field names for the PDF URL
+  const pdfUrl = candidateData.download_url || 
+                 candidateData.curriculo_pdf || 
+                 (candidateData as any).pdf_url ||
+                 (candidateData as any).resume_url ||
+                 (candidateData as any).url_download;
+                 
+  const fileName = candidateData.nome_arquivo || 
+                   (candidateData as any).filename ||
+                   (candidateData as any).file_name ||
+                   'curriculum.pdf';
   
-  if (pdfUrl && candidateData.nome_arquivo) {
+  console.log('Determined pdfUrl:', pdfUrl);
+  console.log('Determined fileName:', fileName);
+  console.log('============================');
+  
+  if (pdfUrl && fileName) {
     try {
       // Check if it's a URL (starts with http) or base64 data
       if (pdfUrl.startsWith('http')) {
