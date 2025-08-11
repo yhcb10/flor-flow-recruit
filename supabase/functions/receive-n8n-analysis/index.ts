@@ -51,13 +51,20 @@ serve(async (req) => {
 
     const mappedPositionId = candidateData.id ? positionMapping[candidateData.id] || null : null;
 
-    // Handle PDF upload if provided
-    let resumeUrl = null;
-    let resumeFileName = null;
-    
-    if (candidateData.curriculo_pdf && candidateData.nome_arquivo) {
-      try {
-        // Decode base64 PDF
+  // Handle PDF URL if provided
+  let resumeUrl = null;
+  let resumeFileName = null;
+  
+  if (candidateData.curriculo_pdf && candidateData.nome_arquivo) {
+    try {
+      // Check if curriculo_pdf is a URL or base64 data
+      if (candidateData.curriculo_pdf.startsWith('http')) {
+        // It's already a URL, use it directly
+        resumeUrl = candidateData.curriculo_pdf;
+        resumeFileName = candidateData.nome_arquivo;
+        console.log('Using existing PDF URL:', resumeUrl);
+      } else {
+        // It's base64 data, decode and upload
         const pdfBuffer = Uint8Array.from(atob(candidateData.curriculo_pdf), c => c.charCodeAt(0));
         
         // Generate unique filename
@@ -85,10 +92,11 @@ serve(async (req) => {
           resumeFileName = candidateData.nome_arquivo;
           console.log('PDF uploaded successfully:', resumeUrl);
         }
-      } catch (pdfError) {
-        console.error('Error processing PDF:', pdfError);
       }
+    } catch (pdfError) {
+      console.error('Error processing PDF:', pdfError);
     }
+  }
 
     // Transform N8N data to candidate format
     const candidate = {
