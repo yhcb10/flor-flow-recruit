@@ -330,7 +330,7 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, i
                         getScoreColor(candidate.aiAnalysis.score)
                       )}>
                         <Star className="h-3 w-3" />
-                        {candidate.aiAnalysis.score.toFixed(1)}
+                        {Number(candidate.aiAnalysis.score).toFixed(1)}
                       </div>
                     )}
                   </div>
@@ -345,7 +345,7 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, i
                 getScoreColor(candidate.aiAnalysis.score)
               )}>
                 <Star className="h-3 w-3" />
-                {candidate.aiAnalysis.score.toFixed(1)}
+                {Number(candidate.aiAnalysis.score).toFixed(1)}
               </div>
             )}
           </div>
