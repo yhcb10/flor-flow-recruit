@@ -297,7 +297,7 @@ export function CandidateModal({ candidate, isOpen, onClose, onUpdate, onDelete 
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-2">
-                      {candidate.aiAnalysis.pontoFortes.map((pontoForte, index) => (
+                      {(Array.isArray(candidate.aiAnalysis.pontoFortes) ? candidate.aiAnalysis.pontoFortes : []).map((pontoForte, index) => (
                         <li key={index} className="text-sm flex items-start gap-2">
                           <div className="w-2 h-2 bg-success rounded-full mt-2 flex-shrink-0" />
                           {pontoForte}
@@ -316,7 +316,7 @@ export function CandidateModal({ candidate, isOpen, onClose, onUpdate, onDelete 
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-2">
-                      {candidate.aiAnalysis.pontosAtencao.map((pontoAtencao, index) => (
+                      {(Array.isArray(candidate.aiAnalysis.pontosAtencao) ? candidate.aiAnalysis.pontosAtencao : []).map((pontoAtencao, index) => (
                         <li key={index} className="text-sm flex items-start gap-2">
                           <div className="w-2 h-2 bg-warning rounded-full mt-2 flex-shrink-0" />
                           {pontoAtencao}
