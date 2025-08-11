@@ -1,8 +1,8 @@
-import { FileText, Download, ExternalLink, AlertCircle } from 'lucide-react';
+import { FileText, Download, ExternalLink, AlertCircle, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface PDFViewerProps {
   pdfUrl: string;
@@ -10,7 +10,25 @@ interface PDFViewerProps {
 }
 
 export function PDFViewer({ pdfUrl, fileName }: PDFViewerProps) {
-  const [loadError, setLoadError] = useState(false);
+  const [showFallback, setShowFallback] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    setIsLoading(true);
+    setShowFallback(false);
+    
+    // Test if PDF can be loaded
+    if (pdfUrl) {
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+        setShowFallback(true);
+      }, 3000); // Show fallback after 3 seconds if not loaded
+
+      return () => clearTimeout(timer);
+    } else {
+      setIsLoading(false);
+    }
+  }, [pdfUrl]);
 
   if (!pdfUrl) {
     return (
@@ -63,56 +81,55 @@ export function PDFViewer({ pdfUrl, fileName }: PDFViewerProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="p-2 h-[calc(100%-60px)]">
-        {loadError ? (
+        {showFallback ? (
           <div className="h-full flex flex-col gap-4">
             <Alert>
-              <AlertCircle className="h-4 w-4" />
+              <Eye className="h-4 w-4" />
               <AlertDescription>
-                Não foi possível carregar o PDF nesta visualização. Use os botões "Abrir" ou "Baixar" acima.
+                Para melhor visualização, use o botão "Abrir" acima para ver o PDF em uma nova aba.
               </AlertDescription>
             </Alert>
-            <div className="flex-1 flex items-center justify-center bg-muted/20 rounded-lg border-2 border-dashed border-muted">
-              <div className="text-center text-muted-foreground">
-                <FileText className="h-16 w-16 mx-auto mb-4 opacity-30" />
-                <p className="text-lg font-medium">Visualização não disponível</p>
-                <p className="text-sm">Clique em "Abrir" para ver o PDF</p>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <object
-            data={pdfUrl}
-            type="application/pdf"
-            className="w-full h-full rounded-lg"
-            onError={() => setLoadError(true)}
-          >
-            <embed
-              src={pdfUrl}
-              type="application/pdf"
-              className="w-full h-full rounded-lg"
-              onError={() => setLoadError(true)}
-            />
-            <div className="h-full flex flex-col gap-4">
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  Seu navegador não suporta visualização de PDF. Use o botão "Abrir" acima.
-                </AlertDescription>
-              </Alert>
-              <div className="flex-1 flex items-center justify-center bg-muted/20 rounded-lg border-2 border-dashed border-muted">
-                <div className="text-center text-muted-foreground">
-                  <FileText className="h-16 w-16 mx-auto mb-4 opacity-30" />
-                  <p className="text-lg font-medium">Plugin PDF não encontrado</p>
+            <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-muted/20 to-muted/40 rounded-lg border-2 border-dashed border-muted">
+              <div className="text-center space-y-4">
+                <FileText className="h-20 w-20 mx-auto text-muted-foreground/40" />
+                <div>
+                  <p className="text-lg font-medium text-foreground">Currículo Disponível</p>
+                  <p className="text-sm text-muted-foreground mb-4">Clique em "Abrir" para visualizar</p>
                   <Button 
                     onClick={() => window.open(pdfUrl, '_blank')}
-                    className="mt-2"
+                    className="flex items-center gap-2"
                   >
-                    Abrir PDF em nova aba
+                    <Eye className="h-4 w-4" />
+                    Visualizar PDF
                   </Button>
                 </div>
               </div>
             </div>
-          </object>
+          </div>
+        ) : (
+          <>
+            {isLoading && (
+              <div className="absolute inset-2 flex items-center justify-center bg-background/80 rounded-lg z-10">
+                <div className="text-center">
+                  <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"></div>
+                  <p className="text-sm text-muted-foreground">Carregando PDF...</p>
+                </div>
+              </div>
+            )}
+            <iframe
+              src={`${pdfUrl}#view=FitH&toolbar=1`}
+              className="w-full h-full rounded-lg border"
+              title="Visualização do Currículo"
+              onLoad={() => {
+                setIsLoading(false);
+                setShowFallback(false);
+              }}
+              onError={() => {
+                setIsLoading(false);
+                setShowFallback(true);
+              }}
+            />
+          </>
         )}
       </CardContent>
     </Card>
