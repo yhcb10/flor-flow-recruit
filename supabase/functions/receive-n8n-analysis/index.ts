@@ -21,7 +21,7 @@ interface N8NCandidateData {
   recomendacao?: string;
   proximos_passos?: string;
   data_processamento?: string;
-  position_id?: string; // ID da vaga para vincular automaticamente
+  id?: string; // ID da vaga para vincular automaticamente (ex: "vendedor_001")
 }
 
 serve(async (req) => {
@@ -41,12 +41,19 @@ serve(async (req) => {
     
     console.log('Received N8N analysis data:', candidateData);
 
+    // Map position IDs
+    const positionMapping: { [key: string]: string } = {
+      'vendedor_001': '4b941ff1-0efc-4c43-a654-f37ed43286d3' // UUID da vaga de Vendedor
+    };
+
+    const mappedPositionId = candidateData.id ? positionMapping[candidateData.id] || null : null;
+
     // Transform N8N data to candidate format
     const candidate = {
       name: candidateData.nome_completo,
       email: candidateData.email || '',
       phone: candidateData.telefone || '',
-      position_id: candidateData.position_id || null,
+      position_id: mappedPositionId,
       source: 'manual',
       stage: 'analise_ia',
       ai_analysis: {
