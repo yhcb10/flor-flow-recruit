@@ -367,8 +367,15 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, i
                   className="h-6 w-6 p-0 ml-1 hover:bg-success/20 hover:text-success"
                   onClick={(e) => {
                     e.stopPropagation();
-                    const phoneNumber = candidate.phone.replace(/\D/g, '');
-                    const whatsappUrl = `https://wa.me/55${phoneNumber}`;
+                    // Remove all non-numeric characters
+                    let phoneNumber = candidate.phone.replace(/\D/g, '');
+                    
+                    // Check if already has country code 55
+                    if (!phoneNumber.startsWith('55')) {
+                      phoneNumber = '55' + phoneNumber;
+                    }
+                    
+                    const whatsappUrl = `https://wa.me/${phoneNumber}`;
                     window.open(whatsappUrl, '_blank');
                   }}
                   title="Abrir WhatsApp"
