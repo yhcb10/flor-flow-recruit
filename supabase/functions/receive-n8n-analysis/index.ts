@@ -56,7 +56,11 @@ serve(async (req) => {
       'analista_de_inteligencia_artificial_e_automacoes_390000': '72a59b27-5286-4591-b841-af1c5dfcc87d' // UUID da vaga de Analista de IA
     };
 
-    const mappedPositionId = candidateData.id ? positionMapping[candidateData.id] || null : null;
+    const mappedPositionId = candidateData.id ? positionMapping[candidateData.id] || candidateData.id : null;
+    
+    console.log('ID recebido do N8N:', candidateData.id);
+    console.log('Position ID mapeado:', mappedPositionId);
+    console.log('Mapeamento disponível:', positionMapping);
 
   // Handle PDF download if provided - try multiple field variations
   let resumeUrl = null;
