@@ -1,15 +1,21 @@
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import { KanbanBoard } from '@/components/recruitment/KanbanBoard';
 import { RecruitmentDashboard } from '@/components/recruitment/RecruitmentDashboard';
 import { JobPositionSelector } from '@/components/recruitment/JobPositionSelector';
 import { NewJobPositionModal } from '@/components/recruitment/NewJobPositionModal';
 import { useRecruitmentKanban } from '@/hooks/useRecruitmentKanban';
 import { useJobPositions } from '@/hooks/useJobPositions';
+import { useAuth } from '@/hooks/useAuth';
 import { JobPosition } from '@/types/recruitment';
+import { LogOut } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import flowNobreLogo from '/lovable-uploads/67eb7c82-39ed-418b-a2e4-7372542bb87d.png';
 
 const Index = () => {
+  const { signOut } = useAuth();
+  const { toast } = useToast();
   const { jobPositions, loading: positionsLoading, createJobPosition, closeJobPosition, pauseJobPosition, deleteJobPosition } = useJobPositions();
   
   const [selectedPosition, setSelectedPosition] = useState<JobPosition | null>(() => {
@@ -129,9 +135,34 @@ const Index = () => {
                 <p className="text-lg font-semibold text-foreground">Sistema de Gestão de Processo Seletivo</p>
               </div>
             </div>
-            <div className="text-right">
-              <div className="text-xs text-muted-foreground opacity-75">v1.0</div>
-              <div className="text-xs text-muted-foreground opacity-75">RH • Recursos Humanos</div>
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <div className="text-xs text-muted-foreground opacity-75">v1.0</div>
+                <div className="text-xs text-muted-foreground opacity-75">RH • Recursos Humanos</div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  const { error } = await signOut();
+                  if (error) {
+                    toast({
+                      title: "Erro",
+                      description: "Erro ao fazer logout",
+                      variant: "destructive",
+                    });
+                  } else {
+                    toast({
+                      title: "Logout realizado",
+                      description: "Você foi desconectado com sucesso",
+                    });
+                  }
+                }}
+                className="flex items-center gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                Sair
+              </Button>
             </div>
           </div>
         </div>
