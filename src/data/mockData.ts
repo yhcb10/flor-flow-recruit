@@ -422,7 +422,7 @@ export const kanbanColumns: KanbanColumn[] = [
     description: 'Candidatos selecionados',
     color: 'bg-status-approved',
     candidates: [],
-    allowedTransitions: []
+    allowedTransitions: ['banco_talentos']
   },
   {
     id: 'nao_aprovado',
