@@ -75,10 +75,25 @@ const handler = async (req: Request): Promise<Response> => {
         }
       } else {
         console.log(`User ${user.email} created successfully`);
+        
+        // Assign hr_admin role to the created user
+        if (data.user?.id) {
+          const { error: roleError } = await supabaseAdmin.from('user_roles').insert({
+            user_id: data.user.id,
+            role: 'hr_admin'
+          });
+          
+          if (roleError) {
+            console.error(`Error assigning role to ${user.email}:`, roleError);
+          } else {
+            console.log(`HR admin role assigned to ${user.email}`);
+          }
+        }
+        
         results.push({
           email: user.email,
           status: 'created',
-          message: 'Usuário criado com sucesso',
+          message: 'Usuário criado com sucesso e role atribuída',
           userId: data.user?.id
         });
       }
