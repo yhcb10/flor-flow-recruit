@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { CreateUsersButton } from '@/components/ui/create-users-button';
 
 export default function Auth() {
   const [email, setEmail] = useState('');
@@ -241,6 +242,15 @@ export default function Auth() {
               </form>
             </TabsContent>
           </Tabs>
+          
+          <div className="mt-6 pt-4 border-t border-border">
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground mb-3">
+                Criar usuários de teste:
+              </p>
+              <CreateUsersButton />
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>
