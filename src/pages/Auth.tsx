@@ -157,6 +157,23 @@ export default function Auth() {
       
       <div className="relative min-h-screen flex items-center justify-center p-4">
         <div className="w-full max-w-md">
+          {/* Logo section */}
+          <div className="text-center mb-8">
+            <div className="flex justify-center mb-4">
+              <img 
+                src="/lovable-uploads/67eb7c82-39ed-418b-a2e4-7372542bb87d.png" 
+                alt="Flow Nobre" 
+                className="h-16 w-auto"
+              />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-800 mb-2">
+              Sistema de Recrutamento
+            </h1>
+            <p className="text-gray-600">
+              Flow Nobre - Gestão de Processo Seletivo
+            </p>
+          </div>
+
           {/* Main login card */}
           <div className="backdrop-blur-sm bg-white/95 border border-purple-200/50 rounded-3xl p-8 shadow-2xl">
             {/* User icon at top */}
@@ -269,16 +286,6 @@ export default function Auth() {
                 <CreateUsersButton />
               </div>
             </div>
-          </div>
-
-          {/* System title */}
-          <div className="text-center mt-8">
-            <h1 className="text-2xl font-bold text-gray-800 mb-2">
-              Sistema de Recrutamento
-            </h1>
-            <p className="text-gray-600">
-              Flow Nobre - Gestão de Processo Seletivo
-            </p>
           </div>
         </div>
       </div>
