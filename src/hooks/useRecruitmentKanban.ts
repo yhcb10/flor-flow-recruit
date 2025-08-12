@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 export function useRecruitmentKanban(positionId?: string) {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Load candidates from Supabase
   useEffect(() => {
@@ -64,6 +65,15 @@ export function useRecruitmentKanban(positionId?: string) {
     };
 
     loadCandidates();
+  }, [refreshTrigger]);
+
+  // Auto-refresh every 10 seconds to catch new candidates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRefreshTrigger(prev => prev + 1);
+    }, 10000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const columns = useMemo(() => {
