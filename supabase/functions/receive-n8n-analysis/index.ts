@@ -52,7 +52,8 @@ serve(async (req) => {
     // Map position IDs
     const positionMapping: { [key: string]: string } = {
       'vendedor_001': '4b941ff1-0efc-4c43-a654-f37ed43286d3', // UUID da vaga de Vendedor
-      'gestor_ads_001': '5c852ff2-1fdc-4d54-b765-948fe54397e4' // UUID da vaga de Gestor de Ads
+      'gestor_ads_001': '5c852ff2-1fdc-4d54-b765-948fe54397e4', // UUID da vaga de Gestor de Ads
+      'analista_de_inteligencia_artificial_e_automacoes_390000': '72a59b27-5286-4591-b841-af1c5dfcc87d' // UUID da vaga de Analista de IA
     };
 
     const mappedPositionId = candidateData.id ? positionMapping[candidateData.id] || null : null;
