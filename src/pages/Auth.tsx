@@ -147,34 +147,34 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-      {/* Animated gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-emerald-900 via-green-800 to-green-900"></div>
-      <div className="absolute inset-0 bg-gradient-to-tr from-black/20 via-transparent to-emerald-900/30"></div>
+      {/* Clean gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-white to-purple-50"></div>
+      <div className="absolute inset-0 bg-gradient-to-tr from-purple-50/50 via-transparent to-gray-100/30"></div>
       
       {/* Animated shapes for depth */}
-      <div className="absolute top-20 left-20 w-72 h-72 bg-emerald-600/10 rounded-full blur-3xl animate-pulse"></div>
-      <div className="absolute bottom-20 right-20 w-96 h-96 bg-green-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+      <div className="absolute top-20 left-20 w-72 h-72 bg-purple-200/20 rounded-full blur-3xl animate-pulse"></div>
+      <div className="absolute bottom-20 right-20 w-96 h-96 bg-purple-300/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
       
       <div className="relative min-h-screen flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           {/* Main login card */}
-          <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl p-8 shadow-2xl">
+          <div className="backdrop-blur-sm bg-white/95 border border-purple-200/50 rounded-3xl p-8 shadow-2xl">
             {/* User icon at top */}
             <div className="flex justify-center mb-8">
-              <div className="w-20 h-20 bg-emerald-800 rounded-full flex items-center justify-center border-4 border-white/20 shadow-lg">
+              <div className="w-20 h-20 bg-purple-600 rounded-full flex items-center justify-center border-4 border-purple-100 shadow-lg">
                 <User className="w-10 h-10 text-white" />
               </div>
             </div>
 
             {/* Toggle between Login and Sign Up */}
             <div className="flex justify-center mb-8">
-              <div className="flex bg-white/10 rounded-full p-1 border border-white/20">
+              <div className="flex bg-gray-100 rounded-full p-1 border border-purple-200">
                 <button
                   onClick={() => setIsSignUp(false)}
                   className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
                     !isSignUp 
-                      ? 'bg-emerald-700 text-white shadow-lg' 
-                      : 'text-white/70 hover:text-white'
+                      ? 'bg-purple-600 text-white shadow-lg' 
+                      : 'text-gray-600 hover:text-purple-600'
                   }`}
                 >
                   <Mail className="w-4 h-4 inline mr-2" />
@@ -184,8 +184,8 @@ export default function Auth() {
                   onClick={() => setIsSignUp(true)}
                   className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
                     isSignUp 
-                      ? 'bg-emerald-700 text-white shadow-lg' 
-                      : 'text-white/70 hover:text-white'
+                      ? 'bg-purple-600 text-white shadow-lg' 
+                      : 'text-gray-600 hover:text-purple-600'
                   }`}
                 >
                   <UserPlus className="w-4 h-4 inline mr-2" />
@@ -198,7 +198,7 @@ export default function Auth() {
               {/* Email Input */}
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-white/50" />
+                  <Mail className="h-5 w-5 text-purple-400" />
                 </div>
                 <Input
                   type="email"
@@ -206,14 +206,14 @@ export default function Auth() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={isLoading}
-                  className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:bg-white/20 focus:border-white/40 transition-all duration-300"
+                  className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-purple-200 rounded-xl text-gray-800 placeholder-gray-400 focus:bg-white focus:border-purple-400 focus:ring-2 focus:ring-purple-200 transition-all duration-300"
                 />
               </div>
 
               {/* Password Input */}
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-white/50" />
+                  <Lock className="h-5 w-5 text-purple-400" />
                 </div>
                 <Input
                   type="password"
@@ -221,7 +221,7 @@ export default function Auth() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isLoading}
-                  className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:bg-white/20 focus:border-white/40 transition-all duration-300"
+                  className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-purple-200 rounded-xl text-gray-800 placeholder-gray-400 focus:bg-white focus:border-purple-400 focus:ring-2 focus:ring-purple-200 transition-all duration-300"
                 />
               </div>
 
@@ -229,14 +229,14 @@ export default function Auth() {
               {!isSignUp && (
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center space-x-2">
-                    <Checkbox id="remember" className="border-white/30 data-[state=checked]:bg-emerald-600" />
-                    <label htmlFor="remember" className="text-white/70 cursor-pointer">
+                    <Checkbox id="remember" className="border-purple-300 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600" />
+                    <label htmlFor="remember" className="text-gray-600 cursor-pointer">
                       Remember me
                     </label>
                   </div>
                   <button
                     type="button"
-                    className="text-white/70 hover:text-white transition-colors duration-300"
+                    className="text-purple-600 hover:text-purple-700 transition-colors duration-300"
                   >
                     Forgot Password?
                   </button>
@@ -247,7 +247,7 @@ export default function Auth() {
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3 bg-emerald-800 hover:bg-emerald-700 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl border-0"
+                className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl border-0"
               >
                 {isLoading ? (
                   <>
@@ -261,9 +261,9 @@ export default function Auth() {
             </form>
 
             {/* Development tools */}
-            <div className="mt-8 pt-6 border-t border-white/20">
+            <div className="mt-8 pt-6 border-t border-purple-200">
               <div className="text-center">
-                <p className="text-sm text-white/60 mb-3">
+                <p className="text-sm text-gray-500 mb-3">
                   Ferramentas de desenvolvimento:
                 </p>
                 <CreateUsersButton />
@@ -273,10 +273,10 @@ export default function Auth() {
 
           {/* System title */}
           <div className="text-center mt-8">
-            <h1 className="text-2xl font-bold text-white/90 mb-2">
+            <h1 className="text-2xl font-bold text-gray-800 mb-2">
               Sistema de Recrutamento
             </h1>
-            <p className="text-white/60">
+            <p className="text-gray-600">
               Flow Nobre - Gestão de Processo Seletivo
             </p>
           </div>
