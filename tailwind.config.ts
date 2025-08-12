@@ -79,7 +79,9 @@ export default {
 					approved: 'hsl(var(--status-approved))',
 					'approved-border': 'hsl(var(--status-approved-border))',
 					rejected: 'hsl(var(--status-rejected))',
-					'rejected-border': 'hsl(var(--status-rejected-border))'
+					'rejected-border': 'hsl(var(--status-rejected-border))',
+					'talent-bank': 'hsl(var(--status-talent-bank))',
+					'talent-bank-border': 'hsl(var(--status-talent-bank-border))'
 				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',

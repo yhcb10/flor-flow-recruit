@@ -52,7 +52,8 @@ export type CandidateStage =
   | 'selecao_entrevista_presencial'
   | 'entrevista_presencial'
   | 'aprovado'
-  | 'nao_aprovado';
+  | 'nao_aprovado'
+  | 'banco_talentos';
 
 export interface AIAnalysis {
   score: number; // 0-10

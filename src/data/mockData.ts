@@ -430,6 +430,14 @@ export const kanbanColumns: KanbanColumn[] = [
     description: 'Candidatos não selecionados',
     color: 'bg-status-rejected',
     candidates: [],
+    allowedTransitions: ['banco_talentos']
+  },
+  {
+    id: 'banco_talentos',
+    title: 'Banco de Talentos',
+    description: 'Candidatos com potencial para futuras oportunidades',
+    color: 'bg-status-talent-bank',
+    candidates: [],
     allowedTransitions: []
   }
 ];

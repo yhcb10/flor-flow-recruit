@@ -61,6 +61,8 @@ Todas as cores DEVEM ser HSL. */
     --status-approved-border: 150 40% 70%;
     --status-rejected: 0 50% 90%;
     --status-rejected-border: 0 40% 75%;
+    --status-talent-bank: 280 40% 90%;
+    --status-talent-bank-border: 280 30% 75%;
 
     --border: 210 20% 90%;
     --input: 210 20% 95%;
@@ -132,6 +134,8 @@ Todas as cores DEVEM ser HSL. */
     --status-approved-border: 150 25% 25%;
     --status-rejected: 0 35% 15%;
     --status-rejected-border: 0 25% 25%;
+    --status-talent-bank: 280 25% 15%;
+    --status-talent-bank-border: 280 20% 25%;
 
     --border: 210 20% 20%;
     --input: 210 20% 15%;
