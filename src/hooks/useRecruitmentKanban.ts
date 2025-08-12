@@ -6,7 +6,6 @@ import { supabase } from '@/integrations/supabase/client';
 export function useRecruitmentKanban(positionId?: string) {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Load candidates from Supabase
   useEffect(() => {
@@ -65,15 +64,111 @@ export function useRecruitmentKanban(positionId?: string) {
     };
 
     loadCandidates();
-  }, [refreshTrigger]);
+  }, []);
 
-  // Auto-refresh every 10 seconds to catch new candidates
+  // Set up realtime subscription for new candidates
   useEffect(() => {
-    const interval = setInterval(() => {
-      setRefreshTrigger(prev => prev + 1);
-    }, 10000);
+    const channel = supabase
+      .channel('candidates-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'candidates'
+        },
+        (payload) => {
+          console.log('📥 Novo candidato recebido via realtime:', payload.new);
+          const newCandidate = payload.new as any;
+          
+          // Transform the new candidate to app format
+          const transformedCandidate: Candidate = {
+            id: newCandidate.id,
+            name: newCandidate.name,
+            email: newCandidate.email,
+            phone: newCandidate.phone || '',
+            positionId: newCandidate.position_id || '1',
+            resumeUrl: newCandidate.resume_url,
+            resumeText: newCandidate.resume_text,
+            resumeFileName: newCandidate.resume_file_name,
+            source: newCandidate.source as 'indeed' | 'manual' | 'referral',
+            stage: newCandidate.stage as CandidateStage,
+            aiAnalysis: newCandidate.ai_analysis as any || undefined,
+            notes: (newCandidate.notes as any) || [],
+            interviews: Array.isArray(newCandidate.interviews) ? 
+              (newCandidate.interviews as any[]).map((interview: any) => ({
+                id: interview.id,
+                type: interview.type,
+                scheduledAt: interview.scheduledAt,
+                duration: interview.duration,
+                meetingUrl: interview.meetingUrl,
+                interviewerIds: interview.interviewerIds || [],
+                status: interview.status,
+                location: interview.location,
+                notes: interview.notes
+              })) : [],
+            rejectionReason: newCandidate.rejection_reason,
+            createdAt: new Date(newCandidate.created_at),
+            updatedAt: new Date(newCandidate.updated_at)
+          };
 
-    return () => clearInterval(interval);
+          // Add the new candidate to the beginning of the list
+          setCandidates(prev => [transformedCandidate, ...prev]);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'candidates'
+        },
+        (payload) => {
+          console.log('📝 Candidato atualizado via realtime:', payload.new);
+          const updatedCandidate = payload.new as any;
+          
+          // Transform the updated candidate to app format
+          const transformedCandidate: Candidate = {
+            id: updatedCandidate.id,
+            name: updatedCandidate.name,
+            email: updatedCandidate.email,
+            phone: updatedCandidate.phone || '',
+            positionId: updatedCandidate.position_id || '1',
+            resumeUrl: updatedCandidate.resume_url,
+            resumeText: updatedCandidate.resume_text,
+            resumeFileName: updatedCandidate.resume_file_name,
+            source: updatedCandidate.source as 'indeed' | 'manual' | 'referral',
+            stage: updatedCandidate.stage as CandidateStage,
+            aiAnalysis: updatedCandidate.ai_analysis as any || undefined,
+            notes: (updatedCandidate.notes as any) || [],
+            interviews: Array.isArray(updatedCandidate.interviews) ? 
+              (updatedCandidate.interviews as any[]).map((interview: any) => ({
+                id: interview.id,
+                type: interview.type,
+                scheduledAt: interview.scheduledAt,
+                duration: interview.duration,
+                meetingUrl: interview.meetingUrl,
+                interviewerIds: interview.interviewerIds || [],
+                status: interview.status,
+                location: interview.location,
+                notes: interview.notes
+              })) : [],
+            rejectionReason: updatedCandidate.rejection_reason,
+            createdAt: new Date(updatedCandidate.created_at),
+            updatedAt: new Date(updatedCandidate.updated_at)
+          };
+
+          // Update the candidate in the list
+          setCandidates(prev => prev.map(candidate => 
+            candidate.id === transformedCandidate.id ? transformedCandidate : candidate
+          ));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const columns = useMemo(() => {
