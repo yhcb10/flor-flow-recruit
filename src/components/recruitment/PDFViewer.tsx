@@ -31,26 +31,10 @@ export function PDFViewer({ pdfUrl, fileName }: PDFViewerProps) {
   const viewableUrl = pdfUrl ? getViewableUrl(pdfUrl) : '';
 
   useEffect(() => {
-    setIsLoading(true);
-    
-    // Show fallback immediately for Google Drive links or after timeout for others
-    if (pdfUrl) {
-      if (isGoogleDriveLink) {
-        setShowFallback(true);
-        setIsLoading(false);
-      } else {
-        setShowFallback(false);
-        const timer = setTimeout(() => {
-          setIsLoading(false);
-          setShowFallback(true);
-        }, 2000); // Reduced timeout
-
-        return () => clearTimeout(timer);
-      }
-    } else {
-      setIsLoading(false);
-    }
-  }, [pdfUrl, isGoogleDriveLink]);
+    // Always show fallback for better reliability - Chrome often blocks PDF iframes
+    setShowFallback(true);
+    setIsLoading(false);
+  }, [pdfUrl]);
 
   if (!pdfUrl) {
     return (
