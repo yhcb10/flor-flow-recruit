@@ -50,20 +50,7 @@ const handler = async (req: Request): Promise<Response> => {
     for (const user of defaultUsers) {
       console.log(`Creating user: ${user.email}`);
       
-      // Check if user already exists
-      const { data: existingUser } = await supabaseAdmin.auth.admin.getUserByEmail(user.email);
-      
-      if (existingUser.user) {
-        console.log(`User ${user.email} already exists, skipping...`);
-        results.push({
-          email: user.email,
-          status: 'already_exists',
-          message: 'Usuário já existe'
-        });
-        continue;
-      }
-
-      // Create the user
+      // Check if user already exists by trying to create and catching the error
       const { data, error } = await supabaseAdmin.auth.admin.createUser({
         email: user.email,
         password: user.password,
@@ -71,12 +58,21 @@ const handler = async (req: Request): Promise<Response> => {
       });
 
       if (error) {
-        console.error(`Error creating user ${user.email}:`, error);
-        results.push({
-          email: user.email,
-          status: 'error',
-          message: error.message
-        });
+        if (error.message.includes('already registered') || error.message.includes('already been registered')) {
+          console.log(`User ${user.email} already exists, skipping...`);
+          results.push({
+            email: user.email,
+            status: 'already_exists',
+            message: 'Usuário já existe'
+          });
+        } else {
+          console.error(`Error creating user ${user.email}:`, error);
+          results.push({
+            email: user.email,
+            status: 'error',
+            message: error.message
+          });
+        }
       } else {
         console.log(`User ${user.email} created successfully`);
         results.push({

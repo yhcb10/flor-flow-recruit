@@ -49,19 +49,24 @@ export default function Auth() {
       });
 
       if (error) {
+        console.error('Login error:', error);
+        let errorMessage = "Erro ao fazer login.";
+        
         if (error.message.includes('Invalid login credentials')) {
-          toast({
-            title: "Erro de Login",
-            description: "Email ou senha incorretos.",
-            variant: "destructive",
-          });
+          errorMessage = "Email ou senha incorretos. Verifique suas credenciais e tente novamente.";
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = "Email não confirmado. Verifique sua caixa de entrada.";
+        } else if (error.message.includes('Too many requests')) {
+          errorMessage = "Muitas tentativas de login. Tente novamente em alguns minutos.";
         } else {
-          toast({
-            title: "Erro de Login",
-            description: error.message,
-            variant: "destructive",
-          });
+          errorMessage = error.message;
         }
+        
+        toast({
+          title: "Erro de Login",
+          description: errorMessage,
+          variant: "destructive",
+        });
       } else {
         toast({
           title: "Sucesso",
