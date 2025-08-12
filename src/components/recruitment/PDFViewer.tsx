@@ -13,22 +13,44 @@ export function PDFViewer({ pdfUrl, fileName }: PDFViewerProps) {
   const [showFallback, setShowFallback] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Check if it's a Google Drive link
+  const isGoogleDriveLink = pdfUrl?.includes('drive.google.com');
+  
+  // Convert Google Drive link to direct view link
+  const getViewableUrl = (url: string) => {
+    if (url.includes('drive.google.com')) {
+      const fileId = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/)?.[1] || 
+                     url.match(/id=([a-zA-Z0-9_-]+)/)?.[1];
+      if (fileId) {
+        return `https://drive.google.com/file/d/${fileId}/preview`;
+      }
+    }
+    return url;
+  };
+
+  const viewableUrl = pdfUrl ? getViewableUrl(pdfUrl) : '';
+
   useEffect(() => {
     setIsLoading(true);
-    setShowFallback(false);
     
-    // Test if PDF can be loaded
+    // Show fallback immediately for Google Drive links or after timeout for others
     if (pdfUrl) {
-      const timer = setTimeout(() => {
-        setIsLoading(false);
+      if (isGoogleDriveLink) {
         setShowFallback(true);
-      }, 3000); // Show fallback after 3 seconds if not loaded
+        setIsLoading(false);
+      } else {
+        setShowFallback(false);
+        const timer = setTimeout(() => {
+          setIsLoading(false);
+          setShowFallback(true);
+        }, 2000); // Reduced timeout
 
-      return () => clearTimeout(timer);
+        return () => clearTimeout(timer);
+      }
     } else {
       setIsLoading(false);
     }
-  }, [pdfUrl]);
+  }, [pdfUrl, isGoogleDriveLink]);
 
   if (!pdfUrl) {
     return (
@@ -84,24 +106,53 @@ export function PDFViewer({ pdfUrl, fileName }: PDFViewerProps) {
         {showFallback ? (
           <div className="h-full flex flex-col gap-4">
             <Alert>
-              <Eye className="h-4 w-4" />
+              <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Para melhor visualização, use o botão "Abrir" acima para ver o PDF em uma nova aba.
+                {isGoogleDriveLink 
+                  ? "Arquivo hospedado no Google Drive. Use o botão 'Abrir' para visualizar."
+                  : "Visualização bloqueada pelo navegador. Use o botão 'Abrir' para ver em nova aba."
+                }
               </AlertDescription>
             </Alert>
             <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-muted/20 to-muted/40 rounded-lg border-2 border-dashed border-muted">
               <div className="text-center space-y-4">
                 <FileText className="h-20 w-20 mx-auto text-muted-foreground/40" />
                 <div>
-                  <p className="text-lg font-medium text-foreground">Currículo Disponível</p>
-                  <p className="text-sm text-muted-foreground mb-4">Clique em "Abrir" para visualizar</p>
-                  <Button 
-                    onClick={() => window.open(pdfUrl, '_blank')}
-                    className="flex items-center gap-2"
-                  >
-                    <Eye className="h-4 w-4" />
-                    Visualizar PDF
-                  </Button>
+                  <p className="text-lg font-medium text-foreground">
+                    {isGoogleDriveLink ? "Arquivo no Google Drive" : "Currículo Disponível"}
+                  </p>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {isGoogleDriveLink 
+                      ? "Clique para abrir no Google Drive"
+                      : "Clique em 'Abrir' para visualizar"
+                    }
+                  </p>
+                  <div className="flex gap-2 justify-center">
+                    <Button 
+                      onClick={() => window.open(pdfUrl, '_blank')}
+                      className="flex items-center gap-2"
+                    >
+                      <Eye className="h-4 w-4" />
+                      Abrir PDF
+                    </Button>
+                    {!isGoogleDriveLink && (
+                      <Button 
+                        variant="outline"
+                        onClick={() => {
+                          const link = document.createElement('a');
+                          link.href = pdfUrl;
+                          link.download = fileName || 'curriculum.pdf';
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                        }}
+                        className="flex items-center gap-2"
+                      >
+                        <Download className="h-4 w-4" />
+                        Baixar
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
