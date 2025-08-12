@@ -44,47 +44,24 @@ export function NewCandidateModal({ isOpen, onClose, selectedPosition, available
     try {
       const position = availablePositions.find(p => p.id === selectedJobPosition);
       
-      // Verificar se é vaga de gestor de ads para enviar para webhook específico
-      if (position?.title.toLowerCase().includes('gestor') && position?.title.toLowerCase().includes('ads')) {
-        // Enviar para webhook específico do gestor de ads
-        const { data, error } = await supabase.functions.invoke('send-to-external-webhook', {
-          body: {
-            resumeUrl: url,
-            fileName: fileName,
-            positionId: position.endpointId || 'gestor_ads_001',
-            positionTitle: position.title,
-            webhookUrl: 'https://n8nwebhook.agentenobre.store/webhook/curriculo-upload-gestor-ads'
-          }
-        });
-
-        if (error) {
-          throw error;
+      // Enviar para o N8N usando a edge function atualizada
+      const { data, error } = await supabase.functions.invoke('send-resume-to-n8n', {
+        body: {
+          resumeUrl: url,
+          fileName: fileName,
+          positionId: position?.endpointId || selectedJobPosition,
+          positionTitle: position?.title || 'Posição não especificada'
         }
+      });
 
-        toast({
-          title: "Currículo enviado para Gestor de Ads",
-          description: "O currículo foi enviado para análise específica de Gestor de Ads.",
-        });
-      } else {
-        // Enviar para o N8N padrão via edge function existente
-        const { data, error } = await supabase.functions.invoke('send-resume-to-n8n', {
-          body: {
-            resumeUrl: url,
-            fileName: fileName,
-            positionId: position?.endpointId || selectedJobPosition,
-            positionTitle: position?.title || 'Posição não especificada'
-          }
-        });
-
-        if (error) {
-          throw error;
-        }
-
-        toast({
-          title: "Currículo enviado para análise",
-          description: "O currículo foi enviado para processamento no N8N.",
-        });
+      if (error) {
+        throw error;
       }
+
+      toast({
+        title: "Currículo enviado para análise",
+        description: `O currículo foi enviado para processamento da vaga: ${position?.title}`,
+      });
       
       // Fechar modal após sucesso
       setTimeout(() => {

@@ -1,4 +1,5 @@
 import { Candidate, JobPosition, KanbanColumn, CandidateStage } from '@/types/recruitment';
+import { analistaIAPosition } from './newPositions';
 
 export const mockJobPositions: JobPosition[] = [
   {
@@ -32,6 +33,7 @@ export const mockJobPositions: JobPosition[] = [
     createdAt: new Date('2024-01-15'),
     createdBy: 'Ana Santos - RH',
     targetHires: 2,
+    endpointId: 'vendedor_001',
     aiAnalysisPrompt: `🧠 Prompt Personalizado GPT – Avaliador de Currículos: Vaga de Vendedor (Barra Funda – SP)
 
 🎯 OBJETIVO GERAL
@@ -174,6 +176,7 @@ Sempre destaque idade estimada fora do intervalo, pretensão acima do teto e loc
     createdAt: new Date('2024-01-15'),
     createdBy: 'RH - Recursos Humanos',
     targetHires: 1,
+    endpointId: 'gestor_ads_001',
     aiAnalysisPrompt: `🧠 Avaliador IA - Gestor de Ads
 
 🎯 OBJETIVO
@@ -231,7 +234,8 @@ Foco especial em experiência prática e resultados
 
 🎯 PERFIL IDEAL
 Profissional analítico, focado em resultados, com experiência sólida em gestão de campanhas pagas e capacidade de otimizar constantemente para melhor ROI.`
-  }
+  },
+  analistaIAPosition
 ];
 
 export const mockCandidates: Candidate[] = [

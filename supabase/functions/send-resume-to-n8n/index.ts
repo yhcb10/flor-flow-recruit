@@ -10,6 +10,7 @@ interface RequestBody {
   fileName: string;
   positionId: string;
   positionTitle: string;
+  customWebhookUrl?: string;
 }
 
 serve(async (req) => {
@@ -19,28 +20,30 @@ serve(async (req) => {
   }
 
   try {
-    const { resumeUrl, fileName, positionId, positionTitle }: RequestBody = await req.json();
+    const { resumeUrl, fileName, positionId, positionTitle, customWebhookUrl }: RequestBody = await req.json();
 
     console.log('Enviando currículo para N8N:', {
       resumeUrl,
       fileName,
       positionId,
-      positionTitle
+      positionTitle,
+      customWebhookUrl
     });
 
-    // Obter webhook URL do N8N das variáveis de ambiente
-    const n8nWebhookUrl = Deno.env.get('N8N_WEBHOOK_URL');
+    // Determinar a URL do webhook baseada na posição
+    let webhookUrl = customWebhookUrl;
     
-    console.log('N8N_WEBHOOK_URL configurado:', n8nWebhookUrl ? 'Sim' : 'Não');
-    console.log('URL do webhook:', n8nWebhookUrl);
+    if (!webhookUrl) {
+      // URLs específicas baseadas na posição
+      if (positionTitle.toLowerCase().includes('analista') && positionTitle.toLowerCase().includes('inteligencia')) {
+        webhookUrl = 'https://n8nwebhook.agentenobre.store/webhook/curriculo-upload-analista_de_inteligencia_artificial_e_automacoes_390000';
+      } else {
+        // URL padrão substituindo 'id' pelo positionId
+        webhookUrl = `https://n8nwebhook.agentenobre.store/webhook/curriculo-upload-${positionId}`;
+      }
+    }
     
-    if (!n8nWebhookUrl) {
-      throw new Error('N8N_WEBHOOK_URL não configurado nas variáveis de ambiente');
-    }
-
-    if (n8nWebhookUrl === 'teste') {
-      throw new Error('N8N_WEBHOOK_URL ainda está configurado como "teste" - favor atualizar com a URL correta');
-    }
+    console.log('URL do webhook determinada:', webhookUrl);
 
     // Preparar dados para enviar ao N8N
     const n8nPayload = {
@@ -53,7 +56,7 @@ serve(async (req) => {
     // Enviar para o N8N
     console.log('Enviando payload para N8N:', JSON.stringify(n8nPayload, null, 2));
     
-    const n8nResponse = await fetch(n8nWebhookUrl, {
+    const n8nResponse = await fetch(webhookUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
