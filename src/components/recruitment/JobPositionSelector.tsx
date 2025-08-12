@@ -17,6 +17,7 @@ interface JobPositionSelectorProps {
   onPositionClose: (positionId: string) => void;
   onPositionPause: (positionId: string) => void;
   onPositionDelete: (positionId: string) => void;
+  onPositionUpdate?: (updatedPosition: JobPosition) => void;
 }
 
 export function JobPositionSelector({ 
@@ -26,7 +27,8 @@ export function JobPositionSelector({
   onNewPosition,
   onPositionClose,
   onPositionPause,
-  onPositionDelete
+  onPositionDelete,
+  onPositionUpdate
 }: JobPositionSelectorProps) {
   const { toast } = useToast();
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -223,6 +225,7 @@ export function JobPositionSelector({
         position={selectedPosition}
         open={showDetailsModal}
         onOpenChange={setShowDetailsModal}
+        onPositionUpdate={onPositionUpdate}
       />
     </div>
   );

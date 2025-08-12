@@ -16,7 +16,7 @@ import flowNobreLogo from '/lovable-uploads/67eb7c82-39ed-418b-a2e4-7372542bb87d
 const Index = () => {
   const { signOut } = useAuth();
   const { toast } = useToast();
-  const { jobPositions, loading: positionsLoading, createJobPosition, closeJobPosition, pauseJobPosition, deleteJobPosition } = useJobPositions();
+  const { jobPositions, loading: positionsLoading, createJobPosition, updateJobPosition, closeJobPosition, pauseJobPosition, deleteJobPosition } = useJobPositions();
   
   const [selectedPosition, setSelectedPosition] = useState<JobPosition | null>(() => {
     const saved = localStorage.getItem('selectedPosition');
@@ -119,6 +119,11 @@ const Index = () => {
     localStorage.setItem('selectedPosition', JSON.stringify(position));
   };
 
+  const handlePositionUpdate = (updatedPosition: JobPosition) => {
+    setSelectedPosition(updatedPosition);
+    localStorage.setItem('selectedPosition', JSON.stringify(updatedPosition));
+  };
+
   return (
     <div className="min-h-screen bg-kanban-bg">
       {/* Compact Header */}
@@ -180,6 +185,7 @@ const Index = () => {
             onPositionClose={handleCloseJobPosition}
             onPositionPause={handlePauseJobPosition}
             onPositionDelete={handleDeleteJobPosition}
+            onPositionUpdate={handlePositionUpdate}
           />
         </div>
 

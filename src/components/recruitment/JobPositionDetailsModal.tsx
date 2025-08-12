@@ -3,20 +3,109 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import { JobPosition } from '@/types/recruitment';
-import { Calendar, MapPin, Users, Briefcase, Copy } from 'lucide-react';
+import { Calendar, MapPin, Users, Briefcase, Copy, Edit, Save, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface JobPositionDetailsModalProps {
   position: JobPosition | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onPositionUpdate?: (updatedPosition: JobPosition) => void;
 }
 
-export const JobPositionDetailsModal = ({ position, open, onOpenChange }: JobPositionDetailsModalProps) => {
+export const JobPositionDetailsModal = ({ position, open, onOpenChange, onPositionUpdate }: JobPositionDetailsModalProps) => {
   const { toast } = useToast();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedPosition, setEditedPosition] = useState<JobPosition | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   
   if (!position) return null;
+
+  const startEditing = () => {
+    setEditedPosition({ ...position });
+    setIsEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setIsEditing(false);
+    setEditedPosition(null);
+  };
+
+  const saveChanges = async () => {
+    if (!editedPosition) return;
+
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('job_positions')
+        .update({
+          title: editedPosition.title,
+          department: editedPosition.department,
+          status: editedPosition.status,
+          description: editedPosition.description,
+          requirements: editedPosition.requirements,
+          responsibilities: editedPosition.responsibilities,
+        })
+        .eq('id', editedPosition.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso!",
+        description: "Vaga atualizada com sucesso."
+      });
+
+      setIsEditing(false);
+      setEditedPosition(null);
+      
+      if (onPositionUpdate && data) {
+        // Convert database format back to frontend format
+        const updatedPosition: JobPosition = {
+          ...editedPosition,
+          createdAt: new Date(data.created_at),
+          endpointId: data.endpoint_id
+        };
+        onPositionUpdate(updatedPosition);
+      }
+    } catch (error) {
+      console.error('Error updating position:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao atualizar a vaga. Tente novamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateField = (field: keyof JobPosition, value: any) => {
+    if (!editedPosition) return;
+    setEditedPosition({ ...editedPosition, [field]: value });
+  };
+
+  const addToArray = (field: 'requirements' | 'responsibilities', value: string) => {
+    if (!editedPosition || !value.trim()) return;
+    const currentArray = editedPosition[field] || [];
+    updateField(field, [...currentArray, value.trim()]);
+  };
+
+  const removeFromArray = (field: 'requirements' | 'responsibilities', index: number) => {
+    if (!editedPosition) return;
+    const currentArray = editedPosition[field] || [];
+    updateField(field, currentArray.filter((_, i) => i !== index));
+  };
+
+  const currentPosition = editedPosition || position;
 
   const copyEndpointId = () => {
     if (position.endpointId) {
@@ -50,10 +139,44 @@ export const JobPositionDetailsModal = ({ position, open, onOpenChange }: JobPos
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-3 text-xl">
-            <Briefcase className="h-6 w-6 text-primary" />
-            Detalhes da Vaga
-          </DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="flex items-center gap-3 text-xl">
+              <Briefcase className="h-6 w-6 text-primary" />
+              {isEditing ? 'Editar Vaga' : 'Detalhes da Vaga'}
+            </DialogTitle>
+            <div className="flex items-center gap-2">
+              {isEditing ? (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={cancelEditing}
+                    disabled={isLoading}
+                  >
+                    <X className="h-4 w-4 mr-1" />
+                    Cancelar
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={saveChanges}
+                    disabled={isLoading}
+                  >
+                    <Save className="h-4 w-4 mr-1" />
+                    {isLoading ? 'Salvando...' : 'Salvar'}
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={startEditing}
+                >
+                  <Edit className="h-4 w-4 mr-1" />
+                  Editar
+                </Button>
+              )}
+            </div>
+          </div>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -61,69 +184,136 @@ export const JobPositionDetailsModal = ({ position, open, onOpenChange }: JobPos
           <Card>
             <CardHeader>
               <div className="flex items-start justify-between">
-                <div className="space-y-2">
-                  <CardTitle className="text-2xl">{position.title}</CardTitle>
-                  <div className="flex items-center gap-4 text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <Briefcase className="h-4 w-4" />
-                      {position.department}
+                <div className="space-y-2 flex-1">
+                  {isEditing ? (
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="title">Título da Vaga</Label>
+                        <Input
+                          id="title"
+                          value={currentPosition.title}
+                          onChange={(e) => updateField('title', e.target.value)}
+                          className="text-xl font-semibold"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="department">Departamento</Label>
+                          <Input
+                            id="department"
+                            value={currentPosition.department}
+                            onChange={(e) => updateField('department', e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="status">Status</Label>
+                          <Select value={currentPosition.status} onValueChange={(value) => updateField('status', value)}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="active">Ativa</SelectItem>
+                              <SelectItem value="paused">Pausada</SelectItem>
+                              <SelectItem value="closed">Encerrada</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Users className="h-4 w-4" />
-                      {position.targetHires} vaga{position.targetHires > 1 ? 's' : ''}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
-                      Criada em {new Date(position.createdAt).toLocaleDateString('pt-BR')}
-                    </div>
-                  </div>
+                  ) : (
+                    <>
+                      <CardTitle className="text-2xl">{currentPosition.title}</CardTitle>
+                      <div className="flex items-center gap-4 text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Briefcase className="h-4 w-4" />
+                          {currentPosition.department}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-4 w-4" />
+                          Criada em {new Date(currentPosition.createdAt).toLocaleDateString('pt-BR')}
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
-                <Badge className={getStatusColor(position.status)}>
-                  {getStatusText(position.status)}
-                </Badge>
+                {!isEditing && (
+                  <Badge className={getStatusColor(currentPosition.status)}>
+                    {getStatusText(currentPosition.status)}
+                  </Badge>
+                )}
               </div>
             </CardHeader>
-            {position.description && (
+            {currentPosition.description && (
               <CardContent>
-                <p className="text-muted-foreground">{position.description}</p>
+                {isEditing ? (
+                  <div>
+                    <Label htmlFor="description">Descrição</Label>
+                    <Textarea
+                      id="description"
+                      value={currentPosition.description}
+                      onChange={(e) => updateField('description', e.target.value)}
+                      rows={3}
+                    />
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">{currentPosition.description}</p>
+                )}
               </CardContent>
             )}
           </Card>
 
           {/* Requisitos */}
-          {position.requirements && position.requirements.length > 0 && (
+          {((currentPosition.requirements && currentPosition.requirements.length > 0) || isEditing) && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Requisitos</CardTitle>
               </CardHeader>
               <CardContent>
-                <ul className="space-y-2">
-                  {position.requirements.map((requirement, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0" />
-                      <span>{requirement}</span>
-                    </li>
-                  ))}
-                </ul>
+                {isEditing ? (
+                  <EditableList
+                    items={currentPosition.requirements || []}
+                    onAdd={(value) => addToArray('requirements', value)}
+                    onRemove={(index) => removeFromArray('requirements', index)}
+                    placeholder="Adicionar requisito..."
+                  />
+                ) : (
+                  <ul className="space-y-2">
+                    {currentPosition.requirements?.map((requirement, index) => (
+                      <li key={index} className="flex items-start gap-2">
+                        <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0" />
+                        <span>{requirement}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </CardContent>
             </Card>
           )}
 
           {/* Responsabilidades */}
-          {position.responsibilities && position.responsibilities.length > 0 && (
+          {((currentPosition.responsibilities && currentPosition.responsibilities.length > 0) || isEditing) && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Responsabilidades</CardTitle>
               </CardHeader>
               <CardContent>
-                <ul className="space-y-2">
-                  {position.responsibilities.map((responsibility, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0" />
-                      <span>{responsibility}</span>
-                    </li>
-                  ))}
-                </ul>
+                {isEditing ? (
+                  <EditableList
+                    items={currentPosition.responsibilities || []}
+                    onAdd={(value) => addToArray('responsibilities', value)}
+                    onRemove={(index) => removeFromArray('responsibilities', index)}
+                    placeholder="Adicionar responsabilidade..."
+                  />
+                ) : (
+                  <ul className="space-y-2">
+                    {currentPosition.responsibilities?.map((responsibility, index) => (
+                      <li key={index} className="flex items-start gap-2">
+                        <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0" />
+                        <span>{responsibility}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </CardContent>
             </Card>
           )}
@@ -259,5 +449,63 @@ export const JobPositionDetailsModal = ({ position, open, onOpenChange }: JobPos
         </div>
       </DialogContent>
     </Dialog>
+  );
+};
+
+// Helper component for editable lists
+interface EditableListProps {
+  items: string[];
+  onAdd: (value: string) => void;
+  onRemove: (index: number) => void;
+  placeholder: string;
+}
+
+const EditableList = ({ items, onAdd, onRemove, placeholder }: EditableListProps) => {
+  const [newItem, setNewItem] = useState('');
+
+  const handleAdd = () => {
+    if (newItem.trim()) {
+      onAdd(newItem);
+      setNewItem('');
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleAdd();
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <ul className="space-y-2">
+        {items.map((item, index) => (
+          <li key={index} className="flex items-start gap-2 group">
+            <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0" />
+            <span className="flex-1">{item}</span>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => onRemove(index)}
+              className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0"
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          </li>
+        ))}
+      </ul>
+      <div className="flex gap-2">
+        <Input
+          value={newItem}
+          onChange={(e) => setNewItem(e.target.value)}
+          onKeyPress={handleKeyPress}
+          placeholder={placeholder}
+          className="flex-1"
+        />
+        <Button size="sm" onClick={handleAdd} disabled={!newItem.trim()}>
+          Adicionar
+        </Button>
+      </div>
+    </div>
   );
 };
