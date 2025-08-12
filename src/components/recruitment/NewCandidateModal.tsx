@@ -70,11 +70,22 @@ export function NewCandidateModal({ isOpen, onClose, selectedPosition, available
       
     } catch (error) {
       console.error('Erro ao enviar currículo:', error);
-      toast({
-        title: "Erro no envio",
-        description: "Falha ao enviar currículo para análise.",
-        variant: "destructive",
-      });
+      
+      // Check if the error is due to N8N workflow being inactive
+      const errorMessage = error?.message || '';
+      if (errorMessage.includes('is not registered') || errorMessage.includes('workflow must be active')) {
+        toast({
+          title: "Workflow N8N inativo",
+          description: "O workflow do N8N precisa estar ativo. Verifique se o workflow está ativado no N8N.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Erro no envio",
+          description: "Falha ao enviar currículo para análise.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsProcessing(false);
     }
