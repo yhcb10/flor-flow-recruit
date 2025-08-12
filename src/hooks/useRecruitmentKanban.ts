@@ -158,7 +158,7 @@ export function useRecruitmentKanban(positionId?: string) {
     });
   };
 
-  // Process existing AI analyses when component mounts or candidates change
+  // Process existing AI analyses when component mounts - only run once
   useEffect(() => {
     if (loading || candidates.length === 0) return;
     
@@ -167,7 +167,7 @@ export function useRecruitmentKanban(positionId?: string) {
     }, 2000); // Wait 2 seconds after mount to process existing analyses
     
     return () => clearTimeout(timer);
-  }, [loading, candidates.length]); // Re-run when loading changes or candidates array length changes
+  }, [loading]); // Only run when loading changes, not when candidates change
 
   const addCandidate = (newCandidate: Candidate) => {
     setCandidates(prev => [...prev, newCandidate]);
