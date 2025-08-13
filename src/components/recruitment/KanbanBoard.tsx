@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils';
 interface KanbanBoardProps {
   columns: KanbanColumn[];
   onCandidateMove: (candidateId: string, newStage: CandidateStage, rejectionReason?: string) => void;
+  onCandidateUpdate?: (candidate: Candidate) => void;
   onCandidateSelect?: (candidate: Candidate) => void;
   onCandidateAdd?: (newCandidate: Candidate) => void;
   onCandidateDelete?: (candidateId: string) => void;
@@ -32,6 +33,7 @@ interface KanbanBoardProps {
 export function KanbanBoard({ 
   columns, 
   onCandidateMove, 
+  onCandidateUpdate,
   onCandidateSelect, 
   onCandidateAdd, 
   onCandidateDelete, 
@@ -373,6 +375,7 @@ export function KanbanBoard({
                                         onClick={() => setSelectedCandidate(candidate)}
                                         isDragging={snapshot.isDragging}
                                         onStageChange={handleStageChange}
+                                        onCandidateUpdate={onCandidateUpdate}
                                         isCompactView={isCompactView}
                                       />
                                     </div>

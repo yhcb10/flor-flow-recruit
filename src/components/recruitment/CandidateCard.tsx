@@ -9,6 +9,9 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { RejectionReasonModal } from './RejectionReasonModal';
+import { InterviewScheduler } from './InterviewScheduler';
+import { InPersonInterviewScheduler } from './InPersonInterviewScheduler';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useState } from 'react';
 
 interface CandidateCardProps {
@@ -16,11 +19,14 @@ interface CandidateCardProps {
   onClick: () => void;
   isDragging?: boolean;
   onStageChange?: (candidateId: string, newStage: CandidateStage, rejectionReason?: string) => void;
+  onCandidateUpdate?: (candidate: Candidate) => void;
   isCompactView?: boolean;
 }
 
-export function CandidateCard({ candidate, onClick, isDragging, onStageChange, isCompactView = false }: CandidateCardProps) {
+export function CandidateCard({ candidate, onClick, isDragging, onStageChange, onCandidateUpdate, isCompactView = false }: CandidateCardProps) {
   const [showRejectionModal, setShowRejectionModal] = useState(false);
+  const [showInterviewScheduler, setShowInterviewScheduler] = useState(false);
+  const [showInPersonScheduler, setShowInPersonScheduler] = useState(false);
   const getScoreColor = (score: number) => {
     if (score >= 8) return 'text-success bg-success/10';
     if (score >= 6.5) return 'text-warning bg-warning/10';
@@ -102,7 +108,7 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, i
     }
   };
 
-  const canShowActionButtons = ['analise_ia', 'pre_entrevista', 'entrevista_presencial'].includes(candidate.stage);
+  const canShowActionButtons = ['analise_ia', 'pre_entrevista', 'entrevista_presencial', 'selecao_pre_entrevista', 'selecao_entrevista_presencial'].includes(candidate.stage);
 
   // Get interview status for visual indicators
   const getInterviewStatus = () => {
@@ -273,6 +279,19 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, i
 
   const handleApprove = (e: React.MouseEvent) => {
     e.stopPropagation();
+    
+    // Para estágios de seleção, abrir modal de agendamento
+    if (candidate.stage === 'selecao_pre_entrevista') {
+      setShowInterviewScheduler(true);
+      return;
+    }
+    
+    if (candidate.stage === 'selecao_entrevista_presencial') {
+      setShowInPersonScheduler(true);
+      return;
+    }
+    
+    // Para outros estágios, seguir fluxo normal
     const nextStage = getNextStage(candidate.stage);
     if (nextStage && onStageChange) {
       onStageChange(candidate.id, nextStage);
@@ -287,6 +306,28 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, i
   const handleRejectConfirm = (reason: string) => {
     if (onStageChange) {
       onStageChange(candidate.id, 'nao_aprovado', reason);
+    }
+  };
+
+  const handleInterviewScheduled = (updatedCandidate: Candidate) => {
+    setShowInterviewScheduler(false);
+    if (onCandidateUpdate) {
+      onCandidateUpdate(updatedCandidate);
+    }
+    // Move to pre_entrevista stage
+    if (onStageChange) {
+      onStageChange(candidate.id, 'pre_entrevista');
+    }
+  };
+
+  const handleInPersonScheduled = (updatedCandidate: Candidate) => {
+    setShowInPersonScheduler(false);
+    if (onCandidateUpdate) {
+      onCandidateUpdate(updatedCandidate);
+    }
+    // Move to entrevista_presencial stage
+    if (onStageChange) {
+      onStageChange(candidate.id, 'entrevista_presencial');
     }
   };
 
@@ -429,7 +470,7 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, i
                 className="flex-1 h-8 text-xs font-medium"
               >
                 <Check className="h-3 w-3 mr-1" />
-                Aprovar
+                {candidate.stage === 'selecao_pre_entrevista' || candidate.stage === 'selecao_entrevista_presencial' ? 'Agendar' : 'Aprovar'}
               </Button>
               
               <Button
@@ -484,6 +525,30 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, i
           onConfirm={handleRejectConfirm}
           candidateName={candidate.name}
         />
+        
+        <Dialog open={showInterviewScheduler} onOpenChange={setShowInterviewScheduler}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Agendar Pré-entrevista - {candidate.name}</DialogTitle>
+            </DialogHeader>
+            <InterviewScheduler
+              candidate={candidate}
+              onInterviewScheduled={handleInterviewScheduled}
+            />
+          </DialogContent>
+        </Dialog>
+        
+        <Dialog open={showInPersonScheduler} onOpenChange={setShowInPersonScheduler}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Agendar Entrevista Presencial - {candidate.name}</DialogTitle>
+            </DialogHeader>
+            <InPersonInterviewScheduler
+              candidate={candidate}
+              onInterviewScheduled={handleInPersonScheduled}
+            />
+          </DialogContent>
+        </Dialog>
     </Card>
   );
 }

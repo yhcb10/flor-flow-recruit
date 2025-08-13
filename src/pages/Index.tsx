@@ -220,6 +220,7 @@ const Index = () => {
               <KanbanBoard
                 columns={filteredColumns}
                 onCandidateMove={moveCandidateToStage}
+                onCandidateUpdate={updateCandidate}
                 onCandidateSelect={updateCandidate}
                 onCandidateAdd={(candidate) => addCandidate({
                   ...candidate,
