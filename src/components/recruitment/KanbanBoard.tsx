@@ -13,6 +13,7 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/componen
 import { CandidateCard } from './CandidateCard';
 import { CandidateModal } from './CandidateModal';
 import { NewCandidateModal } from './NewCandidateModal';
+import { TalentPoolReasonModal } from './TalentPoolReasonModal';
 import { KanbanMinimap } from './KanbanMinimap';
 import { KanbanColumnsList } from './KanbanColumnsList';
 import { useKanbanNavigation } from '@/hooks/useKanbanNavigation';
@@ -21,7 +22,7 @@ import { cn } from '@/lib/utils';
 
 interface KanbanBoardProps {
   columns: KanbanColumn[];
-  onCandidateMove: (candidateId: string, newStage: CandidateStage, rejectionReason?: string) => void;
+  onCandidateMove: (candidateId: string, newStage: CandidateStage, rejectionReason?: string, talentPoolReason?: string) => void;
   onCandidateUpdate?: (candidate: Candidate) => void;
   onCandidateSelect?: (candidate: Candidate) => void;
   onCandidateAdd?: (newCandidate: Candidate) => void;
@@ -45,6 +46,8 @@ export function KanbanBoard({
   const [showNewCandidateModal, setShowNewCandidateModal] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [isCompactView, setIsCompactView] = useState(false);
+  const [showTalentPoolModal, setShowTalentPoolModal] = useState(false);
+  const [pendingTalentPoolMove, setPendingTalentPoolMove] = useState<{candidateId: string, candidateName: string} | null>(null);
   const { activeColumnId, kanbanRef, scrollToColumn } = useKanbanNavigation();
   
   // Filter states
@@ -65,7 +68,29 @@ export function KanbanBoard({
     const candidateId = result.draggableId;
     const newStage = result.destination.droppableId as CandidateStage;
     
+    if (newStage === 'banco_talentos') {
+      const candidate = columns.flatMap(col => col.candidates).find(c => c.id === candidateId);
+      if (candidate) {
+        setPendingTalentPoolMove({candidateId, candidateName: candidate.name});
+        setShowTalentPoolModal(true);
+        return;
+      }
+    }
+    
     onCandidateMove(candidateId, newStage);
+  };
+
+  const handleTalentPoolConfirm = (reason: string) => {
+    if (pendingTalentPoolMove) {
+      onCandidateMove(pendingTalentPoolMove.candidateId, 'banco_talentos', undefined, reason);
+      setPendingTalentPoolMove(null);
+    }
+    setShowTalentPoolModal(false);
+  };
+
+  const handleTalentPoolCancel = () => {
+    setPendingTalentPoolMove(null);
+    setShowTalentPoolModal(false);
   };
 
   const clearFilters = () => {
@@ -418,6 +443,14 @@ export function KanbanBoard({
           onClose={() => setShowNewCandidateModal(false)}
           selectedPosition={selectedPosition}
           availablePositions={availablePositions}
+        />
+
+        {/* Talent Pool Reason Modal */}
+        <TalentPoolReasonModal
+          isOpen={showTalentPoolModal}
+          onClose={handleTalentPoolCancel}
+          onConfirm={handleTalentPoolConfirm}
+          candidateName={pendingTalentPoolMove?.candidateName || ''}
         />
       </div>
     </TooltipProvider>

@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { RejectionReasonModal } from './RejectionReasonModal';
+import { TalentPoolReasonModal } from './TalentPoolReasonModal';
 import { InterviewScheduler } from './InterviewScheduler';
 import { InPersonInterviewScheduler } from './InPersonInterviewScheduler';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -18,13 +19,14 @@ interface CandidateCardProps {
   candidate: Candidate;
   onClick: () => void;
   isDragging?: boolean;
-  onStageChange?: (candidateId: string, newStage: CandidateStage, rejectionReason?: string) => void;
+  onStageChange?: (candidateId: string, newStage: CandidateStage, rejectionReason?: string, talentPoolReason?: string) => void;
   onCandidateUpdate?: (candidate: Candidate) => void;
   isCompactView?: boolean;
 }
 
 export function CandidateCard({ candidate, onClick, isDragging, onStageChange, onCandidateUpdate, isCompactView = false }: CandidateCardProps) {
   const [showRejectionModal, setShowRejectionModal] = useState(false);
+  const [showTalentPoolModal, setShowTalentPoolModal] = useState(false);
   const [showInterviewScheduler, setShowInterviewScheduler] = useState(false);
   const [showInPersonScheduler, setShowInPersonScheduler] = useState(false);
   const getScoreColor = (score: number) => {
@@ -84,6 +86,12 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, o
           border: 'border-status-rejected-border',
           text: 'text-status-rejected-border'
         };
+      case 'banco_talentos':
+        return {
+          bg: 'bg-status-talent-bank',
+          border: 'border-status-talent-bank-border',
+          text: 'text-status-talent-bank-border'
+        };
       default:
         return {
           bg: 'bg-muted',
@@ -109,6 +117,7 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, o
   };
 
   const canShowActionButtons = ['analise_ia', 'pre_entrevista', 'entrevista_presencial', 'selecao_pre_entrevista', 'selecao_entrevista_presencial'].includes(candidate.stage);
+  const canShowTalentPoolButton = ['aprovado', 'nao_aprovado'].includes(candidate.stage);
 
   // Get interview status for visual indicators
   const getInterviewStatus = () => {
@@ -214,6 +223,13 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, o
             {!isCompactView && <span className="text-xs font-medium">Analisando</span>}
           </div>
         );
+      case 'banco_talentos':
+        return (
+          <div className="bg-status-talent-bank text-status-talent-bank-foreground rounded-full px-2 py-1 shadow-md border border-status-talent-bank/20 flex items-center gap-1">
+            <span className="text-sm">🏦</span>
+            {!isCompactView && <span className="text-xs font-medium">Banco de Talentos</span>}
+          </div>
+        );
       case 'nova_candidatura':
       default:
         return (
@@ -268,6 +284,11 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, o
           title: 'Análise em Andamento',
           description: 'IA está analisando o perfil do candidato.'
         };
+      case 'banco_talentos':
+        return {
+          title: 'Banco de Talentos',
+          description: candidate.talentPoolReason || 'Candidato adicionado ao banco de talentos para futuras oportunidades.'
+        };
       case 'nova_candidatura':
       default:
         return {
@@ -306,6 +327,17 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, o
   const handleRejectConfirm = (reason: string) => {
     if (onStageChange) {
       onStageChange(candidate.id, 'nao_aprovado', reason);
+    }
+  };
+
+  const handleTalentPool = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowTalentPoolModal(true);
+  };
+
+  const handleTalentPoolConfirm = (reason: string) => {
+    if (onStageChange) {
+      onStageChange(candidate.id, 'banco_talentos', undefined, reason);
     }
   };
 
@@ -437,6 +469,16 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, o
             </div>
           )}
 
+          {/* Talent Pool Reason for talent bank candidates */}
+          {candidate.stage === 'banco_talentos' && candidate.talentPoolReason && !isCompactView && (
+            <div className="p-2 bg-status-talent-bank/10 rounded-md border border-status-talent-bank/20">
+              <div className="text-xs font-semibold text-status-talent-bank-foreground mb-1">Motivo Banco de Talentos:</div>
+              <div className="text-xs text-muted-foreground font-normal">
+                {candidate.talentPoolReason}
+              </div>
+            </div>
+          )}
+
           {/* Status and Interview Info */}
           <div className={cn("flex items-center justify-between", isCompactView ? "mt-2" : "mt-3")}>
             <div className="flex items-center gap-2">
@@ -488,6 +530,20 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, o
             </div>
           )}
 
+          {/* Talent Pool Button for approved/rejected candidates */}
+          {canShowTalentPoolButton && (
+            <div className="flex gap-2 mt-3 pt-3 border-t border-muted/20">
+              <Button
+                size="sm"
+                onClick={handleTalentPool}
+                className="flex-1 h-8 bg-status-talent-bank text-status-talent-bank-foreground hover:bg-status-talent-bank/90"
+              >
+                <User className="h-3 w-3 mr-2" />
+                Banco de Talentos
+              </Button>
+            </div>
+          )}
+
           {/* Application Date */}
           {!isCompactView && candidate.createdAt && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t border-muted/20">
@@ -504,6 +560,13 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, o
           isOpen={showRejectionModal}
           onClose={() => setShowRejectionModal(false)}
           onConfirm={handleRejectConfirm}
+          candidateName={candidate.name}
+        />
+
+        <TalentPoolReasonModal
+          isOpen={showTalentPoolModal}
+          onClose={() => setShowTalentPoolModal(false)}
+          onConfirm={handleTalentPoolConfirm}
           candidateName={candidate.name}
         />
         

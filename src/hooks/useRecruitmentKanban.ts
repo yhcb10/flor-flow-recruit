@@ -59,6 +59,7 @@ export function useRecruitmentKanban(positionId?: string) {
                 notes: interview.notes
               })) : [],
             rejectionReason: candidate.rejection_reason,
+            talentPoolReason: candidate.talent_pool_reason,
             createdAt: new Date(candidate.created_at),
             updatedAt: new Date(candidate.updated_at)
           }));
@@ -117,6 +118,7 @@ export function useRecruitmentKanban(positionId?: string) {
                 notes: interview.notes
               })) : [],
             rejectionReason: newCandidate.rejection_reason,
+            talentPoolReason: newCandidate.talent_pool_reason,
             createdAt: new Date(newCandidate.created_at),
             updatedAt: new Date(newCandidate.updated_at)
           };
@@ -163,6 +165,7 @@ export function useRecruitmentKanban(positionId?: string) {
                 notes: interview.notes
               })) : [],
             rejectionReason: updatedCandidate.rejection_reason,
+            talentPoolReason: updatedCandidate.talent_pool_reason,
             createdAt: new Date(updatedCandidate.created_at),
             updatedAt: new Date(updatedCandidate.updated_at)
           };
@@ -195,7 +198,7 @@ export function useRecruitmentKanban(positionId?: string) {
     }));
   }, [candidates]);
 
-  const moveCandidateToStage = async (candidateId: string, newStage: CandidateStage, rejectionReason?: string) => {
+  const moveCandidateToStage = async (candidateId: string, newStage: CandidateStage, rejectionReason?: string, talentPoolReason?: string) => {
     // Atualizar estado local
     setCandidates(prev => prev.map(candidate => 
       candidate.id === candidateId 
@@ -203,6 +206,7 @@ export function useRecruitmentKanban(positionId?: string) {
             ...candidate, 
             stage: newStage, 
             rejectionReason: newStage === 'nao_aprovado' ? rejectionReason : undefined,
+            talentPoolReason: newStage === 'banco_talentos' ? talentPoolReason : undefined,
             updatedAt: new Date() 
           }
         : candidate
@@ -217,6 +221,10 @@ export function useRecruitmentKanban(positionId?: string) {
       
       if (newStage === 'nao_aprovado' && rejectionReason) {
         updateData.rejection_reason = rejectionReason;
+      }
+      
+      if (newStage === 'banco_talentos' && talentPoolReason) {
+        updateData.talent_pool_reason = talentPoolReason;
       }
       
       const { error } = await supabase
