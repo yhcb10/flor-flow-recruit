@@ -451,75 +451,36 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, o
                 </div>
               )}
             </div>
-            
-            {/* Action Buttons */}
-            {canShowActionButtons && !isCompactView && (
-              <div className="flex gap-1">
-                {(candidate.stage === 'selecao_pre_entrevista' || candidate.stage === 'selecao_entrevista_presencial') ? (
-                  <Button
-                    size="sm"
-                    onClick={handleApprove}
-                    className="h-7 px-3 bg-warning text-warning-foreground hover:bg-warning/90"
-                  >
-                    <Clock className="h-3 w-3 mr-1" />
-                    Agendar
-                  </Button>
-                ) : (
-                  <>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleReject}
-                      className="h-7 px-3 border-destructive/20 hover:bg-destructive/10 hover:text-destructive"
-                    >
-                      <X className="h-3 w-3 mr-1" />
-                      Recusar
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleApprove}
-                      className="h-7 px-3 border-success/20 hover:bg-success/10 hover:text-success"
-                    >
-                      <Check className="h-3 w-3 mr-1" />
-                      Aprovar
-                    </Button>
-                  </>
-                )}
-              </div>
-            )}
           </div>
 
-          {/* Compact Action Buttons */}
-          {canShowActionButtons && isCompactView && (
-            <div className="flex gap-1 mt-2">
+          {/* Action Buttons - Always at bottom */}
+          {canShowActionButtons && (
+            <div className="flex gap-2 mt-3 pt-3 border-t border-muted/20">
               {(candidate.stage === 'selecao_pre_entrevista' || candidate.stage === 'selecao_entrevista_presencial') ? (
                 <Button
                   size="sm"
                   onClick={handleApprove}
-                  className="h-6 px-2 text-xs bg-warning text-warning-foreground hover:bg-warning/90 flex-1"
+                  className="flex-1 h-8 bg-warning text-warning-foreground hover:bg-warning/90"
                 >
-                  <Clock className="h-3 w-3 mr-1" />
+                  <Clock className="h-3 w-3 mr-2" />
                   Agendar
                 </Button>
               ) : (
                 <>
                   <Button
                     size="sm"
-                    variant="outline"
                     onClick={handleReject}
-                    className="h-6 px-2 text-xs border-destructive/20 hover:bg-destructive/10 hover:text-destructive flex-1"
+                    className="flex-1 h-8 bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   >
-                    <X className="h-3 w-3 mr-1" />
+                    <X className="h-3 w-3 mr-2" />
                     Recusar
                   </Button>
                   <Button
                     size="sm"
-                    variant="outline"
                     onClick={handleApprove}
-                    className="h-6 px-2 text-xs border-success/20 hover:bg-success/10 hover:text-success flex-1"
+                    className="flex-1 h-8 bg-success text-success-foreground hover:bg-success/90"
                   >
-                    <Check className="h-3 w-3 mr-1" />
+                    <Check className="h-3 w-3 mr-2" />
                     Aprovar
                   </Button>
                 </>
