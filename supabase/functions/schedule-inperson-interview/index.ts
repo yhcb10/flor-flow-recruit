@@ -139,8 +139,8 @@ async function createGoogleCalendarEvent({ candidate, interview, accessToken }: 
     },
     location: interview.location,
     attendees: [
-      { email: candidate.email },
-      ...interview.inviteeEmails.filter(email => email.trim()).map(email => ({ email })),
+      { email: candidate.email.trim().replace(/\s+/g, '') },
+      ...interview.inviteeEmails.filter(email => email.trim()).map(email => ({ email: email.trim().replace(/\s+/g, '') })),
     ],
   };
 

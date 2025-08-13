@@ -138,8 +138,8 @@ async function createGoogleCalendarEvent({ candidate, interview, accessToken }: 
       timeZone: 'America/Sao_Paulo',
     },
     attendees: [
-      { email: candidate.email },
-      ...interview.inviteeEmails.filter(email => email.trim()).map(email => ({ email })),
+      { email: candidate.email.trim().replace(/\s+/g, '') },
+      ...interview.inviteeEmails.filter(email => email.trim()).map(email => ({ email: email.trim().replace(/\s+/g, '') })),
     ],
     conferenceData: {
       createRequest: {
