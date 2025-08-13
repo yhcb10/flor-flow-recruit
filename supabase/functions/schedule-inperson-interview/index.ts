@@ -139,8 +139,10 @@ async function createGoogleCalendarEvent({ candidate, interview, accessToken }: 
     },
     location: interview.location,
     attendees: [
-      { email: candidate.email.trim().replace(/\s+/g, '') },
-      ...interview.inviteeEmails.filter(email => email.trim()).map(email => ({ email: email.trim().replace(/\s+/g, '') })),
+      { email: candidate.email.trim().replace(/\s+/g, '').toLowerCase() },
+      ...interview.inviteeEmails
+        .filter(email => email && email.trim())
+        .map(email => ({ email: email.trim().replace(/\s+/g, '').toLowerCase() })),
     ],
   };
 
@@ -198,9 +200,11 @@ async function sendEmailsViaGmail({ candidate, interview, accessToken }: {
 
   // Emails para enviar - sempre incluir empresa e convidados especificados
   const allEmails = [
-    candidate.email,
+    candidate.email.trim().replace(/\s+/g, '').toLowerCase(),
     'coroadefloresnobre@gmail.com',
-    ...interview.inviteeEmails.filter(email => email.trim())
+    ...interview.inviteeEmails
+      .filter(email => email && email.trim())
+      .map(email => email.trim().replace(/\s+/g, '').toLowerCase())
   ];
 
   // Remover duplicatas

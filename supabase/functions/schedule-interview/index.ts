@@ -138,8 +138,10 @@ async function createGoogleCalendarEvent({ candidate, interview, accessToken }: 
       timeZone: 'America/Sao_Paulo',
     },
     attendees: [
-      { email: candidate.email.trim().replace(/\s+/g, '') },
-      ...interview.inviteeEmails.filter(email => email.trim()).map(email => ({ email: email.trim().replace(/\s+/g, '') })),
+      { email: candidate.email.trim().replace(/\s+/g, '').toLowerCase() },
+      ...interview.inviteeEmails
+        .filter(email => email && email.trim())
+        .map(email => ({ email: email.trim().replace(/\s+/g, '').toLowerCase() })),
     ],
     conferenceData: {
       createRequest: {
@@ -206,9 +208,11 @@ async function sendEmailsViaGmail({ candidate, interview, meetingUrl, accessToke
 
   // Emails para enviar - sempre incluir empresa e convidados especificados
   const allEmails = [
-    candidate.email,
+    candidate.email.trim().replace(/\s+/g, '').toLowerCase(),
     'coroadefloresnobre@gmail.com',
-    ...interview.inviteeEmails.filter(email => email.trim())
+    ...interview.inviteeEmails
+      .filter(email => email && email.trim())
+      .map(email => email.trim().replace(/\s+/g, '').toLowerCase())
   ];
 
   // Remover duplicatas
