@@ -29,7 +29,10 @@ export function RejectionReasonModal({ isOpen, onClose, onConfirm, candidateName
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent 
+        className="sm:max-w-[425px]"
+        onClick={(e) => e.stopPropagation()}
+      >
         <DialogHeader>
           <DialogTitle>Motivo da Rejeição</DialogTitle>
         </DialogHeader>
@@ -46,6 +49,7 @@ export function RejectionReasonModal({ isOpen, onClose, onConfirm, candidateName
               placeholder="Descreva o motivo da rejeição..."
               value={reason}
               onChange={(e) => setReason(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
               className="min-h-[100px]"
             />
           </div>
