@@ -332,223 +332,217 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, o
   };
 
   return (
-    <Card 
-      className={cn(
-        "cursor-pointer transition-all duration-200 border-l-4",
-        "hover:shadow-md hover:scale-[1.02]",
-        stageColors.bg,
-        stageColors.border,
-        isDragging && "shadow-lg ring-2 ring-primary/20",
-        isCompactView ? "p-3" : "p-4"
-      )}
-      onClick={onClick}
-    >
-        <div className={cn(isCompactView ? "space-y-2" : "space-y-3")}>
-          {/* Header */}
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3 min-w-0 flex-1">
-              <Avatar className={cn(isCompactView ? "h-8 w-8" : "h-10 w-10")}>
-                <AvatarFallback className={cn("font-semibold", stageColors.text, stageColors.bg)}>
-                  {candidate.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="min-w-0 flex-1">
-                <h4 className={cn(
-                  "font-semibold text-foreground truncate",
-                  isCompactView ? "text-sm" : "text-base"
+    <>
+      <Card 
+        className={cn(
+          "cursor-pointer transition-all duration-200 border-l-4",
+          "hover:shadow-md hover:scale-[1.02]",
+          stageColors.bg,
+          stageColors.border,
+          isDragging && "shadow-lg ring-2 ring-primary/20",
+          isCompactView ? "p-3" : "p-4"
+        )}
+        onClick={onClick}
+      >
+          <div className={cn(isCompactView ? "space-y-2" : "space-y-3")}>
+            {/* Header */}
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <Avatar className={cn(isCompactView ? "h-8 w-8" : "h-10 w-10")}>
+                  <AvatarFallback className={cn("font-semibold", stageColors.text, stageColors.bg)}>
+                    {candidate.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <h4 className={cn(
+                    "font-semibold text-foreground truncate",
+                    isCompactView ? "text-sm" : "text-base"
+                  )}>
+                    {candidate.name}
+                  </h4>
+                  
+                  {!isCompactView && (
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge {...sourceBadge} className="text-xs">
+                        {sourceBadge.label}
+                      </Badge>
+                      {candidate.aiAnalysis && (
+                        <div className={cn(
+                          "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium",
+                          getScoreColor(candidate.aiAnalysis.score)
+                        )}>
+                          <Star className="h-3 w-3" />
+                          {Number(candidate.aiAnalysis.score).toFixed(1)}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Compact view - show AI score on the right */}
+              {isCompactView && candidate.aiAnalysis && (
+                <div className={cn(
+                  "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ml-2",
+                  getScoreColor(candidate.aiAnalysis.score)
                 )}>
-                  {candidate.name}
-                </h4>
+                  <Star className="h-3 w-3" />
+                  {Number(candidate.aiAnalysis.score).toFixed(1)}
+                </div>
+              )}
+            </div>
+
+            {/* Contact Info */}
+            <div className={cn("space-y-1", isCompactView ? "text-xs" : "text-sm")}>
+              <div className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
+                <Mail className={cn(isCompactView ? "h-3 w-3" : "h-4 w-4")} />
+                <span className="truncate font-normal">{candidate.email}</span>
+              </div>
+              
+              <div className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+                <Phone className={cn(isCompactView ? "h-3 w-3" : "h-4 w-4")} />
+                <span className="font-normal">{candidate.phone}</span>
+                {candidate.phone && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 w-6 p-0 ml-1 hover:bg-success/20 hover:text-success"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Remove all non-numeric characters
+                      let phoneNumber = candidate.phone.replace(/\D/g, '');
+                      
+                      // Check if already has country code 55
+                      if (!phoneNumber.startsWith('55')) {
+                        phoneNumber = '55' + phoneNumber;
+                      }
+                      
+                      const whatsappUrl = `https://wa.me/${phoneNumber}`;
+                      window.open(whatsappUrl, '_blank');
+                    }}
+                    title="Abrir WhatsApp"
+                  >
+                    <MessageCircle className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Rejection Reason for rejected candidates */}
+            {candidate.stage === 'nao_aprovado' && candidate.rejectionReason && !isCompactView && (
+              <div className="p-2 bg-destructive/10 rounded-md border border-destructive/20">
+                <div className="text-xs font-semibold text-destructive mb-1">Motivo da Rejeição:</div>
+                <div className="text-xs text-muted-foreground font-normal">
+                  {candidate.rejectionReason}
+                </div>
+              </div>
+            )}
+
+            {/* Status and Interview Info */}
+            <div className={cn("flex items-center justify-between", isCompactView ? "mt-2" : "mt-3")}>
+              <div className="flex items-center gap-2">
+                {getStatusBadge()}
                 
-                {!isCompactView && (
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge {...sourceBadge} className="text-xs">
-                      {sourceBadge.label}
-                    </Badge>
-                    {candidate.aiAnalysis && (
-                      <div className={cn(
-                        "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium",
-                        getScoreColor(candidate.aiAnalysis.score)
-                      )}>
-                        <Star className="h-3 w-3" />
-                        {Number(candidate.aiAnalysis.score).toFixed(1)}
-                      </div>
-                    )}
+                {statusIcon && !isCompactView && (
+                  <div className={cn("flex items-center gap-1 text-xs", statusIcon.color)}>
+                    <span>{statusIcon.icon}</span>
+                    <span className="font-medium" title={statusIcon.fullDate}>
+                      {statusIcon.label}
+                    </span>
                   </div>
                 )}
               </div>
+              
+              {/* Action Buttons */}
+              {canShowActionButtons && !isCompactView && (
+                <div className="flex gap-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleReject}
+                    className="h-7 px-2 border-destructive/20 hover:bg-destructive/10 hover:text-destructive"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleApprove}
+                    className="h-7 px-2 border-success/20 hover:bg-success/10 hover:text-success"
+                  >
+                    <Check className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
             </div>
-            
-            {/* Compact view - show AI score on the right */}
-            {isCompactView && candidate.aiAnalysis && (
-              <div className={cn(
-                "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ml-2",
-                getScoreColor(candidate.aiAnalysis.score)
-              )}>
-                <Star className="h-3 w-3" />
-                {Number(candidate.aiAnalysis.score).toFixed(1)}
+
+            {/* Compact Action Buttons */}
+            {canShowActionButtons && isCompactView && (
+              <div className="flex gap-1 mt-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleReject}
+                  className="h-6 px-2 text-xs border-destructive/20 hover:bg-destructive/10 hover:text-destructive flex-1"
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  Rejeitar
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleApprove}
+                  className="h-6 px-2 text-xs border-success/20 hover:bg-success/10 hover:text-success flex-1"
+                >
+                  <Check className="h-3 w-3 mr-1" />
+                  Aprovar
+                </Button>
+              </div>
+            )}
+
+            {/* Application Date */}
+            {!isCompactView && candidate.createdAt && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t border-muted/20">
+                <CalendarDays className="h-3 w-3" />
+                <span>
+                  Candidatura: {format(new Date(candidate.createdAt), 'dd/MM/yyyy', { locale: ptBR })}
+                </span>
               </div>
             )}
           </div>
-
-          {/* Contact Info */}
-          <div className={cn("space-y-1", isCompactView ? "text-xs" : "text-sm")}>
-            <div className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
-              <Mail className={cn(isCompactView ? "h-3 w-3" : "h-4 w-4")} />
-              <span className="truncate font-normal">{candidate.email}</span>
-            </div>
-            
-            <div className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
-              <Phone className={cn(isCompactView ? "h-3 w-3" : "h-4 w-4")} />
-              <span className="font-normal">{candidate.phone}</span>
-              {candidate.phone && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-6 w-6 p-0 ml-1 hover:bg-success/20 hover:text-success"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    // Remove all non-numeric characters
-                    let phoneNumber = candidate.phone.replace(/\D/g, '');
-                    
-                    // Check if already has country code 55
-                    if (!phoneNumber.startsWith('55')) {
-                      phoneNumber = '55' + phoneNumber;
-                    }
-                    
-                    const whatsappUrl = `https://wa.me/${phoneNumber}`;
-                    window.open(whatsappUrl, '_blank');
-                  }}
-                  title="Abrir WhatsApp"
-                >
-                  <MessageCircle className="h-3 w-3" />
-                </Button>
-              )}
-            </div>
-          </div>
-
-          {/* Rejection Reason for rejected candidates */}
-          {candidate.stage === 'nao_aprovado' && candidate.rejectionReason && !isCompactView && (
-            <div className="p-2 bg-destructive/10 rounded-md border border-destructive/20">
-              <div className="text-xs font-semibold text-destructive mb-1">Motivo da Rejeição:</div>
-              <div className="text-xs text-muted-foreground font-normal">
-                {candidate.rejectionReason}
-              </div>
-            </div>
-          )}
-
-          {/* AI Analysis Summary - Only in expanded view */}
-          {candidate.aiAnalysis && !isCompactView && (
-            <div className="p-2 bg-secondary/30 rounded-md">
-              <div className="text-xs font-semibold text-foreground mb-1">Análise IA:</div>
-              <div className="text-xs text-muted-foreground font-normal">
-                {candidate.aiAnalysis.recommendation === 'advance' && (
-                  <span className="text-success font-medium">✓ Recomendado para próxima etapa</span>
-                )}
-                {candidate.aiAnalysis.recommendation === 'review' && (
-                  <span className="text-warning font-medium">⚠ Necessita revisão</span>
-                )}
-                {candidate.aiAnalysis.recommendation === 'reject' && (
-                  <span className="text-destructive font-medium">✗ Não recomendado</span>
-                )}
-              </div>
-              {candidate.aiAnalysis.pontoFortes.length > 0 && (
-                <div className="text-xs text-muted-foreground mt-1 font-normal">
-                  <strong>Destaque:</strong> {candidate.aiAnalysis.pontoFortes[0]}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          {canShowActionButtons && !isCompactView && (
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant="default"
-                onClick={handleApprove}
-                className="flex-1 h-8 text-xs font-medium"
-              >
-                <Check className="h-3 w-3 mr-1" />
-                {candidate.stage === 'selecao_pre_entrevista' || candidate.stage === 'selecao_entrevista_presencial' ? 'Agendar' : 'Aprovar'}
-              </Button>
-              
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={handleReject}
-                className="flex-1 h-8 text-xs font-medium"
-              >
-                <X className="h-3 w-3 mr-1" />
-                Reprovar
-              </Button>
-            </div>
-          )}
-
-          {/* Footer */}
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            {/* Status Badge */}
-            <div className="cursor-pointer">
-              {getStatusBadge()}
-            </div>
-            
-            <div className="flex items-center gap-2">
-              {statusIcon && (
-                <div className={cn("flex items-center gap-1", statusIcon.color)}>
-                  <span className="text-xs">{statusIcon.icon}</span>
-                  {!isCompactView && <span className="text-xs font-medium">{statusIcon.label}</span>}
-                </div>
-              )}
-              
-              {candidate.notes.length > 0 && (
-                <div className="flex items-center gap-1">
-                  <MessageSquare className="h-3 w-3" />
-                  <span className="font-medium">{candidate.notes.length}</span>
-                </div>
-              )}
-              
-              {Array.isArray(candidate.interviews) && candidate.interviews.length > 0 && (
-                <div className="flex items-center gap-1">
-                  <CalendarDays className="h-3 w-3" />
-                  <span className="font-medium">
-                    {Array.from(new Set(candidate.interviews.map(i => i.id))).length}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-        
-        <RejectionReasonModal
-          isOpen={showRejectionModal}
-          onClose={() => setShowRejectionModal(false)}
-          onConfirm={handleRejectConfirm}
-          candidateName={candidate.name}
-        />
-        
-        <Dialog open={showInterviewScheduler} onOpenChange={setShowInterviewScheduler}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Agendar Pré-entrevista - {candidate.name}</DialogTitle>
-            </DialogHeader>
-            <InterviewScheduler
-              candidate={candidate}
-              onInterviewScheduled={handleInterviewScheduled}
-            />
-          </DialogContent>
-        </Dialog>
-        
-        <Dialog open={showInPersonScheduler} onOpenChange={setShowInPersonScheduler}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Agendar Entrevista Presencial - {candidate.name}</DialogTitle>
-            </DialogHeader>
-            <InPersonInterviewScheduler
-              candidate={candidate}
-              onInterviewScheduled={handleInPersonScheduled}
-            />
-          </DialogContent>
-        </Dialog>
-    </Card>
+      </Card>
+      
+      {/* Modals fora do Card */}
+      <RejectionReasonModal
+        isOpen={showRejectionModal}
+        onClose={() => setShowRejectionModal(false)}
+        onConfirm={handleRejectConfirm}
+        candidateName={candidate.name}
+      />
+      
+      <Dialog open={showInterviewScheduler} onOpenChange={setShowInterviewScheduler}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Agendar Pré-entrevista - {candidate.name}</DialogTitle>
+          </DialogHeader>
+          <InterviewScheduler
+            candidate={candidate}
+            onInterviewScheduled={handleInterviewScheduled}
+          />
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={showInPersonScheduler} onOpenChange={setShowInPersonScheduler}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Agendar Entrevista Presencial - {candidate.name}</DialogTitle>
+          </DialogHeader>
+          <InPersonInterviewScheduler
+            candidate={candidate}
+            onInterviewScheduled={handleInPersonScheduled}
+          />
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
