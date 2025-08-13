@@ -37,10 +37,10 @@ const AuthWrapper = () => {
 
   return (
         <Routes>
-          <Route path="/auth" element={user ? <Navigate to="/" replace /> : <Auth />} />
-          <Route path="/" element={user ? <Index /> : <Navigate to="/auth" replace />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/" element={<Index />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={user ? <NotFound /> : <Navigate to="/auth" replace />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
   );
 };
