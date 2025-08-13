@@ -40,6 +40,7 @@ export interface Candidate {
   notes: CandidateNote[];
   interviews: Interview[];
   rejectionReason?: string;
+  talentPoolReason?: string;
   createdAt: Date;
   updatedAt: Date;
 }

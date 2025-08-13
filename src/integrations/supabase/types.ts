@@ -31,6 +31,7 @@ export type Database = {
           resume_url: string | null
           source: string | null
           stage: string | null
+          talent_pool_reason: string | null
           updated_at: string
         }
         Insert: {
@@ -49,6 +50,7 @@ export type Database = {
           resume_url?: string | null
           source?: string | null
           stage?: string | null
+          talent_pool_reason?: string | null
           updated_at?: string
         }
         Update: {
@@ -67,6 +69,7 @@ export type Database = {
           resume_url?: string | null
           source?: string | null
           stage?: string | null
+          talent_pool_reason?: string | null
           updated_at?: string
         }
         Relationships: []
