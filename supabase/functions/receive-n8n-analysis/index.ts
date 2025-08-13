@@ -63,6 +63,35 @@ serve(async (req) => {
     console.log('Position ID mapeado:', mappedPositionId);
     console.log('Mapeamento disponível:', positionMapping);
 
+    // Verificar se já existe candidato com mesmo email para a mesma vaga
+    if (candidateData.email && mappedPositionId) {
+      const { data: existingCandidate, error: checkError } = await supabase
+        .from('candidates')
+        .select('id, name, email, position_id')
+        .eq('email', candidateData.email.trim().toLowerCase())
+        .eq('position_id', mappedPositionId)
+        .maybeSingle();
+
+      if (checkError) {
+        console.error('Erro ao verificar candidato existente:', checkError);
+      } else if (existingCandidate) {
+        console.log(`Candidato duplicado detectado: ${candidateData.nome_completo} (${candidateData.email}) já existe para a vaga ${mappedPositionId}`);
+        
+        return new Response(
+          JSON.stringify({
+            success: false,
+            message: `Candidato ${candidateData.nome_completo} já existe para esta vaga`,
+            duplicate: true,
+            existing_candidate: existingCandidate
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 409, // Conflict
+          }
+        );
+      }
+    }
+
   // Handle PDF download if provided - try multiple field variations
   let resumeUrl = null;
   let resumeFileName = null;
