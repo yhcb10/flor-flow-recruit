@@ -11,6 +11,7 @@ export function useRecruitmentKanban(positionId?: string) {
   useEffect(() => {
     const loadCandidates = async () => {
       try {
+        console.log('🔄 Carregando candidatos do Supabase...');
         const { data, error } = await supabase
           .from('candidates')
           .select('*')
@@ -21,6 +22,14 @@ export function useRecruitmentKanban(positionId?: string) {
           // Fallback to mock data on error
           setCandidates(mockCandidates);
         } else {
+          console.log('📊 Candidatos carregados:', data.length);
+          // Log candidates with interviews for debugging
+          data.forEach(candidate => {
+            if (candidate.interviews && Array.isArray(candidate.interviews) && candidate.interviews.length > 0) {
+              console.log(`📅 ${candidate.name} tem ${candidate.interviews.length} entrevista(s):`, candidate.interviews);
+            }
+          });
+          
           // Transform data from database format to app format
           const transformedCandidates: Candidate[] = data.map(candidate => ({
             id: candidate.id,
