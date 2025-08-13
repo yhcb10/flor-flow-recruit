@@ -166,11 +166,36 @@ export function InterviewScheduler({ candidate, onInterviewScheduled }: Intervie
         updatedAt: new Date(),
       };
 
-      // Atualizar no Supabase
+      // Preparar entrevista para o banco (apenas propriedades serializáveis)
+      const interviewForDB = {
+        id: updatedInterview.id,
+        type: updatedInterview.type,
+        scheduledAt: scheduledAt.toISOString(),
+        duration: updatedInterview.duration,
+        meetingUrl: updatedInterview.meetingUrl,
+        interviewerIds: updatedInterview.interviewerIds,
+        status: updatedInterview.status,
+        location: updatedInterview.location,
+      };
+
+      // Preparar entrevistas existentes para o banco
+      const existingInterviewsForDB = candidate.interviews.map(i => ({
+        id: i.id,
+        type: i.type,
+        scheduledAt: i.scheduledAt instanceof Date ? i.scheduledAt.toISOString() : i.scheduledAt,
+        duration: i.duration,
+        meetingUrl: i.meetingUrl,
+        interviewerIds: i.interviewerIds,
+        status: i.status,
+        location: i.location,
+      }));
+
+      // Atualizar no Supabase com a entrevista
       const { error: updateError } = await supabase
         .from('candidates')
         .update({
           stage: 'pre_entrevista',
+          interviews: [...existingInterviewsForDB, interviewForDB],
           updated_at: new Date().toISOString(),
         })
         .eq('id', candidate.id);

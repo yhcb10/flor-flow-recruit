@@ -41,7 +41,7 @@ export function useRecruitmentKanban(positionId?: string) {
               ).map((interview: any) => ({
                 id: interview.id,
                 type: interview.type,
-                scheduledAt: interview.scheduledAt,
+                scheduledAt: interview.scheduledAt ? new Date(interview.scheduledAt) : new Date(),
                 duration: interview.duration,
                 meetingUrl: interview.meetingUrl,
                 interviewerIds: interview.interviewerIds || [],
@@ -99,7 +99,7 @@ export function useRecruitmentKanban(positionId?: string) {
               (newCandidate.interviews as any[]).map((interview: any) => ({
                 id: interview.id,
                 type: interview.type,
-                scheduledAt: interview.scheduledAt,
+                scheduledAt: interview.scheduledAt ? new Date(interview.scheduledAt) : new Date(),
                 duration: interview.duration,
                 meetingUrl: interview.meetingUrl,
                 interviewerIds: interview.interviewerIds || [],
@@ -145,7 +145,7 @@ export function useRecruitmentKanban(positionId?: string) {
               (updatedCandidate.interviews as any[]).map((interview: any) => ({
                 id: interview.id,
                 type: interview.type,
-                scheduledAt: interview.scheduledAt,
+                scheduledAt: interview.scheduledAt ? new Date(interview.scheduledAt) : new Date(),
                 duration: interview.duration,
                 meetingUrl: interview.meetingUrl,
                 interviewerIds: interview.interviewerIds || [],

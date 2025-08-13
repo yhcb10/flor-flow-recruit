@@ -161,12 +161,35 @@ export function InPersonInterviewScheduler({ candidate, onInterviewScheduled }: 
         updatedAt: new Date(),
       };
 
+      // Preparar entrevista para o banco (apenas propriedades serializáveis)
+      const interviewForDB = {
+        id: newInterview.id,
+        type: newInterview.type,
+        scheduledAt: scheduledAt.toISOString(),
+        duration: newInterview.duration,
+        location: newInterview.location,
+        interviewerIds: newInterview.interviewerIds,
+        status: newInterview.status,
+      };
+
+      // Preparar entrevistas existentes para o banco
+      const existingInterviewsForDB = candidate.interviews.map(i => ({
+        id: i.id,
+        type: i.type,
+        scheduledAt: i.scheduledAt instanceof Date ? i.scheduledAt.toISOString() : i.scheduledAt,
+        duration: i.duration,
+        meetingUrl: i.meetingUrl,
+        interviewerIds: i.interviewerIds,
+        status: i.status,
+        location: i.location,
+      }));
+
       // Atualizar no Supabase
       const { error: updateError } = await supabase
         .from('candidates')
         .update({
           stage: 'entrevista_presencial',
-          interviews: JSON.stringify(updatedCandidate.interviews),
+          interviews: [...existingInterviewsForDB, interviewForDB],
           updated_at: new Date().toISOString(),
         })
         .eq('id', candidate.id);
