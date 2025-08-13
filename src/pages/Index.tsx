@@ -28,18 +28,18 @@ const Index = () => {
   });
   
   const [showNewPositionModal, setShowNewPositionModal] = useState(false);
-  const { columns, candidates, loading, moveCandidateToStage, updateCandidate, addCandidate, deleteCandidate, stats } = useRecruitmentKanban(selectedPosition?.id);
+  const { columns, candidates, loading, moveCandidateToStage, updateCandidate, addCandidate, deleteCandidate, stats } = useRecruitmentKanban(selectedPosition?.endpointId);
   
   // Filter candidates by selected position
   const positionCandidates = candidates.filter(candidate => 
-    candidate.positionId === selectedPosition?.id
+    candidate.positionId === selectedPosition?.endpointId
   );
   
   // Filter columns to only show candidates for selected position
   const filteredColumns = columns.map(column => ({
     ...column,
     candidates: column.candidates.filter(candidate => 
-      candidate.positionId === selectedPosition?.id
+      candidate.positionId === selectedPosition?.endpointId
     )
   }));
   
@@ -226,7 +226,7 @@ const Index = () => {
                 onCandidateSelect={updateCandidate}
                 onCandidateAdd={(candidate) => addCandidate({
                   ...candidate,
-                  positionId: selectedPosition?.id || ''
+                  positionId: selectedPosition?.endpointId || ''
                 })}
                 onCandidateDelete={deleteCandidate}
                 selectedPosition={selectedPosition}
