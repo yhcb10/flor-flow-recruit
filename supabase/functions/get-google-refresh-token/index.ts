@@ -26,7 +26,7 @@ serve(async (req) => {
       // Passo 1: Gerar URL de autorização
       const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
       authUrl.searchParams.set('client_id', googleClientId);
-      authUrl.searchParams.set('redirect_uri', `${url.origin}${url.pathname}?step=2`);
+      authUrl.searchParams.set('redirect_uri', `https://burxedzkpugyavsqkzaj.supabase.co/functions/v1/get-google-refresh-token?step=2`);
       authUrl.searchParams.set('response_type', 'code');
       authUrl.searchParams.set('scope', 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/gmail.send');
       authUrl.searchParams.set('access_type', 'offline');
@@ -56,7 +56,7 @@ serve(async (req) => {
           client_secret: googleClientSecret,
           code,
           grant_type: 'authorization_code',
-          redirect_uri: `${url.origin}${url.pathname}?step=2`,
+          redirect_uri: `https://burxedzkpugyavsqkzaj.supabase.co/functions/v1/get-google-refresh-token?step=2`,
         }),
       });
 
