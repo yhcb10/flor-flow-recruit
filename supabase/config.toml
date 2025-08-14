@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.schedule-inperson-interview]
 verify_jwt = false
+
+[functions.test-google-credentials]
+verify_jwt = false
