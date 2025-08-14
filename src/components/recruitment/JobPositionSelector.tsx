@@ -12,7 +12,7 @@ import { JobPositionDetailsModal } from './JobPositionDetailsModal';
 interface JobPositionSelectorProps {
   positions: JobPosition[];
   selectedPosition: JobPosition | null;
-  onPositionSelect: (position: JobPosition) => void;
+  onPositionSelect: (position: JobPosition | null) => void;
   onNewPosition: () => void;
   onPositionClose: (positionId: string) => void;
   onPositionPause: (positionId: string) => void;
@@ -194,16 +194,28 @@ export function JobPositionSelector({
         </CardHeader>
         <CardContent>
           <Select 
-            value={selectedPosition?.id || ""} 
+            value={selectedPosition?.id || "all"} 
             onValueChange={(value) => {
-              const position = positions.find(p => p.id === value);
-              if (position) onPositionSelect(position);
+              if (value === "all") {
+                onPositionSelect(null);
+              } else {
+                const position = positions.find(p => p.id === value);
+                if (position) onPositionSelect(position);
+              }
             }}
           >
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Selecione uma vaga..." />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="flex-1">
+                    <div className="font-medium">🌟 Todas as Vagas</div>
+                    <div className="text-sm text-muted-foreground">Ver todos os candidatos</div>
+                  </div>
+                </div>
+              </SelectItem>
               {positions.map((position) => (
                 <SelectItem key={position.id} value={position.id}>
                   <div className="flex items-center gap-3 flex-1 min-w-0">

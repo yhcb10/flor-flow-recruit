@@ -22,25 +22,25 @@ const Index = () => {
     const saved = localStorage.getItem('selectedPosition');
     if (saved) {
       const savedPosition = JSON.parse(saved);
-      return jobPositions.find(p => p.id === savedPosition.id) || jobPositions[0] || null;
+      return jobPositions.find(p => p.id === savedPosition.id) || null;
     }
-    return jobPositions[0] || null;
+    return null; // Inicia com "Todas as Vagas"
   });
   
   const [showNewPositionModal, setShowNewPositionModal] = useState(false);
-  const { columns, candidates, loading, moveCandidateToStage, updateCandidate, addCandidate, deleteCandidate, stats } = useRecruitmentKanban(selectedPosition?.endpointId);
+  const { columns, candidates, loading, moveCandidateToStage, updateCandidate, addCandidate, deleteCandidate, stats } = useRecruitmentKanban();
   
-  // Filter candidates by selected position
-  const positionCandidates = candidates.filter(candidate => 
-    candidate.positionId === selectedPosition?.endpointId
-  );
+  // Filter candidates by selected position (using position_id which is the UUID)
+  const positionCandidates = selectedPosition 
+    ? candidates.filter(candidate => candidate.positionId === selectedPosition.id)
+    : candidates;
   
   // Filter columns to only show candidates for selected position
   const filteredColumns = columns.map(column => ({
     ...column,
-    candidates: column.candidates.filter(candidate => 
-      candidate.positionId === selectedPosition?.endpointId
-    )
+    candidates: selectedPosition 
+      ? column.candidates.filter(candidate => candidate.positionId === selectedPosition.id)
+      : column.candidates
   }));
   
   // Calculate stats for selected position only
@@ -114,9 +114,13 @@ const Index = () => {
   };
 
   // Atualizar localStorage quando selectedPosition mudar
-  const handlePositionSelect = (position: JobPosition) => {
+  const handlePositionSelect = (position: JobPosition | null) => {
     setSelectedPosition(position);
-    localStorage.setItem('selectedPosition', JSON.stringify(position));
+    if (position) {
+      localStorage.setItem('selectedPosition', JSON.stringify(position));
+    } else {
+      localStorage.removeItem('selectedPosition');
+    }
   };
 
   const handlePositionUpdate = (updatedPosition: JobPosition) => {
@@ -203,7 +207,7 @@ const Index = () => {
                 onCandidateSelect={updateCandidate}
                 onCandidateAdd={(candidate) => addCandidate({
                   ...candidate,
-                  positionId: selectedPosition?.endpointId || ''
+                  positionId: selectedPosition?.id || ''
                 })}
                 onCandidateDelete={deleteCandidate}
                 selectedPosition={selectedPosition}
