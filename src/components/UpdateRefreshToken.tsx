@@ -10,19 +10,63 @@ export function UpdateRefreshToken() {
   const [refreshToken, setRefreshToken] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const updateRefreshToken = async () => {
-    if (!refreshToken.trim()) {
-      toast({
-        title: "Erro",
-        description: "Por favor, insira o refresh token",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const testScheduleInterview = async () => {
     setLoading(true);
     try {
-      // Testar as credenciais
+      console.log('Testando agendamento de entrevista...');
+      
+      const testData = {
+        candidate: {
+          id: 'test-123',
+          name: 'Teste Candidato',
+          email: 'teste@example.com',
+          position: '1'
+        },
+        interview: {
+          scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // amanhã
+          duration: 30,
+          notes: 'Teste de agendamento',
+          inviteeEmails: ['yuri.carvalho@coroadefloresnobre.com.br']
+        }
+      };
+
+      console.log('Dados do teste:', testData);
+      
+      const { data, error } = await supabase.functions.invoke('schedule-interview', {
+        body: testData
+      });
+      
+      console.log('Resposta da edge function:', { data, error });
+      
+      if (error) {
+        console.error('Erro na edge function:', error);
+        toast({
+          title: "Erro no Agendamento",
+          description: `Erro: ${error.message}`,
+          variant: "destructive",
+        });
+      } else {
+        console.log('Sucesso:', data);
+        toast({
+          title: "Sucesso",
+          description: "Teste de agendamento executado com sucesso!",
+        });
+      }
+      
+    } catch (error) {
+      console.error('Erro detalhado:', error);
+      toast({
+        title: "Erro",
+        description: `Erro ao testar: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+    setLoading(false);
+  };
+
+  const testCredentials = async () => {
+    setLoading(true);
+    try {
       const { data, error } = await supabase.functions.invoke('test-google-credentials');
       
       if (error) {
@@ -40,12 +84,11 @@ export function UpdateRefreshToken() {
         });
       }
       
-      setRefreshToken('');
     } catch (error) {
       console.error('Erro:', error);
       toast({
         title: "Erro",
-        description: "Erro ao processar refresh token",
+        description: "Erro ao processar teste",
         variant: "destructive",
       });
     }
@@ -69,13 +112,24 @@ export function UpdateRefreshToken() {
           />
         </div>
         
-        <Button 
-          onClick={updateRefreshToken} 
-          disabled={loading || !refreshToken.trim()}
-          className="w-full"
-        >
-          {loading ? 'Testando...' : 'Testar Credenciais'}
-        </Button>
+        <div className="space-y-2">
+          <Button 
+            onClick={testCredentials} 
+            disabled={loading}
+            className="w-full"
+            variant="outline"
+          >
+            {loading ? 'Testando...' : 'Testar Credenciais'}
+          </Button>
+          
+          <Button 
+            onClick={testScheduleInterview} 
+            disabled={loading}
+            className="w-full"
+          >
+            {loading ? 'Testando...' : 'Testar Agendamento'}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
