@@ -99,7 +99,13 @@ async function getGoogleAccessToken() {
   console.log('GOOGLE_CLIENT_ID presente:', !!googleClientId);
   console.log('GOOGLE_CLIENT_SECRET presente:', !!googleClientSecret);
   console.log('GOOGLE_REFRESH_TOKEN presente:', !!googleRefreshToken);
-  console.log('GOOGLE_CLIENT_ID valor:', googleClientId ? `${googleClientId.substring(0, 10)}...` : 'undefined');
+  console.log('GOOGLE_CLIENT_ID valor:', googleClientId ? `${googleClientId.substring(0, 20)}...` : 'undefined');
+  if (googleClientSecret) {
+    console.log('GOOGLE_CLIENT_SECRET início:', googleClientSecret.substring(0, 20));
+  }
+  if (googleRefreshToken) {
+    console.log('GOOGLE_REFRESH_TOKEN início:', googleRefreshToken.substring(0, 20));
+  }
 
   if (!googleClientId || !googleClientSecret || !googleRefreshToken) {
     console.error('Credenciais faltando:');
