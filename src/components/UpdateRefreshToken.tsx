@@ -22,14 +22,23 @@ export function UpdateRefreshToken() {
 
     setLoading(true);
     try {
-      // Aqui você precisará implementar uma edge function para atualizar o secret
-      // Por enquanto, apenas mostro uma mensagem
-      console.log('Refresh Token para atualizar:', refreshToken);
+      // Testar as credenciais
+      const { data, error } = await supabase.functions.invoke('test-google-credentials');
       
-      toast({
-        title: "Sucesso",
-        description: "Refresh token copiado para o console. Aguarde a atualização manual.",
-      });
+      if (error) {
+        console.error('Erro ao testar credenciais:', error);
+        toast({
+          title: "Erro",
+          description: `Erro ao testar: ${error.message}`,
+          variant: "destructive",
+        });
+      } else {
+        console.log('Resultado do teste:', data);
+        toast({
+          title: "Teste de Credenciais",
+          description: `Resultado: ${JSON.stringify(data?.credentials || data)}`,
+        });
+      }
       
       setRefreshToken('');
     } catch (error) {
@@ -65,7 +74,7 @@ export function UpdateRefreshToken() {
           disabled={loading || !refreshToken.trim()}
           className="w-full"
         >
-          {loading ? 'Atualizando...' : 'Atualizar Refresh Token'}
+          {loading ? 'Testando...' : 'Testar Credenciais'}
         </Button>
       </CardContent>
     </Card>
