@@ -121,7 +121,12 @@ async function getGoogleAccessToken() {
   });
 
   if (!response.ok) {
-    throw new Error('Erro ao obter access token do Google');
+    const errorText = await response.text();
+    console.error('Erro detalhado na resposta do Google OAuth:');
+    console.error('Status:', response.status);
+    console.error('Status Text:', response.statusText);
+    console.error('Response Body:', errorText);
+    throw new Error(`Erro ao obter access token do Google: ${response.status} - ${errorText}`);
   }
 
   const { access_token } = await response.json();
