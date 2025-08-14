@@ -5,7 +5,7 @@ import { KanbanBoard } from '@/components/recruitment/KanbanBoard';
 import { RecruitmentDashboard } from '@/components/recruitment/RecruitmentDashboard';
 import { JobPositionSelector } from '@/components/recruitment/JobPositionSelector';
 import { NewJobPositionModal } from '@/components/recruitment/NewJobPositionModal';
-import { TestGoogleCredentials } from '@/components/TestGoogleCredentials';
+
 import { useRecruitmentKanban } from '@/hooks/useRecruitmentKanban';
 import { useJobPositions } from '@/hooks/useJobPositions';
 import { useAuth } from '@/hooks/useAuth';
@@ -176,10 +176,6 @@ const Index = () => {
           />
         </div>
 
-        {/* Test Google Credentials - Temporary */}
-        <div className="mb-6">
-          <TestGoogleCredentials />
-        </div>
 
         <Tabs defaultValue="kanban" className="w-full">
           <TabsList className="grid w-full grid-cols-2 max-w-2xl bg-muted/50 p-1 h-12 rounded-lg">
