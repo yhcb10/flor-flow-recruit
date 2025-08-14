@@ -95,7 +95,17 @@ async function getGoogleAccessToken() {
   const googleClientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET');
   const googleRefreshToken = Deno.env.get('GOOGLE_REFRESH_TOKEN');
 
+  console.log('=== DEBUG GOOGLE CREDENTIALS ===');
+  console.log('GOOGLE_CLIENT_ID presente:', !!googleClientId);
+  console.log('GOOGLE_CLIENT_SECRET presente:', !!googleClientSecret);
+  console.log('GOOGLE_REFRESH_TOKEN presente:', !!googleRefreshToken);
+  console.log('GOOGLE_CLIENT_ID valor:', googleClientId ? `${googleClientId.substring(0, 10)}...` : 'undefined');
+
   if (!googleClientId || !googleClientSecret || !googleRefreshToken) {
+    console.error('Credenciais faltando:');
+    console.error('- Client ID:', !!googleClientId);
+    console.error('- Client Secret:', !!googleClientSecret);
+    console.error('- Refresh Token:', !!googleRefreshToken);
     throw new Error('Credenciais do Google não configuradas');
   }
 
