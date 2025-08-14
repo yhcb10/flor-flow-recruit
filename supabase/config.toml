@@ -14,3 +14,9 @@ verify_jwt = false
 
 [functions.create-default-users]
 verify_jwt = false
+
+[functions.schedule-interview]
+verify_jwt = false
+
+[functions.schedule-inperson-interview]
+verify_jwt = false
