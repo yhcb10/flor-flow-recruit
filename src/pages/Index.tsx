@@ -30,10 +30,15 @@ const Index = () => {
   const [showNewPositionModal, setShowNewPositionModal] = useState(false);
   const { columns, candidates, loading, moveCandidateToStage, updateCandidate, addCandidate, deleteCandidate, stats } = useRecruitmentKanban();
   
+  console.log('📊 Total candidatos no Index:', candidates.length);
+  console.log('📍 Posição selecionada:', selectedPosition?.title || 'Todas as Vagas');
+  
   // Filter candidates by selected position (using position_id which is the UUID)
   const positionCandidates = selectedPosition 
     ? candidates.filter(candidate => candidate.positionId === selectedPosition.id)
     : candidates;
+    
+  console.log('🔍 Candidatos filtrados:', positionCandidates.length, 'de', candidates.length);
   
   // Filter columns to only show candidates for selected position
   const filteredColumns = columns.map(column => ({

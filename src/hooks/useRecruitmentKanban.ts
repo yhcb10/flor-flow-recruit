@@ -3,7 +3,7 @@ import { Candidate, CandidateStage, KanbanColumn } from '@/types/recruitment';
 import { mockCandidates, kanbanColumns } from '@/data/mockData';
 import { supabase } from '@/integrations/supabase/client';
 
-export function useRecruitmentKanban(positionId?: string) {
+export function useRecruitmentKanban() {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -22,7 +22,11 @@ export function useRecruitmentKanban(positionId?: string) {
           // Fallback to mock data on error
           setCandidates(mockCandidates);
         } else {
-          console.log('📊 Candidatos carregados:', data.length);
+          console.log('📊 Total de candidatos carregados do Supabase:', data.length);
+          console.log('📋 Candidatos por stage:', data.reduce((acc: any, c: any) => {
+            acc[c.stage] = (acc[c.stage] || 0) + 1;
+            return acc;
+          }, {}));
           // Log candidates with interviews for debugging
           data.forEach(candidate => {
             if (candidate.interviews && Array.isArray(candidate.interviews) && candidate.interviews.length > 0) {
@@ -61,9 +65,10 @@ export function useRecruitmentKanban(positionId?: string) {
             rejectionReason: candidate.rejection_reason,
             talentPoolReason: candidate.talent_pool_reason,
             createdAt: new Date(candidate.created_at),
-            updatedAt: new Date(candidate.updated_at)
-          }));
-          setCandidates(transformedCandidates);
+             updatedAt: new Date(candidate.updated_at)
+           }));
+           console.log('🎯 Candidatos transformados para o estado local:', transformedCandidates.length);
+           setCandidates(transformedCandidates);
         }
       } catch (error) {
         console.error('Error loading candidates:', error);
