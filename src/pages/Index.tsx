@@ -28,7 +28,35 @@ const Index = () => {
   });
   
   const [showNewPositionModal, setShowNewPositionModal] = useState(false);
-  const { columns, candidates, loading, moveCandidateToStage, updateCandidate, addCandidate, deleteCandidate, stats } = useRecruitmentKanban();
+  const { columns, candidates, loading, moveCandidateToStage, updateCandidate, addCandidate, deleteCandidate, stats } = useRecruitmentKanban(selectedPosition?.endpointId);
+  
+  // Filter candidates by selected position
+  const positionCandidates = candidates.filter(candidate => 
+    candidate.positionId === selectedPosition?.endpointId
+  );
+  
+  // Filter columns to only show candidates for selected position
+  const filteredColumns = columns.map(column => ({
+    ...column,
+    candidates: column.candidates.filter(candidate => 
+      candidate.positionId === selectedPosition?.endpointId
+    )
+  }));
+  
+  // Calculate stats for selected position only
+  const positionStats = {
+    ...stats,
+    total: positionCandidates.length,
+    byStage: positionCandidates.reduce((acc, candidate) => {
+      acc[candidate.stage] = (acc[candidate.stage] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>),
+    approved: positionCandidates.filter(c => c.stage === 'aprovado').length,
+    rejected: positionCandidates.filter(c => c.stage === 'nao_aprovado').length,
+    inProcess: positionCandidates.filter(c => !['aprovado', 'nao_aprovado'].includes(c.stage)).length,
+    conversionRate: positionCandidates.length > 0 ? 
+      (positionCandidates.filter(c => c.stage === 'aprovado').length / positionCandidates.length) * 100 : 0
+  };
 
   const handleNewJobPosition = async (newPosition: Omit<JobPosition, 'id' | 'created_at' | 'updated_at'>) => {
     try {
@@ -155,7 +183,7 @@ const Index = () => {
           </TabsList>
 
           <TabsContent value="dashboard" className="mt-6">
-            <RecruitmentDashboard stats={stats} />
+            <RecruitmentDashboard stats={positionStats} />
           </TabsContent>
 
           <TabsContent value="kanban" className="mt-6">
@@ -167,13 +195,16 @@ const Index = () => {
               </div>
             ) : (
               <KanbanBoard
-                columns={columns}
+                columns={filteredColumns}
                 onCandidateMove={(candidateId, newStage, rejectionReason, talentPoolReason) => 
                   moveCandidateToStage(candidateId, newStage, rejectionReason, talentPoolReason)
                 }
                 onCandidateUpdate={updateCandidate}
                 onCandidateSelect={updateCandidate}
-                onCandidateAdd={addCandidate}
+                onCandidateAdd={(candidate) => addCandidate({
+                  ...candidate,
+                  positionId: selectedPosition?.endpointId || ''
+                })}
                 onCandidateDelete={deleteCandidate}
                 selectedPosition={selectedPosition}
                 availablePositions={jobPositions}
