@@ -36,12 +36,18 @@ const AuthWrapper = () => {
   }
 
   return (
-        <Routes>
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+    <Routes>
+      <Route 
+        path="/auth" 
+        element={user ? <Navigate to="/" replace /> : <Auth />} 
+      />
+      <Route 
+        path="/" 
+        element={user ? <Index /> : <Navigate to="/auth" replace />} 
+      />
+      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   );
 };
 
