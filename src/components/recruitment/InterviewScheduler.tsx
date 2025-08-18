@@ -81,6 +81,17 @@ export function InterviewScheduler({ candidate, onInterviewScheduled }: Intervie
       return;
     }
 
+    // Verificar se o candidato já possui entrevistas agendadas
+    const hasScheduledInterviews = candidate.interviews && candidate.interviews.length > 0;
+    if (hasScheduledInterviews) {
+      toast({
+        title: "Entrevista já agendada",
+        description: "Este candidato já possui uma entrevista agendada. Cancele a entrevista existente antes de agendar uma nova.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     console.log('=== INICIANDO AGENDAMENTO ===');
     console.log('Data selecionada:', selectedDate);
     console.log('Horário selecionado:', selectedTime);
