@@ -82,12 +82,12 @@ export function InPersonInterviewScheduler({ candidate, onInterviewScheduled }: 
       return;
     }
 
-    // Verificar se o candidato já possui entrevistas agendadas
-    const hasScheduledInterviews = candidate.interviews && candidate.interviews.length > 0;
-    if (hasScheduledInterviews) {
+    // Verificar se o candidato já possui entrevista presencial agendada
+    const hasInPersonInterview = candidate.interviews?.some(interview => interview.type === 'in_person' && interview.status === 'scheduled');
+    if (hasInPersonInterview) {
       toast({
-        title: "Entrevista já agendada",
-        description: "Este candidato já possui uma entrevista agendada. Cancele a entrevista existente antes de agendar uma nova.",
+        title: "Entrevista presencial já agendada",
+        description: "Este candidato já possui uma entrevista presencial agendada. Cancele a entrevista existente antes de agendar uma nova.",
         variant: "destructive",
       });
       return;

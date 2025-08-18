@@ -81,12 +81,12 @@ export function InterviewScheduler({ candidate, onInterviewScheduled }: Intervie
       return;
     }
 
-    // Verificar se o candidato já possui entrevistas agendadas
-    const hasScheduledInterviews = candidate.interviews && candidate.interviews.length > 0;
-    if (hasScheduledInterviews) {
+    // Verificar se o candidato já possui pré-entrevista agendada
+    const hasPreInterview = candidate.interviews?.some(interview => interview.type === 'pre_interview' && interview.status === 'scheduled');
+    if (hasPreInterview) {
       toast({
-        title: "Entrevista já agendada",
-        description: "Este candidato já possui uma entrevista agendada. Cancele a entrevista existente antes de agendar uma nova.",
+        title: "Pré-entrevista já agendada",
+        description: "Este candidato já possui uma pré-entrevista agendada. Cancele a pré-entrevista existente antes de agendar uma nova.",
         variant: "destructive",
       });
       return;
