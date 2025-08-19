@@ -197,10 +197,46 @@ export function useRecruitmentKanban() {
       return acc;
     }, {} as Record<CandidateStage, Candidate[]>);
 
-    return kanbanColumns.map(column => ({
-      ...column,
-      candidates: candidatesByStage[column.id] || []
-    }));
+    return kanbanColumns.map(column => {
+      let sortedCandidates = candidatesByStage[column.id] || [];
+      
+      // Ordenar por horário de entrevista nas colunas específicas
+      if (column.id === 'pre_entrevista' || column.id === 'entrevista_presencial') {
+        const targetInterviewType = column.id === 'pre_entrevista' ? 'pre_interview' : 'in_person';
+        
+        sortedCandidates = sortedCandidates.sort((a, b) => {
+          // Encontrar a próxima entrevista agendada do tipo correto
+          const getNextInterview = (candidate: any) => {
+            return candidate.interviews
+              ?.filter((interview: any) => 
+                interview.type === targetInterviewType && 
+                interview.status === 'scheduled'
+              )
+              ?.sort((x: any, y: any) => new Date(x.scheduledAt).getTime() - new Date(y.scheduledAt).getTime())[0];
+          };
+          
+          const nextInterviewA = getNextInterview(a);
+          const nextInterviewB = getNextInterview(b);
+          
+          // Se ambos têm entrevistas, ordenar pela data
+          if (nextInterviewA && nextInterviewB) {
+            return new Date(nextInterviewA.scheduledAt).getTime() - new Date(nextInterviewB.scheduledAt).getTime();
+          }
+          
+          // Candidatos com entrevistas vêm primeiro
+          if (nextInterviewA && !nextInterviewB) return -1;
+          if (!nextInterviewA && nextInterviewB) return 1;
+          
+          // Se nenhum tem entrevistas, manter ordem por data de criação
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+      }
+      
+      return {
+        ...column,
+        candidates: sortedCandidates
+      };
+    });
   }, [candidates]);
 
   const moveCandidateToStage = async (candidateId: string, newStage: CandidateStage, rejectionReason?: string, talentPoolReason?: string) => {
