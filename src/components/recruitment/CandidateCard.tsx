@@ -507,6 +507,66 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, o
                   <Clock className="h-3 w-3 mr-2" />
                   Agendar
                 </Button>
+              ) : candidate.stage === 'pre_entrevista' && Array.isArray(candidate.interviews) && candidate.interviews.some(i => i.status === 'scheduled' && i.type === 'pre_interview') ? (
+                <>
+                  <Button
+                    size="sm"
+                    onClick={handleReject}
+                    className="flex-1 h-8 bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    <X className="h-3 w-3 mr-2" />
+                    Recusar
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowInterviewScheduler(true);
+                    }}
+                    className="flex-1 h-8 bg-info text-info-foreground hover:bg-info/90"
+                  >
+                    <Clock className="h-3 w-3 mr-2" />
+                    Reagendar
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleApprove}
+                    className="flex-1 h-8 bg-success text-success-foreground hover:bg-success/90"
+                  >
+                    <Check className="h-3 w-3 mr-2" />
+                    Aprovar
+                  </Button>
+                </>
+              ) : candidate.stage === 'entrevista_presencial' && Array.isArray(candidate.interviews) && candidate.interviews.some(i => i.status === 'scheduled' && i.type === 'in_person') ? (
+                <>
+                  <Button
+                    size="sm"
+                    onClick={handleReject}
+                    className="flex-1 h-8 bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    <X className="h-3 w-3 mr-2" />
+                    Recusar
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowInPersonScheduler(true);
+                    }}
+                    className="flex-1 h-8 bg-info text-info-foreground hover:bg-info/90"
+                  >
+                    <Clock className="h-3 w-3 mr-2" />
+                    Reagendar
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleApprove}
+                    className="flex-1 h-8 bg-success text-success-foreground hover:bg-success/90"
+                  >
+                    <Check className="h-3 w-3 mr-2" />
+                    Aprovar
+                  </Button>
+                </>
               ) : (
                 <>
                   <Button
@@ -576,11 +636,16 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, o
             onClick={(e) => e.stopPropagation()}
           >
             <DialogHeader>
-              <DialogTitle>Agendar Pré-entrevista - {candidate.name}</DialogTitle>
+              <DialogTitle>
+                {candidate.stage === 'pre_entrevista' && Array.isArray(candidate.interviews) && candidate.interviews.some(i => i.status === 'scheduled' && i.type === 'pre_interview') 
+                  ? `Reagendar Pré-entrevista - ${candidate.name}` 
+                  : `Agendar Pré-entrevista - ${candidate.name}`}
+              </DialogTitle>
             </DialogHeader>
             <InterviewScheduler
               candidate={candidate}
               onInterviewScheduled={handleInterviewScheduled}
+              isRescheduling={candidate.stage === 'pre_entrevista' && Array.isArray(candidate.interviews) && candidate.interviews.some(i => i.status === 'scheduled' && i.type === 'pre_interview')}
             />
           </DialogContent>
         </Dialog>
@@ -591,11 +656,16 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, o
             onClick={(e) => e.stopPropagation()}
           >
             <DialogHeader>
-              <DialogTitle>Agendar Entrevista Presencial - {candidate.name}</DialogTitle>
+              <DialogTitle>
+                {candidate.stage === 'entrevista_presencial' && Array.isArray(candidate.interviews) && candidate.interviews.some(i => i.status === 'scheduled' && i.type === 'in_person') 
+                  ? `Reagendar Entrevista Presencial - ${candidate.name}` 
+                  : `Agendar Entrevista Presencial - ${candidate.name}`}
+              </DialogTitle>
             </DialogHeader>
             <InPersonInterviewScheduler
               candidate={candidate}
               onInterviewScheduled={handleInPersonScheduled}
+              isRescheduling={candidate.stage === 'entrevista_presencial' && Array.isArray(candidate.interviews) && candidate.interviews.some(i => i.status === 'scheduled' && i.type === 'in_person')}
             />
           </DialogContent>
         </Dialog>

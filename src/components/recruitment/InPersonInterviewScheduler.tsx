@@ -13,9 +13,10 @@ import { toast } from '@/hooks/use-toast';
 interface InPersonInterviewSchedulerProps {
   candidate: Candidate;
   onInterviewScheduled: (updatedCandidate: Candidate) => void;
+  isRescheduling?: boolean;
 }
 
-export function InPersonInterviewScheduler({ candidate, onInterviewScheduled }: InPersonInterviewSchedulerProps) {
+export function InPersonInterviewScheduler({ candidate, onInterviewScheduled, isRescheduling = false }: InPersonInterviewSchedulerProps) {
   const today = new Date();
   const [selectedDay, setSelectedDay] = useState(today.getDate().toString());
   const [selectedMonth, setSelectedMonth] = useState((today.getMonth() + 1).toString());
@@ -82,9 +83,9 @@ export function InPersonInterviewScheduler({ candidate, onInterviewScheduled }: 
       return;
     }
 
-    // Verificar se o candidato já possui entrevista presencial agendada
+    // Verificar se o candidato já possui entrevista presencial agendada (apenas se não for reagendamento)
     const hasInPersonInterview = candidate.interviews?.some(interview => interview.type === 'in_person' && interview.status === 'scheduled');
-    if (hasInPersonInterview) {
+    if (hasInPersonInterview && !isRescheduling) {
       toast({
         title: "Entrevista presencial já agendada",
         description: "Este candidato já possui uma entrevista presencial agendada. Cancele a entrevista existente antes de agendar uma nova.",
@@ -109,16 +110,61 @@ export function InPersonInterviewScheduler({ candidate, onInterviewScheduled }: 
       
       console.log('Data/hora combinada:', scheduledAt);
 
-      // Criar nova entrevista presencial
-      const newInterview: Interview = {
-        id: Date.now().toString(),
-        type: 'in_person',
-        scheduledAt,
-        duration,
-        location,
-        interviewerIds: [],
-        status: 'scheduled',
-      };
+      // Criar nova entrevista presencial ou atualizar existente
+      let newInterview: Interview;
+      let existingInterviewsForDB;
+      
+      if (isRescheduling) {
+        // Encontrar a entrevista existente para atualizar
+        const existingInterviewIndex = candidate.interviews.findIndex(i => i.type === 'in_person' && i.status === 'scheduled');
+        if (existingInterviewIndex !== -1) {
+          // Atualizar entrevista existente
+          const existingInterview = candidate.interviews[existingInterviewIndex];
+          newInterview = {
+            ...existingInterview,
+            scheduledAt,
+            duration,
+            location,
+          };
+          
+          // Preparar lista de entrevistas com a atualizada
+          existingInterviewsForDB = candidate.interviews.map((interview, index) => ({
+            id: interview.id,
+            type: interview.type,
+            scheduledAt: index === existingInterviewIndex ? scheduledAt.toISOString() : (interview.scheduledAt instanceof Date ? interview.scheduledAt.toISOString() : interview.scheduledAt),
+            duration: interview.duration,
+            meetingUrl: interview.meetingUrl,
+            interviewerIds: interview.interviewerIds,
+            status: interview.status,
+            location: index === existingInterviewIndex ? location : interview.location,
+          }));
+        } else {
+          throw new Error('Entrevista agendada não encontrada para reagendamento');
+        }
+      } else {
+        // Criar nova entrevista
+        newInterview = {
+          id: Date.now().toString(),
+          type: 'in_person',
+          scheduledAt,
+          duration,
+          location,
+          interviewerIds: [],
+          status: 'scheduled',
+        };
+        
+        // Preparar entrevistas existentes para o banco
+        existingInterviewsForDB = candidate.interviews.map(i => ({
+          id: i.id,
+          type: i.type,
+          scheduledAt: i.scheduledAt instanceof Date ? i.scheduledAt.toISOString() : i.scheduledAt,
+          duration: i.duration,
+          meetingUrl: i.meetingUrl,
+          interviewerIds: i.interviewerIds,
+          status: i.status,
+          location: i.location,
+        }));
+      }
 
       console.log('Dados sendo enviados para edge function:', {
         candidate: {
@@ -164,45 +210,71 @@ export function InPersonInterviewScheduler({ candidate, onInterviewScheduled }: 
         throw new Error(`Edge function error: ${response.error.message || JSON.stringify(response.error)}`);
       }
 
-      // Atualizar candidato com a nova entrevista
-      const updatedCandidate = {
-        ...candidate,
-        stage: 'entrevista_presencial' as const,
-        interviews: [...candidate.interviews, newInterview],
-        updatedAt: new Date(),
-      };
+      // Atualizar candidato com a entrevista (nova ou atualizada)
+      let updatedCandidate;
+      if (isRescheduling) {
+        // Para reagendamento, atualizar a entrevista existente
+        const updatedInterviews = candidate.interviews.map(interview => 
+          interview.type === 'in_person' && interview.status === 'scheduled'
+            ? newInterview
+            : interview
+        );
+        
+        updatedCandidate = {
+          ...candidate,
+          interviews: updatedInterviews,
+          updatedAt: new Date(),
+        };
+      } else {
+        // Para novo agendamento, adicionar à lista
+        updatedCandidate = {
+          ...candidate,
+          stage: 'entrevista_presencial' as const,
+          interviews: [...candidate.interviews, newInterview],
+          updatedAt: new Date(),
+        };
+      }
 
       // Preparar entrevista para o banco (apenas propriedades serializáveis)
-      const interviewForDB = {
-        id: newInterview.id,
-        type: newInterview.type,
-        scheduledAt: scheduledAt.toISOString(),
-        duration: newInterview.duration,
-        location: newInterview.location,
-        interviewerIds: newInterview.interviewerIds,
-        status: newInterview.status,
-      };
-
-      // Preparar entrevistas existentes para o banco
-      const existingInterviewsForDB = candidate.interviews.map(i => ({
-        id: i.id,
-        type: i.type,
-        scheduledAt: i.scheduledAt instanceof Date ? i.scheduledAt.toISOString() : i.scheduledAt,
-        duration: i.duration,
-        meetingUrl: i.meetingUrl,
-        interviewerIds: i.interviewerIds,
-        status: i.status,
-        location: i.location,
-      }));
+      let finalInterviewsForDB;
+      if (isRescheduling) {
+        finalInterviewsForDB = existingInterviewsForDB.map(interview => 
+          interview.type === 'in_person' && interview.status === 'scheduled'
+            ? {
+                ...interview,
+                scheduledAt: scheduledAt.toISOString(),
+                location,
+              }
+            : interview
+        );
+      } else {
+        const interviewForDB = {
+          id: newInterview.id,
+          type: newInterview.type,
+          scheduledAt: scheduledAt.toISOString(),
+          duration: newInterview.duration,
+          location: newInterview.location,
+          interviewerIds: newInterview.interviewerIds,
+          status: newInterview.status,
+        };
+        finalInterviewsForDB = [...existingInterviewsForDB, interviewForDB];
+      }
 
       // Atualizar no Supabase
+      const updateData = isRescheduling 
+        ? {
+            interviews: finalInterviewsForDB,
+            updated_at: new Date().toISOString(),
+          }
+        : {
+            stage: 'entrevista_presencial',
+            interviews: finalInterviewsForDB,
+            updated_at: new Date().toISOString(),
+          };
+
       const { error: updateError } = await supabase
         .from('candidates')
-        .update({
-          stage: 'entrevista_presencial',
-          interviews: [...existingInterviewsForDB, interviewForDB],
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq('id', candidate.id);
 
       if (updateError) {
@@ -212,8 +284,8 @@ export function InPersonInterviewScheduler({ candidate, onInterviewScheduled }: 
       onInterviewScheduled(updatedCandidate);
 
       toast({
-        title: "Entrevista presencial agendada!",
-        description: "A entrevista presencial foi agendada e os emails foram enviados.",
+        title: isRescheduling ? "Entrevista reagendada!" : "Entrevista presencial agendada!",
+        description: isRescheduling ? "A entrevista presencial foi reagendada e os emails foram enviados." : "A entrevista presencial foi agendada e os emails foram enviados.",
       });
 
       // Limpar formulário
@@ -244,7 +316,7 @@ export function InPersonInterviewScheduler({ candidate, onInterviewScheduled }: 
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2">
           <CalendarIcon className="h-4 w-4" />
-          Agendar Entrevista Presencial
+          {isRescheduling ? 'Reagendar Entrevista Presencial' : 'Agendar Entrevista Presencial'}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -375,10 +447,10 @@ export function InPersonInterviewScheduler({ candidate, onInterviewScheduled }: 
           {isScheduling ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Agendando...
+              {isRescheduling ? 'Reagendando...' : 'Agendando...'}
             </>
           ) : (
-            'Agendar Entrevista Presencial'
+            isRescheduling ? 'Reagendar Entrevista Presencial' : 'Agendar Entrevista Presencial'
           )}
         </Button>
       </CardContent>

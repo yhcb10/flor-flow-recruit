@@ -13,9 +13,10 @@ import { toast } from '@/hooks/use-toast';
 interface InterviewSchedulerProps {
   candidate: Candidate;
   onInterviewScheduled: (updatedCandidate: Candidate) => void;
+  isRescheduling?: boolean;
 }
 
-export function InterviewScheduler({ candidate, onInterviewScheduled }: InterviewSchedulerProps) {
+export function InterviewScheduler({ candidate, onInterviewScheduled, isRescheduling = false }: InterviewSchedulerProps) {
   const today = new Date();
   const [selectedDay, setSelectedDay] = useState(today.getDate().toString());
   const [selectedMonth, setSelectedMonth] = useState((today.getMonth() + 1).toString());
@@ -81,9 +82,9 @@ export function InterviewScheduler({ candidate, onInterviewScheduled }: Intervie
       return;
     }
 
-    // Verificar se o candidato já possui pré-entrevista agendada
+    // Verificar se o candidato já possui pré-entrevista agendada (apenas se não for reagendamento)
     const hasPreInterview = candidate.interviews?.some(interview => interview.type === 'pre_interview' && interview.status === 'scheduled');
-    if (hasPreInterview) {
+    if (hasPreInterview && !isRescheduling) {
       toast({
         title: "Pré-entrevista já agendada",
         description: "Este candidato já possui uma pré-entrevista agendada. Cancele a pré-entrevista existente antes de agendar uma nova.",
@@ -108,16 +109,60 @@ export function InterviewScheduler({ candidate, onInterviewScheduled }: Intervie
       console.log('Data/hora combinada:', scheduledAt);
       console.log('ISO String:', scheduledAt.toISOString());
 
-      // Criar nova entrevista
-      const newInterview: Interview = {
-        id: Date.now().toString(),
-        type: 'pre_interview',
-        scheduledAt,
-        duration,
-        meetingUrl: '', // Será preenchido pela função do Google Calendar
-        interviewerIds: [],
-        status: 'scheduled',
-      };
+      // Criar nova entrevista ou atualizar existente
+      let newInterview: Interview;
+      let existingInterviewsForDB;
+      
+      if (isRescheduling) {
+        // Encontrar a entrevista existente para atualizar
+        const existingInterviewIndex = candidate.interviews.findIndex(i => i.type === 'pre_interview' && i.status === 'scheduled');
+        if (existingInterviewIndex !== -1) {
+          // Atualizar entrevista existente
+          const existingInterview = candidate.interviews[existingInterviewIndex];
+          newInterview = {
+            ...existingInterview,
+            scheduledAt,
+            duration,
+          };
+          
+          // Preparar lista de entrevistas com a atualizada
+          existingInterviewsForDB = candidate.interviews.map((interview, index) => ({
+            id: interview.id,
+            type: interview.type,
+            scheduledAt: index === existingInterviewIndex ? scheduledAt.toISOString() : (interview.scheduledAt instanceof Date ? interview.scheduledAt.toISOString() : interview.scheduledAt),
+            duration: interview.duration,
+            meetingUrl: interview.meetingUrl,
+            interviewerIds: interview.interviewerIds,
+            status: interview.status,
+            location: interview.location,
+          }));
+        } else {
+          throw new Error('Entrevista agendada não encontrada para reagendamento');
+        }
+      } else {
+        // Criar nova entrevista
+        newInterview = {
+          id: Date.now().toString(),
+          type: 'pre_interview',
+          scheduledAt,
+          duration,
+          meetingUrl: '', // Será preenchido pela função do Google Calendar
+          interviewerIds: [],
+          status: 'scheduled',
+        };
+        
+        // Preparar entrevistas existentes para o banco
+        existingInterviewsForDB = candidate.interviews.map(i => ({
+          id: i.id,
+          type: i.type,
+          scheduledAt: i.scheduledAt instanceof Date ? i.scheduledAt.toISOString() : i.scheduledAt,
+          duration: i.duration,
+          meetingUrl: i.meetingUrl,
+          interviewerIds: i.interviewerIds,
+          status: i.status,
+          location: i.location,
+        }));
+      }
 
       console.log('Dados sendo enviados para edge function:', {
         candidate: {
@@ -164,51 +209,77 @@ export function InterviewScheduler({ candidate, onInterviewScheduled }: Intervie
 
       const { data, error } = response;
 
-      // Atualizar candidato com a nova entrevista e Google Meet URL
+      // Atualizar candidato com a entrevista (nova ou atualizada) e Google Meet URL
       const updatedInterview = {
         ...newInterview,
         meetingUrl: data.meetingUrl,
       };
 
-      const updatedCandidate = {
-        ...candidate,
-        stage: 'pre_entrevista' as const,
-        interviews: [...candidate.interviews, updatedInterview],
-        updatedAt: new Date(),
-      };
+      let updatedCandidate;
+      if (isRescheduling) {
+        // Para reagendamento, atualizar a entrevista existente
+        const updatedInterviews = candidate.interviews.map(interview => 
+          interview.type === 'pre_interview' && interview.status === 'scheduled'
+            ? updatedInterview
+            : interview
+        );
+        
+        updatedCandidate = {
+          ...candidate,
+          interviews: updatedInterviews,
+          updatedAt: new Date(),
+        };
+      } else {
+        // Para novo agendamento, adicionar à lista
+        updatedCandidate = {
+          ...candidate,
+          stage: 'pre_entrevista' as const,
+          interviews: [...candidate.interviews, updatedInterview],
+          updatedAt: new Date(),
+        };
+      }
 
       // Preparar entrevista para o banco (apenas propriedades serializáveis)
-      const interviewForDB = {
-        id: updatedInterview.id,
-        type: updatedInterview.type,
-        scheduledAt: scheduledAt.toISOString(),
-        duration: updatedInterview.duration,
-        meetingUrl: updatedInterview.meetingUrl,
-        interviewerIds: updatedInterview.interviewerIds,
-        status: updatedInterview.status,
-        location: updatedInterview.location,
-      };
-
-      // Preparar entrevistas existentes para o banco
-      const existingInterviewsForDB = candidate.interviews.map(i => ({
-        id: i.id,
-        type: i.type,
-        scheduledAt: i.scheduledAt instanceof Date ? i.scheduledAt.toISOString() : i.scheduledAt,
-        duration: i.duration,
-        meetingUrl: i.meetingUrl,
-        interviewerIds: i.interviewerIds,
-        status: i.status,
-        location: i.location,
-      }));
+      let finalInterviewsForDB;
+      if (isRescheduling) {
+        finalInterviewsForDB = existingInterviewsForDB.map(interview => 
+          interview.type === 'pre_interview' && interview.status === 'scheduled'
+            ? {
+                ...interview,
+                meetingUrl: data.meetingUrl,
+                scheduledAt: scheduledAt.toISOString(),
+              }
+            : interview
+        );
+      } else {
+        const interviewForDB = {
+          id: updatedInterview.id,
+          type: updatedInterview.type,
+          scheduledAt: scheduledAt.toISOString(),
+          duration: updatedInterview.duration,
+          meetingUrl: updatedInterview.meetingUrl,
+          interviewerIds: updatedInterview.interviewerIds,
+          status: updatedInterview.status,
+          location: updatedInterview.location,
+        };
+        finalInterviewsForDB = [...existingInterviewsForDB, interviewForDB];
+      }
 
       // Atualizar no Supabase com a entrevista
+      const updateData = isRescheduling 
+        ? {
+            interviews: finalInterviewsForDB,
+            updated_at: new Date().toISOString(),
+          }
+        : {
+            stage: 'pre_entrevista',
+            interviews: finalInterviewsForDB,
+            updated_at: new Date().toISOString(),
+          };
+
       const { error: updateError } = await supabase
         .from('candidates')
-        .update({
-          stage: 'pre_entrevista',
-          interviews: [...existingInterviewsForDB, interviewForDB],
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq('id', candidate.id);
 
       if (updateError) {
@@ -218,8 +289,8 @@ export function InterviewScheduler({ candidate, onInterviewScheduled }: Intervie
       onInterviewScheduled(updatedCandidate);
 
       toast({
-        title: "Entrevista agendada!",
-        description: "A pré-entrevista foi agendada e os emails foram enviados.",
+        title: isRescheduling ? "Entrevista reagendada!" : "Entrevista agendada!",
+        description: isRescheduling ? "A pré-entrevista foi reagendada e os emails foram enviados." : "A pré-entrevista foi agendada e os emails foram enviados.",
       });
 
       // Limpar formulário
@@ -252,7 +323,7 @@ export function InterviewScheduler({ candidate, onInterviewScheduled }: Intervie
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2">
           <CalendarIcon className="h-4 w-4" />
-          Agendar Pré-entrevista
+          {isRescheduling ? 'Reagendar Pré-entrevista' : 'Agendar Pré-entrevista'}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -372,10 +443,10 @@ export function InterviewScheduler({ candidate, onInterviewScheduled }: Intervie
           {isScheduling ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Agendando...
+              {isRescheduling ? 'Reagendando...' : 'Agendando...'}
             </>
           ) : (
-            'Agendar Pré-entrevista'
+            isRescheduling ? 'Reagendar Pré-entrevista' : 'Agendar Pré-entrevista'
           )}
         </Button>
       </CardContent>
