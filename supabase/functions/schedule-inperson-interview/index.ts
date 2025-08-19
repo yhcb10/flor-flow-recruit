@@ -197,16 +197,28 @@ async function sendEmailsViaGmail({ candidate, interview, accessToken }: {
   accessToken: string
 }) {
   const scheduledDate = new Date(interview.scheduledAt);
+  
+  console.log('=== DEBUG HORÁRIOS ===');
+  console.log('Data recebida (scheduledAt):', interview.scheduledAt);
+  console.log('Data parseada (scheduledDate):', scheduledDate.toISOString());
+  console.log('Timezone do servidor:', Intl.DateTimeFormat().resolvedOptions().timeZone);
+  
   const formattedDate = scheduledDate.toLocaleDateString('pt-BR', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
     day: 'numeric',
+    timeZone: 'America/Sao_Paulo',
   });
   const formattedTime = scheduledDate.toLocaleTimeString('pt-BR', {
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: 'America/Sao_Paulo',
   });
+  
+  console.log('Data formatada:', formattedDate);
+  console.log('Hora formatada:', formattedTime);
+  console.log('========================');
 
   // Mapear positionId para nome da vaga
   const getPositionName = (positionId?: string) => {
