@@ -523,10 +523,10 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, o
                       e.stopPropagation();
                       setShowInterviewScheduler(true);
                     }}
-                    className="flex-1 h-8 bg-info text-info-foreground hover:bg-info/90"
+                    className="h-8 px-2 bg-info text-info-foreground hover:bg-info/90"
+                    title="Reagendar pré-entrevista"
                   >
-                    <Clock className="h-3 w-3 mr-2" />
-                    Reagendar
+                    <Clock className="h-3 w-3" />
                   </Button>
                   <Button
                     size="sm"
@@ -553,10 +553,10 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, o
                       e.stopPropagation();
                       setShowInPersonScheduler(true);
                     }}
-                    className="flex-1 h-8 bg-info text-info-foreground hover:bg-info/90"
+                    className="h-8 px-2 bg-info text-info-foreground hover:bg-info/90"
+                    title="Reagendar entrevista presencial"
                   >
-                    <Clock className="h-3 w-3 mr-2" />
-                    Reagendar
+                    <Clock className="h-3 w-3" />
                   </Button>
                   <Button
                     size="sm"
