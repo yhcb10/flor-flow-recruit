@@ -1,6 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Users, TrendingUp, Clock, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { Users, TrendingUp, Clock, CheckCircle, XCircle, AlertTriangle, Settings } from 'lucide-react';
+import { GoogleCredentialsTest } from './GoogleCredentialsTest';
 
 interface DashboardStats {
   total: number;
@@ -125,6 +128,18 @@ export function RecruitmentDashboard({ stats }: RecruitmentDashboardProps) {
           <Badge variant="outline" className="cursor-pointer hover:bg-secondary">
             Enviar E-mails Automáticos
           </Badge>
+          
+          <Dialog>
+            <DialogTrigger asChild>
+              <Badge variant="outline" className="cursor-pointer hover:bg-secondary flex items-center gap-1">
+                <Settings className="w-3 h-3" />
+                Diagnóstico Google
+              </Badge>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl">
+              <GoogleCredentialsTest />
+            </DialogContent>
+          </Dialog>
         </CardContent>
       </Card>
     </div>

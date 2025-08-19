@@ -29,6 +29,9 @@ serve(async (req) => {
 
     // Testar obtenção de access token se todas as credenciais estiverem presentes
     let accessTokenTest = null;
+    let refreshTokenStatus = 'not_tested';
+    let errorDetails = null;
+    
     if (googleClientId && googleClientSecret && googleRefreshToken) {
       try {
         console.log('Testando obtenção de access token...');
@@ -46,15 +49,32 @@ serve(async (req) => {
         if (response.ok) {
           const { access_token } = await response.json();
           accessTokenTest = !!access_token;
+          refreshTokenStatus = 'valid';
           console.log('Access token obtido com sucesso');
         } else {
           const errorText = await response.text();
+          const errorData = JSON.parse(errorText);
           console.error('Erro ao obter access token:', errorText);
+          
           accessTokenTest = false;
+          errorDetails = errorData;
+          
+          // Verificar tipo específico de erro
+          if (errorData.error === 'invalid_grant') {
+            refreshTokenStatus = 'expired_or_invalid';
+            console.error('REFRESH TOKEN INVÁLIDO OU EXPIRADO - precisa ser renovado');
+          } else if (errorData.error === 'invalid_client') {
+            refreshTokenStatus = 'invalid_credentials';
+            console.error('CLIENT_ID ou CLIENT_SECRET inválidos');
+          } else {
+            refreshTokenStatus = 'unknown_error';
+          }
         }
       } catch (error) {
         console.error('Erro no teste de access token:', error);
         accessTokenTest = false;
+        refreshTokenStatus = 'network_error';
+        errorDetails = { error: error.message };
       }
     }
 
@@ -65,7 +85,21 @@ serve(async (req) => {
         refreshTokenPresent: !!googleRefreshToken,
         clientIdStart: googleClientId ? googleClientId.substring(0, 20) : null,
         refreshTokenStart: googleRefreshToken ? googleRefreshToken.substring(0, 20) : null,
-        accessTokenTest
+        accessTokenTest,
+        refreshTokenStatus,
+        errorDetails
+      },
+      diagnosis: {
+        status: refreshTokenStatus,
+        message: refreshTokenStatus === 'expired_or_invalid' 
+          ? 'O refresh token expirou ou é inválido. Você precisa gerar um novo refresh token usando a função get-google-refresh-token.'
+          : refreshTokenStatus === 'invalid_credentials'
+          ? 'As credenciais CLIENT_ID ou CLIENT_SECRET estão incorretas. Verifique no Google Cloud Console.'
+          : refreshTokenStatus === 'valid'
+          ? 'Todas as credenciais estão funcionando corretamente!'
+          : refreshTokenStatus === 'network_error'
+          ? 'Erro de rede ao tentar conectar com o Google. Tente novamente.'
+          : 'Status desconhecido ou credenciais faltando.'
       }
     };
 
