@@ -20,9 +20,31 @@ serve(async (req) => {
   }
 
   try {
-    const { resumeUrl, fileName, positionId, positionTitle, customWebhookUrl }: RequestBody = await req.json();
+    // Primeiro, vamos verificar se o request body está presente
+    const rawBody = await req.text();
+    console.log('Raw request body:', rawBody);
+    
+    if (!rawBody) {
+      throw new Error('Corpo da requisição está vazio');
+    }
+    
+    let requestBody;
+    try {
+      requestBody = JSON.parse(rawBody);
+    } catch (parseError) {
+      console.error('Erro ao fazer parse do JSON:', parseError);
+      throw new Error(`JSON inválido: ${parseError.message}`);
+    }
+    
+    const { resumeUrl, fileName, positionId, positionTitle, customWebhookUrl }: RequestBody = requestBody;
 
-    console.log('Enviando currículo para N8N:', {
+    // Validar campos obrigatórios
+    if (!resumeUrl || !fileName || !positionId || !positionTitle) {
+      console.error('Campos obrigatórios faltando:', { resumeUrl: !!resumeUrl, fileName: !!fileName, positionId: !!positionId, positionTitle: !!positionTitle });
+      throw new Error('Campos obrigatórios faltando: resumeUrl, fileName, positionId, positionTitle');
+    }
+
+    console.log('Dados recebidos para envio ao N8N:', {
       resumeUrl,
       fileName,
       positionId,
