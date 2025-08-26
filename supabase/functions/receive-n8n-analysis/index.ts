@@ -172,7 +172,7 @@ serve(async (req) => {
       name: candidateData.nome_completo,
       email: candidateData.email || '',
       phone: candidateData.telefone || '',
-      position_id: mappedPositionId,
+      position_id: mappedPositionId, // Este já é o UUID correto
       source: 'manual',
       stage: 'analise_ia',
       resume_url: resumeUrl,
@@ -189,6 +189,8 @@ serve(async (req) => {
         proximosPassos: candidateData.proximos_passos || ''
       }
     };
+
+    console.log('Candidato a ser inserido:', JSON.stringify(candidate, null, 2));
 
     // Insert candidate into database
     const { data, error } = await supabase
