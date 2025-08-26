@@ -54,7 +54,8 @@ serve(async (req) => {
       'vendedor_001': '4b941ff1-0efc-4c43-a654-f37ed43286d3', // UUID da vaga de Vendedor
       'vendedor_interno_849750': '8f120339-2b13-425d-a504-8157dd77f411', // UUID da vaga de Vendedor Interno (Farmer)
       'gestor_ads_001': '5c852ff2-1fdc-4d54-b765-948fe54397e4', // UUID da vaga de Gestor de Ads
-      'analista_de_inteligencia_artificial_e_automacoes_390000': '72a59b27-5286-4591-b841-af1c5dfcc87d' // UUID da vaga de Analista de IA
+      'analista_de_inteligencia_artificial_e_automacoes_390000': '72a59b27-5286-4591-b841-af1c5dfcc87d', // UUID da vaga de Analista de IA
+      'analista_de_seo_079246': 'a7e9ba85-9792-467e-ad9a-06b8f3b91e17' // UUID da vaga de Analista de SEO
     };
 
     const mappedPositionId = candidateData.id ? positionMapping[candidateData.id] || candidateData.id : null;
