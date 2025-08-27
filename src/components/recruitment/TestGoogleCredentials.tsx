@@ -32,10 +32,49 @@ export function TestGoogleCredentials() {
       console.log('Testando credenciais do Google...');
       const response = await supabase.functions.invoke('test-google-credentials');
       
-      console.log('Resposta do teste:', response);
-      setTestResult(response.data);
+      console.log('Resposta completa do teste:', JSON.stringify(response, null, 2));
+      console.log('Dados da resposta:', response.data);
+      console.log('Erro da resposta:', response.error);
+      
+      if (response.error) {
+        console.error('Erro na resposta:', response.error);
+        setTestResult({
+          credentials: {
+            clientIdPresent: false,
+            clientSecretPresent: false,
+            refreshTokenPresent: false,
+            clientIdStart: null,
+            refreshTokenStart: null,
+            accessTokenTest: null,
+            refreshTokenStatus: 'error',
+            errorDetails: response.error
+          },
+          diagnosis: {
+            status: 'error',
+            message: `Erro na função: ${JSON.stringify(response.error)}`
+          }
+        });
+      } else {
+        setTestResult(response.data);
+      }
     } catch (error) {
       console.error('Erro ao testar credenciais:', error);
+      setTestResult({
+        credentials: {
+          clientIdPresent: false,
+          clientSecretPresent: false,
+          refreshTokenPresent: false,
+          clientIdStart: null,
+          refreshTokenStart: null,
+          accessTokenTest: null,
+          refreshTokenStatus: 'exception',
+          errorDetails: { message: error.message, stack: error.stack }
+        },
+        diagnosis: {
+          status: 'exception',
+          message: `Erro de execução: ${error.message}`
+        }
+      });
     } finally {
       setLoading(false);
     }
