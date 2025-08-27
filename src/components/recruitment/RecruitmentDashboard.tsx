@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { Users, TrendingUp, Clock, CheckCircle, XCircle, AlertTriangle, Settings } from 'lucide-react';
 import { GoogleCredentialsTest } from './GoogleCredentialsTest';
 import { TestGoogleCredentials } from './TestGoogleCredentials';
+import { GoogleCredentialsForm } from './GoogleCredentialsForm';
 
 interface DashboardStats {
   total: number;
@@ -137,8 +138,9 @@ export function RecruitmentDashboard({ stats }: RecruitmentDashboardProps) {
                 Diagnóstico Google
               </Badge>
             </DialogTrigger>
-            <DialogContent className="max-w-3xl">
-              <div className="space-y-4">
+            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+              <div className="space-y-6">
+                <GoogleCredentialsForm />
                 <GoogleCredentialsTest />
                 <TestGoogleCredentials />
               </div>
