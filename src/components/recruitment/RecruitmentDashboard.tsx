@@ -6,6 +6,7 @@ import { Users, TrendingUp, Clock, CheckCircle, XCircle, AlertTriangle, Settings
 import { GoogleCredentialsTest } from './GoogleCredentialsTest';
 import { TestGoogleCredentials } from './TestGoogleCredentials';
 import { GoogleCredentialsForm } from './GoogleCredentialsForm';
+import { GoogleCredentialsSetup } from './GoogleCredentialsSetup';
 
 interface DashboardStats {
   total: number;
@@ -140,9 +141,7 @@ export function RecruitmentDashboard({ stats }: RecruitmentDashboardProps) {
             </DialogTrigger>
             <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
               <div className="space-y-6">
-                <GoogleCredentialsForm />
-                <GoogleCredentialsTest />
-                <TestGoogleCredentials />
+                <GoogleCredentialsSetup />
               </div>
             </DialogContent>
           </Dialog>
