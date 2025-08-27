@@ -11,14 +11,20 @@ serve(async (req) => {
   }
 
   try {
-    const googleClientId = Deno.env.get('GOOGLE_CLIENT_ID');
-    const googleClientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET');
-    const googleRefreshToken = Deno.env.get('GOOGLE_REFRESH_TOKEN');
+    // Tentar múltiplos nomes de env vars para compatibilidade
+    const googleClientId = Deno.env.get('GOOGLE_CLIENT_ID') || Deno.env.get('GOOGLE_CLIENT_ID_SECRET');
+    const googleClientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET') || Deno.env.get('GOOGLE_CLIENT_SECRET_SECRET');  
+    const googleRefreshToken = Deno.env.get('GOOGLE_REFRESH_TOKEN') || Deno.env.get('GOOGLE_REFRESH_TOKEN_SECRET');
 
     console.log('=== TESTE DE CREDENCIAIS ===');
     console.log('GOOGLE_CLIENT_ID presente:', !!googleClientId);
     console.log('GOOGLE_CLIENT_SECRET presente:', !!googleClientSecret);
     console.log('GOOGLE_REFRESH_TOKEN presente:', !!googleRefreshToken);
+    
+    // Debug: listar todas as env vars que começam com GOOGLE
+    console.log('=== DEBUG ENV VARS ===');
+    const envVars = Object.keys(Deno.env.toObject()).filter(key => key.includes('GOOGLE'));
+    console.log('Env vars com GOOGLE:', envVars);
     
     if (googleClientId) {
       console.log('GOOGLE_CLIENT_ID início:', googleClientId.substring(0, 20));
