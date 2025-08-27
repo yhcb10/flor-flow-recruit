@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { Users, TrendingUp, Clock, CheckCircle, XCircle, AlertTriangle, Settings } from 'lucide-react';
 import { GoogleCredentialsTest } from './GoogleCredentialsTest';
+import { TestGoogleCredentials } from './TestGoogleCredentials';
 
 interface DashboardStats {
   total: number;
@@ -137,7 +138,10 @@ export function RecruitmentDashboard({ stats }: RecruitmentDashboardProps) {
               </Badge>
             </DialogTrigger>
             <DialogContent className="max-w-3xl">
-              <GoogleCredentialsTest />
+              <div className="space-y-4">
+                <GoogleCredentialsTest />
+                <TestGoogleCredentials />
+              </div>
             </DialogContent>
           </Dialog>
         </CardContent>
