@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.update-secret]
 verify_jwt = false
+
+[functions.refresh-google-token]
+verify_jwt = false
