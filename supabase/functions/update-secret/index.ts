@@ -12,13 +12,13 @@ serve(async (req) => {
   }
 
   try {
-    const { secret_name, secret_value } = await req.json()
+    const { name, value } = await req.json()
 
-    if (!secret_name || !secret_value) {
-      throw new Error('secret_name e secret_value são obrigatórios')
+    if (!name || !value) {
+      throw new Error('name e value são obrigatórios')
     }
 
-    console.log(`Atualizando secret: ${secret_name}`)
+    console.log(`Atualizando secret: ${name}`)
 
     // Note: In a real implementation, this would update the Supabase secrets
     // For now, we'll simulate success since we can't directly update secrets from edge functions
@@ -27,7 +27,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: `Secret ${secret_name} atualizado com sucesso`,
+        message: `Secret ${name} atualizado com sucesso`,
         note: 'Este é um placeholder - os secrets devem ser atualizados manualmente no dashboard do Supabase'
       }),
       {
