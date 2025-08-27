@@ -41,9 +41,16 @@ export function GoogleCredentialsForm() {
     }
 
     try {
-      // Aqui você implementaria a lógica para salvar no Supabase Secrets
-      // Por enquanto, vamos simular o salvamento
-      console.log(`Salvando ${credentialName}:`, value.substring(0, 20) + '...');
+      const response = await supabase.functions.invoke('update-secret', {
+        body: { 
+          secret_name: credentialName,
+          secret_value: value 
+        }
+      });
+      
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
       
       toast.success(`${displayName} salvo com sucesso!`);
       return true;
