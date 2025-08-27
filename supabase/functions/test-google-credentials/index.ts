@@ -11,10 +11,16 @@ serve(async (req) => {
   }
 
   try {
-    // Tentar múltiplos nomes de env vars para compatibilidade
-    const googleClientId = Deno.env.get('GOOGLE_CLIENT_ID') || Deno.env.get('GOOGLE_CLIENT_ID_SECRET');
-    const googleClientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET') || Deno.env.get('GOOGLE_CLIENT_SECRET_SECRET');  
-    const googleRefreshToken = Deno.env.get('GOOGLE_REFRESH_TOKEN') || Deno.env.get('GOOGLE_REFRESH_TOKEN_SECRET');
+    // Função para limpar variáveis de ambiente
+    const cleanEnvVar = (varName: string) => {
+      const value = Deno.env.get(varName);
+      return value ? value.trim().replace(/\n+/g, '') : null;
+    };
+
+    // Tentar múltiplos nomes de env vars para compatibilidade e limpar valores
+    const googleClientId = cleanEnvVar('GOOGLE_CLIENT_ID') || cleanEnvVar('GOOGLE_CLIENT_ID_SECRET');
+    const googleClientSecret = cleanEnvVar('GOOGLE_CLIENT_SECRET') || cleanEnvVar('GOOGLE_CLIENT_SECRET_SECRET');  
+    const googleRefreshToken = cleanEnvVar('GOOGLE_REFRESH_TOKEN') || cleanEnvVar('GOOGLE_REFRESH_TOKEN_SECRET');
 
     console.log('=== TESTE DE CREDENCIAIS ===');
     console.log('GOOGLE_CLIENT_ID presente:', !!googleClientId);
