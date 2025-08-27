@@ -28,18 +28,33 @@ serve(async (req) => {
   }
 
   try {
-    const { candidate, interview }: ScheduleInterviewRequest = await req.json();
+    console.log('=== INÍCIO EDGE FUNCTION SCHEDULE-INTERVIEW ===');
+    
+    const body = await req.text();
+    console.log('Raw body recebido:', body);
+    
+    let parsedData;
+    try {
+      parsedData = JSON.parse(body);
+    } catch (parseError) {
+      console.error('Erro ao fazer parse do JSON:', parseError);
+      throw new Error(`Erro no parse JSON: ${parseError.message}`);
+    }
 
-    console.log('=== EDGE FUNCTION SCHEDULE-INTERVIEW ===');
-    console.log('Dados recebidos:');
+    const { candidate, interview }: ScheduleInterviewRequest = parsedData;
+
+    console.log('=== DADOS PARSEADOS ===');
     console.log('- Candidato:', candidate);
     console.log('- Entrevista:', interview);
     console.log('- Data da entrevista:', interview.scheduledAt);
 
+    console.log('=== INICIANDO PROCESSO DE AGENDAMENTO ===');
     console.log('Agendando entrevista para:', candidate.name);
 
     // Obter access token do Google
+    console.log('=== STEP 1: OBTENDO ACCESS TOKEN ===');
     const accessToken = await getGoogleAccessToken();
+    console.log('Access token obtido com sucesso');
 
     // Criar evento no Google Calendar
     const calendarEvent = await createGoogleCalendarEvent({
