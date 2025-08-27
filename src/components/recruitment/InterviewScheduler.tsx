@@ -180,6 +180,9 @@ export function InterviewScheduler({ candidate, onInterviewScheduled, isReschedu
       });
 
       // Chamar edge function para criar evento no Google Calendar e enviar emails
+      console.log('=== CHAMANDO EDGE FUNCTION ===');
+      console.log('URL da função:', `https://burxedzkpugyavsqkzaj.supabase.co/functions/v1/schedule-interview`);
+      
       const response = await supabase.functions.invoke('schedule-interview', {
         body: {
           candidate: {
@@ -197,6 +200,7 @@ export function InterviewScheduler({ candidate, onInterviewScheduled, isReschedu
         }
       });
 
+      console.log('=== RESPOSTA DA EDGE FUNCTION ===');
       console.log('Resposta completa da edge function:', response);
       console.log('Response data:', response.data);
       console.log('Response error:', response.error);
