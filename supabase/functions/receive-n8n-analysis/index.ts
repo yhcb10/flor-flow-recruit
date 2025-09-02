@@ -28,9 +28,33 @@ interface N8NCandidateData {
 }
 
 serve(async (req) => {
+  console.log(`=== RECEIVE N8N ANALYSIS FUNCTION CALLED ===`);
+  console.log(`Method: ${req.method}`);
+  console.log(`URL: ${req.url}`);
+  console.log(`Headers: ${JSON.stringify(Object.fromEntries(req.headers.entries()), null, 2)}`);
+  console.log(`Timestamp: ${new Date().toISOString()}`);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('CORS preflight request received');
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Add health check endpoint
+  if (req.method === 'GET') {
+    console.log('Health check request received');
+    return new Response(
+      JSON.stringify({
+        status: 'OK',
+        function: 'receive-n8n-analysis',
+        timestamp: new Date().toISOString(),
+        message: 'Endpoint is working correctly'
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      }
+    );
   }
 
   try {
