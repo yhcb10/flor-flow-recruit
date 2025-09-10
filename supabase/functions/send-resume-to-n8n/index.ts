@@ -59,6 +59,9 @@ serve(async (req) => {
       // URLs específicas baseadas na posição
       if (positionTitle.toLowerCase().includes('analista') && positionTitle.toLowerCase().includes('inteligencia')) {
         webhookUrl = 'https://n8nwebhook.agentenobre.store/webhook/curriculo-upload-analista_de_inteligencia_artificial_e_automacoes_390000';
+      } else if (positionTitle.toLowerCase().includes('assistente') && positionTitle.toLowerCase().includes('financeiro')) {
+        // URL genérica para assistente financeiro
+        webhookUrl = 'https://n8nwebhook.agentenobre.store/webhook/curriculo-upload-geral';
       } else {
         // URL padrão substituindo 'id' pelo positionId
         webhookUrl = `https://n8nwebhook.agentenobre.store/webhook/curriculo-upload-${positionId}`;
