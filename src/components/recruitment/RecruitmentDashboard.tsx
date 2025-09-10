@@ -7,6 +7,7 @@ import { GoogleCredentialsTest } from './GoogleCredentialsTest';
 import { TestGoogleCredentials } from './TestGoogleCredentials';
 import { GoogleCredentialsForm } from './GoogleCredentialsForm';
 import { GoogleCredentialsSetup } from './GoogleCredentialsSetup';
+import { GoogleTokenStatus } from './GoogleTokenStatus';
 
 interface DashboardStats {
   total: number;
@@ -88,6 +89,9 @@ export function RecruitmentDashboard({ stats }: RecruitmentDashboardProps) {
           );
         })}
       </div>
+
+      {/* Google Token Status */}
+      <GoogleTokenStatus />
 
       {/* Stage Distribution */}
       <Card>

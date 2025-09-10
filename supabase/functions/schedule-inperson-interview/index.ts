@@ -91,51 +91,38 @@ serve(async (req) => {
 });
 
 async function getGoogleAccessToken() {
-  const googleClientId = Deno.env.get('GOOGLE_CLIENT_ID');
-  const googleClientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET');
-  const googleRefreshToken = Deno.env.get('GOOGLE_REFRESH_TOKEN');
-
-  console.log('=== DEBUG GOOGLE CREDENTIALS ===');
-  console.log('GOOGLE_CLIENT_ID presente:', !!googleClientId);
-  console.log('GOOGLE_CLIENT_SECRET presente:', !!googleClientSecret);
-  console.log('GOOGLE_REFRESH_TOKEN presente:', !!googleRefreshToken);
-  console.log('GOOGLE_CLIENT_ID valor:', googleClientId ? `${googleClientId.substring(0, 20)}...` : 'undefined');
-  if (googleClientSecret) {
-    console.log('GOOGLE_CLIENT_SECRET início:', googleClientSecret.substring(0, 20));
-  }
-  if (googleRefreshToken) {
-    console.log('GOOGLE_REFRESH_TOKEN início:', googleRefreshToken.substring(0, 20));
+  console.log('=== OBTENDO ACCESS TOKEN VIA REFRESH FUNCTION ===');
+  
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+  
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Configuração do Supabase não encontrada');
   }
 
-  if (!googleClientId || !googleClientSecret || !googleRefreshToken) {
-    console.error('Credenciais faltando:');
-    console.error('- Client ID:', !!googleClientId);
-    console.error('- Client Secret:', !!googleClientSecret);
-    console.error('- Refresh Token:', !!googleRefreshToken);
-    throw new Error('Credenciais do Google não configuradas');
-  }
-
-  const response = await fetch('https://oauth2.googleapis.com/token', {
+  const refreshResponse = await fetch(`${supabaseUrl}/functions/v1/refresh-google-token`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      client_id: googleClientId,
-      client_secret: googleClientSecret,
-      refresh_token: googleRefreshToken,
-      grant_type: 'refresh_token',
-    }),
+    headers: {
+      'Authorization': `Bearer ${supabaseAnonKey}`,
+      'Content-Type': 'application/json',
+      'apikey': supabaseAnonKey,
+    },
   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Erro detalhado na resposta do Google OAuth:');
-    console.error('Status:', response.status);
-    console.error('Status Text:', response.statusText);
-    console.error('Response Body:', errorText);
-    throw new Error(`Erro ao obter access token do Google: ${response.status} - ${errorText}`);
+  if (!refreshResponse.ok) {
+    const errorData = await refreshResponse.json().catch(() => ({}));
+    console.error('Erro na função de refresh:', errorData);
+    
+    if (errorData.requires_reauth) {
+      throw new Error('É necessário reautorizar o Google OAuth. Acesse as configurações do Google.');
+    }
+    
+    throw new Error(`Erro ao obter access token: ${errorData.error || 'Erro desconhecido'}`);
   }
 
-  const { access_token } = await response.json();
+  const { access_token, source } = await refreshResponse.json();
+  console.log(`Access token obtido (${source}):`, access_token ? 'Presente' : 'Ausente');
+  
   return access_token;
 }
 
