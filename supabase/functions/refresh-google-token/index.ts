@@ -25,7 +25,8 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Buscar o refresh token mais recente do banco
+    // Buscar o refresh token mais recente do banco (ou inicializar a partir das secrets)
+    let tokenRow: any = null;
     const { data: tokenData, error: tokenError } = await supabase
       .from('google_tokens')
       .select('*')
@@ -35,19 +36,51 @@ serve(async (req) => {
 
     if (tokenError || !tokenData) {
       console.error('Erro ao buscar token do banco:', tokenError);
-      throw new Error('Refresh token não encontrado no banco de dados');
+      // Tentar usar o refresh token das secrets como fallback
+      const envRefresh = Deno.env.get('GOOGLE_REFRESH_TOKEN');
+      if (!envRefresh) {
+        throw new Error('Refresh token não encontrado no banco de dados e nenhuma secret GOOGLE_REFRESH_TOKEN está definida');
+      }
+      console.log('Nenhum token no banco. Usando GOOGLE_REFRESH_TOKEN das secrets para criar registro inicial...');
+      // Criar registro inicial na tabela com o refresh token das secrets
+      const nowInit = new Date();
+      const { error: insertErr } = await supabase.from('google_tokens').insert({
+        refresh_token: envRefresh,
+        access_token: null,
+        expires_at: null,
+        created_at: nowInit.toISOString(),
+        updated_at: nowInit.toISOString(),
+      });
+      if (insertErr) {
+        console.error('Falha ao inserir refresh token inicial no banco:', insertErr);
+        throw new Error('Não foi possível inicializar o refresh token no banco');
+      }
+      // Buscar novamente o registro recém-criado
+      const { data: created, error: fetchErr } = await supabase
+        .from('google_tokens')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      if (fetchErr || !created) {
+        console.error('Falha ao confirmar token criado:', fetchErr);
+        throw new Error('Não foi possível confirmar o token criado');
+      }
+      tokenRow = created;
+    } else {
+      tokenRow = tokenData;
     }
 
-    console.log('Token encontrado no banco, ID:', tokenData.id);
+    console.log('Token encontrado no banco, ID:', tokenRow.id);
 
     // Verificar se já temos um access token válido
     const now = new Date();
-    if (tokenData.access_token && tokenData.expires_at && new Date(tokenData.expires_at) > now) {
+    if (tokenRow.access_token && tokenRow.expires_at && new Date(tokenRow.expires_at) > now) {
       console.log('Access token ainda válido, retornando o existente');
       return new Response(
         JSON.stringify({ 
           success: true, 
-          access_token: tokenData.access_token,
+          access_token: tokenRow.access_token,
           source: 'cached'
         }),
         {
@@ -73,7 +106,7 @@ serve(async (req) => {
       body: new URLSearchParams({
         client_id: googleClientId,
         client_secret: googleClientSecret,
-        refresh_token: tokenData.refresh_token,
+        refresh_token: tokenRow.refresh_token,
         grant_type: 'refresh_token',
       }),
     });
@@ -84,6 +117,56 @@ serve(async (req) => {
       
       if (refreshResponse.status === 400 && errorText.includes('invalid_grant')) {
         console.error('Refresh token inválido - necessário nova autorização');
+        // Tentar fallback usando a secret GOOGLE_REFRESH_TOKEN
+        const envRefresh = Deno.env.get('GOOGLE_REFRESH_TOKEN');
+        if (envRefresh && envRefresh !== tokenRow.refresh_token) {
+          console.log('Tentando fallback com GOOGLE_REFRESH_TOKEN das secrets...');
+          const fallbackResp = await fetch('https://oauth2.googleapis.com/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+              client_id: googleClientId!,
+              client_secret: googleClientSecret!,
+              refresh_token: envRefresh,
+              grant_type: 'refresh_token',
+            }),
+          });
+
+          if (fallbackResp.ok) {
+            const { access_token: fbToken, expires_in: fbExpires } = await fallbackResp.json();
+            const now2 = new Date();
+            const expiresAt2 = new Date(now2.getTime() + (fbExpires - 60) * 1000);
+
+            // Atualizar o registro atual com o novo refresh token e access token
+            const { error: upErr } = await supabase
+              .from('google_tokens')
+              .update({
+                refresh_token: envRefresh,
+                access_token: fbToken,
+                expires_at: expiresAt2.toISOString(),
+                updated_at: now2.toISOString(),
+              })
+              .eq('id', tokenRow.id);
+            if (upErr) {
+              console.error('Falha ao atualizar token com fallback:', upErr);
+            }
+
+            console.log('Fallback com secret funcionou, retornando novo access token');
+            return new Response(
+              JSON.stringify({
+                success: true,
+                access_token: fbToken,
+                expires_at: expiresAt2.toISOString(),
+                source: 'fallback_secret',
+              }),
+              { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+            );
+          } else {
+            const fbText = await fallbackResp.text();
+            console.error('Fallback com secret falhou:', fbText);
+          }
+        }
+
         return new Response(
           JSON.stringify({ 
             error: 'refresh_token_invalid',
