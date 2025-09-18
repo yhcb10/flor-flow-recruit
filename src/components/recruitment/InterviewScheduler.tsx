@@ -9,6 +9,7 @@ import { CalendarIcon, Clock, Users, Loader2 } from 'lucide-react';
 import { Candidate, Interview } from '@/types/recruitment';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { ToastAction } from '@/components/ui/toast';
 
 interface InterviewSchedulerProps {
   candidate: Candidate;
@@ -208,6 +209,20 @@ export function InterviewScheduler({ candidate, onInterviewScheduled, isReschedu
       if (response.error) {
         console.error('Erro na edge function:', response.error);
         console.error('Detalhes do erro:', JSON.stringify(response.error, null, 2));
+        const errAny: any = response.error as any;
+        const requiresReauth = errAny?.context?.requires_reauth || errAny?.context?.details?.requires_reauth || /reautorizar|refresh token expirou|invalid_grant/i.test(errAny?.message ?? '');
+        if (requiresReauth) {
+          toast({
+            title: 'Reautorização do Google necessária',
+            description: 'O refresh token expirou/revogado. Obtenha um novo refresh token e salve nas Credenciais Google.',
+            variant: 'destructive',
+            action: (
+              <ToastAction altText="Abrir guia" onClick={() => window.open('https://burxedzkpugyavsqkzaj.supabase.co/functions/v1/get-google-refresh-token','_blank')}>Obter Refresh Token</ToastAction>
+            ),
+          });
+          setIsScheduling(false);
+          return;
+        }
         throw new Error(`Edge function error: ${response.error.message || JSON.stringify(response.error)}`);
       }
 
@@ -305,18 +320,31 @@ export function InterviewScheduler({ candidate, onInterviewScheduled, isReschedu
       setInviteeEmails('');
       setNotes('');
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('=== ERRO COMPLETO NO AGENDAMENTO ===');
       console.error('Erro detalhado:', error);
       console.error('Stack trace:', error.stack);
       console.error('Tipo do erro:', typeof error);
       console.error('Propriedades do erro:', Object.keys(error));
-      
-      toast({
-        title: "Erro ao agendar",
-        description: `Erro: ${error.message || error.toString()}`,
-        variant: "destructive",
-      });
+
+      const msg = (error?.message || '').toString();
+      const requiresReauth = /reautorizar|refresh token expirou|invalid_grant/i.test(msg);
+      if (requiresReauth) {
+        toast({
+          title: 'Reautorização do Google necessária',
+          description: 'O refresh token expirou/revogado. Obtenha um novo refresh token e salve nas Credenciais Google.',
+          variant: 'destructive',
+          action: (
+            <ToastAction altText="Abrir guia" onClick={() => window.open('https://burxedzkpugyavsqkzaj.supabase.co/functions/v1/get-google-refresh-token','_blank')}>Obter Refresh Token</ToastAction>
+          ),
+        });
+      } else {
+        toast({
+          title: 'Erro ao agendar',
+          description: `Erro: ${error.message || error.toString()}`,
+          variant: 'destructive',
+        });
+      }
     } finally {
       setIsScheduling(false);
     }
