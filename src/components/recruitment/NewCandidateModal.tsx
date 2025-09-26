@@ -9,10 +9,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Upload } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Upload, FileStack } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { JobPosition } from '@/types/recruitment';
 import { ResumeUpload } from './ResumeUpload';
+import { BulkResumeUpload } from './BulkResumeUpload';
 import { supabase } from '@/integrations/supabase/client';
 
 interface NewCandidateModalProps {
@@ -99,17 +101,17 @@ export function NewCandidateModal({ isOpen, onClose, selectedPosition, available
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             <Upload className="h-6 w-6 text-primary" />
-            Enviar Currículo para Análise
+            Nova Candidatura
           </DialogTitle>
         </DialogHeader>
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Seleção de Vaga e Upload</CardTitle>
+            <CardTitle className="text-lg">Seleção de Vaga</CardTitle>
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="position-select">Vaga *</Label>
@@ -144,16 +146,58 @@ export function NewCandidateModal({ isOpen, onClose, selectedPosition, available
               )}
             </div>
           </CardHeader>
+          
           <CardContent>
             {!selectedJobPosition ? (
               <div className="text-center py-8 text-muted-foreground">
                 Selecione uma vaga para habilitar o upload
               </div>
             ) : !isProcessing ? (
-              <ResumeUpload
-                candidateId="temp"
-                onUploadComplete={handleResumeUpload}
-              />
+              <Tabs defaultValue="individual" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-6">
+                  <TabsTrigger value="individual" className="flex items-center gap-2">
+                    <Upload className="h-4 w-4" />
+                    Upload Individual
+                  </TabsTrigger>
+                  <TabsTrigger value="bulk" className="flex items-center gap-2">
+                    <FileStack className="h-4 w-4" />
+                    Upload em Massa
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="individual">
+                  <ResumeUpload
+                    candidateId="temp"
+                    onUploadComplete={handleResumeUpload}
+                  />
+                </TabsContent>
+                
+                <TabsContent value="bulk">
+                  {(() => {
+                    const position = availablePositions.find(p => p.id === selectedJobPosition);
+                    return (
+                      <BulkResumeUpload
+                        positionId={position?.endpointId || selectedJobPosition}
+                        positionTitle={position?.title || 'Posição não especificada'}
+                        onProcessingComplete={(processed, errors) => {
+                          toast({
+                            title: "Processamento concluído",
+                            description: `${processed} currículo(s) processado(s) com sucesso${errors > 0 ? `, ${errors} erro(s)` : ''}`,
+                            variant: errors > 0 ? "destructive" : "default"
+                          });
+                          
+                          // Fechar modal após processamento bem-sucedido
+                          if (processed > 0) {
+                            setTimeout(() => {
+                              handleClose();
+                            }, 2000);
+                          }
+                        }}
+                      />
+                    );
+                  })()}
+                </TabsContent>
+              </Tabs>
             ) : (
               <div className="text-center py-8">
                 <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
@@ -168,7 +212,7 @@ export function NewCandidateModal({ isOpen, onClose, selectedPosition, available
 
         <div className="flex justify-end">
           <Button variant="outline" onClick={handleClose} disabled={isProcessing}>
-            {isProcessing ? 'Processando...' : 'Cancelar'}
+            {isProcessing ? 'Processando...' : 'Fechar'}
           </Button>
         </div>
       </DialogContent>
