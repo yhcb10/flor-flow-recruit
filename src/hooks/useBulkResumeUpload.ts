@@ -168,24 +168,32 @@ export function useBulkResumeUpload() {
     let processed = 0;
     let errors = 0;
 
+    console.log(`📊 Iniciando processamento de ${pendingFiles.length} arquivo(s)`);
+
     for (let i = 0; i < pendingFiles.length; i++) {
       const file = pendingFiles[i];
+      console.log(`🔄 Processando arquivo ${i + 1}/${pendingFiles.length}: ${file.name}`);
+      
       const success = await processFile(file, positionId, positionTitle);
       
       if (success) {
         processed++;
+        console.log(`✅ Arquivo ${file.name} processado com sucesso`);
       } else {
         errors++;
+        console.log(`❌ Erro ao processar arquivo ${file.name}`);
       }
       
       setProgress(((i + 1) / pendingFiles.length) * 100);
       
       // Small delay between files to avoid overwhelming the system
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 2000));
     }
 
     setCurrentProcessing(null);
     setIsProcessing(false);
+
+    console.log(`✨ Processamento concluído: ${processed} sucesso(s), ${errors} erro(s)`);
 
     toast({
       title: "Processamento concluído",
