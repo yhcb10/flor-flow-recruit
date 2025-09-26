@@ -1,0 +1,230 @@
+import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+
+interface ProcessedFile {
+  id: string;
+  name: string;
+  status: 'pending' | 'processing' | 'completed' | 'error';
+  error?: string;
+  file?: File;
+}
+
+export function useBulkResumeUpload() {
+  const [files, setFiles] = useState<ProcessedFile[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [currentProcessing, setCurrentProcessing] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
+  const { toast } = useToast();
+
+  const sanitizeFileName = (fileName: string) => {
+    return fileName
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9.-]/g, '_')
+      .replace(/_+/g, '_')
+      .toLowerCase();
+  };
+
+  const validateFile = (file: File, maxSizeMB: number = 10): string | null => {
+    const allowedTypes = ['application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+      return 'Apenas arquivos PDF são permitidos.';
+    }
+
+    const maxSizeBytes = maxSizeMB * 1024 * 1024;
+    if (file.size > maxSizeBytes) {
+      return `Arquivo muito grande. Máximo ${maxSizeMB}MB.`;
+    }
+
+    return null;
+  };
+
+  const addFiles = (fileList: File[], maxSizeMB: number = 10) => {
+    const validFiles: ProcessedFile[] = [];
+    const errors: string[] = [];
+
+    fileList.forEach((file, index) => {
+      const validationError = validateFile(file, maxSizeMB);
+      if (validationError) {
+        errors.push(`${file.name}: ${validationError}`);
+      } else {
+        validFiles.push({
+          id: `${Date.now()}-${index}`,
+          name: file.name,
+          status: 'pending',
+          file: file
+        });
+      }
+    });
+
+    if (errors.length > 0) {
+      toast({
+        title: "Alguns arquivos foram rejeitados",
+        description: errors.join(', '),
+        variant: "destructive",
+      });
+    }
+
+    if (validFiles.length > 0) {
+      setFiles(prev => [...prev, ...validFiles]);
+      toast({
+        title: `${validFiles.length} arquivo(s) adicionado(s)`,
+        description: "Clique em 'Processar Todos' para iniciar o envio.",
+      });
+    }
+  };
+
+  const processFile = async (
+    processedFile: ProcessedFile,
+    positionId: string,
+    positionTitle: string
+  ): Promise<boolean> => {
+    if (!processedFile.file) return false;
+
+    try {
+      // Update status to processing
+      setFiles(prev => prev.map(f => 
+        f.id === processedFile.id 
+          ? { ...f, status: 'processing' }
+          : f
+      ));
+      setCurrentProcessing(processedFile.name);
+
+      // Upload file to Supabase Storage
+      const timestamp = Date.now();
+      const sanitizedFileName = sanitizeFileName(processedFile.file.name);
+      const fileName = `temp_${timestamp}_${sanitizedFileName}`;
+      const filePath = `curriculums/${fileName}`;
+
+      const { data, error } = await supabase.storage
+        .from('resumes')
+        .upload(filePath, processedFile.file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('resumes')
+        .getPublicUrl(filePath);
+
+      // Send to N8N for analysis
+      const { data: n8nResponse, error: n8nError } = await supabase.functions.invoke('send-resume-to-n8n', {
+        body: {
+          resumeUrl: publicUrl,
+          fileName: processedFile.file.name,
+          positionId: positionId,
+          positionTitle: positionTitle
+        }
+      });
+
+      if (n8nError) {
+        throw n8nError;
+      }
+
+      // Update status to completed
+      setFiles(prev => prev.map(f => 
+        f.id === processedFile.id 
+          ? { ...f, status: 'completed' }
+          : f
+      ));
+
+      return true;
+
+    } catch (error) {
+      console.error(`Erro ao processar ${processedFile.name}:`, error);
+      
+      // Update status to error
+      setFiles(prev => prev.map(f => 
+        f.id === processedFile.id 
+          ? { 
+              ...f, 
+              status: 'error',
+              error: error instanceof Error ? error.message : 'Erro desconhecido'
+            }
+          : f
+      ));
+
+      return false;
+    }
+  };
+
+  const processAllFiles = async (
+    positionId: string,
+    positionTitle: string,
+    onComplete?: (processed: number, errors: number) => void
+  ) => {
+    const pendingFiles = files.filter(f => f.status === 'pending');
+    if (pendingFiles.length === 0) return;
+
+    setIsProcessing(true);
+    setProgress(0);
+
+    let processed = 0;
+    let errors = 0;
+
+    for (let i = 0; i < pendingFiles.length; i++) {
+      const file = pendingFiles[i];
+      const success = await processFile(file, positionId, positionTitle);
+      
+      if (success) {
+        processed++;
+      } else {
+        errors++;
+      }
+      
+      setProgress(((i + 1) / pendingFiles.length) * 100);
+      
+      // Small delay between files to avoid overwhelming the system
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
+    setCurrentProcessing(null);
+    setIsProcessing(false);
+
+    toast({
+      title: "Processamento concluído",
+      description: `${processed} arquivo(s) processado(s) com sucesso. ${errors} erro(s).`,
+      variant: errors > 0 ? "destructive" : "default"
+    });
+
+    onComplete?.(processed, errors);
+  };
+
+  const removeFile = (id: string) => {
+    setFiles(prev => prev.filter(f => f.id !== id));
+  };
+
+  const clearAll = () => {
+    setFiles([]);
+    setProgress(0);
+    setCurrentProcessing(null);
+  };
+
+  const getStats = () => {
+    const total = files.length;
+    const pending = files.filter(f => f.status === 'pending').length;
+    const completed = files.filter(f => f.status === 'completed').length;
+    const error = files.filter(f => f.status === 'error').length;
+    const processing = files.filter(f => f.status === 'processing').length;
+
+    return { total, pending, completed, error, processing };
+  };
+
+  return {
+    files,
+    isProcessing,
+    currentProcessing,
+    progress,
+    addFiles,
+    processAllFiles,
+    removeFile,
+    clearAll,
+    getStats
+  };
+}

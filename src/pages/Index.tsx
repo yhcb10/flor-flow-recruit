@@ -5,6 +5,7 @@ import { KanbanBoard } from '@/components/recruitment/KanbanBoard';
 import { RecruitmentDashboard } from '@/components/recruitment/RecruitmentDashboard';
 import { JobPositionSelector } from '@/components/recruitment/JobPositionSelector';
 import { NewJobPositionModal } from '@/components/recruitment/NewJobPositionModal';
+import { BulkResumeUpload } from '@/components/recruitment/BulkResumeUpload';
 
 
 import { useRecruitmentKanban } from '@/hooks/useRecruitmentKanban';
@@ -180,7 +181,7 @@ const Index = () => {
 
 
         <Tabs defaultValue="kanban" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 max-w-2xl bg-muted/50 p-1 h-12 rounded-lg">
+          <TabsList className="grid w-full grid-cols-3 max-w-3xl bg-muted/50 p-1 h-12 rounded-lg">
             <TabsTrigger 
               value="dashboard" 
               className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md font-medium transition-all duration-200"
@@ -192,6 +193,12 @@ const Index = () => {
               className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md font-medium transition-all duration-200"
             >
               🎯 Processo Seletivo
+            </TabsTrigger>
+            <TabsTrigger 
+              value="bulk-upload" 
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md font-medium transition-all duration-200"
+            >
+              📄 Upload em Massa
             </TabsTrigger>
           </TabsList>
 
@@ -222,6 +229,39 @@ const Index = () => {
                 selectedPosition={selectedPosition}
                 availablePositions={jobPositions}
               />
+            )}
+          </TabsContent>
+
+          <TabsContent value="bulk-upload" className="mt-6">
+            {selectedPosition ? (
+              <BulkResumeUpload
+                positionId={selectedPosition.endpointId || selectedPosition.id}
+                positionTitle={selectedPosition.title}
+                onProcessingComplete={(processed, errors) => {
+                  toast({
+                    title: "Processamento concluído",
+                    description: `${processed} currículo(s) processado(s) com sucesso${errors > 0 ? `, ${errors} erro(s)` : ''}`,
+                    variant: errors > 0 ? "destructive" : "default"
+                  });
+                  
+                  // Refresh candidates data if needed
+                  if (processed > 0) {
+                    setTimeout(() => {
+                      window.location.reload();
+                    }, 2000);
+                  }
+                }}
+              />
+            ) : (
+              <div className="text-center py-12">
+                <div className="max-w-md mx-auto space-y-4">
+                  <div className="text-6xl">📋</div>
+                  <h3 className="text-lg font-semibold">Selecione uma Vaga</h3>
+                  <p className="text-muted-foreground">
+                    Escolha uma posição específica para fazer upload em massa de currículos
+                  </p>
+                </div>
+              </div>
             )}
           </TabsContent>
 
