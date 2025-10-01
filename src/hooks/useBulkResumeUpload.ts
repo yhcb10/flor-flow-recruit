@@ -91,6 +91,17 @@ export function useBulkResumeUpload() {
       ));
       setCurrentProcessing(processedFile.name);
 
+      // Buscar o endpoint_id da vaga
+      const { data: jobPosition, error: jobError } = await supabase
+        .from('job_positions')
+        .select('endpoint_id')
+        .eq('id', positionId)
+        .single();
+
+      if (jobError || !jobPosition?.endpoint_id) {
+        throw new Error('Não foi possível encontrar o endpoint_id da vaga');
+      }
+
       // Upload file to Supabase Storage
       const timestamp = Date.now();
       const sanitizedFileName = sanitizeFileName(processedFile.file.name);
@@ -113,12 +124,20 @@ export function useBulkResumeUpload() {
         .from('resumes')
         .getPublicUrl(filePath);
 
-      // Send to N8N for analysis
+      console.log(`📤 Enviando currículo para N8N:`, {
+        resumeUrl: publicUrl,
+        fileName: processedFile.file.name,
+        positionId: positionId,
+        endpointId: jobPosition.endpoint_id,
+        positionTitle: positionTitle
+      });
+
+      // Send to N8N for analysis - usar endpoint_id em vez de positionId
       const { data: n8nResponse, error: n8nError } = await supabase.functions.invoke('send-resume-to-n8n', {
         body: {
           resumeUrl: publicUrl,
           fileName: processedFile.file.name,
-          positionId: positionId,
+          positionId: jobPosition.endpoint_id, // Usar endpoint_id aqui
           positionTitle: positionTitle
         }
       });
@@ -126,6 +145,8 @@ export function useBulkResumeUpload() {
       if (n8nError) {
         throw n8nError;
       }
+
+      console.log(`✅ Currículo enviado com sucesso para N8N`);
 
       // Update status to completed
       setFiles(prev => prev.map(f => 
@@ -137,7 +158,7 @@ export function useBulkResumeUpload() {
       return true;
 
     } catch (error) {
-      console.error(`Erro ao processar ${processedFile.name}:`, error);
+      console.error(`❌ Erro ao processar ${processedFile.name}:`, error);
       
       // Update status to error
       setFiles(prev => prev.map(f => 

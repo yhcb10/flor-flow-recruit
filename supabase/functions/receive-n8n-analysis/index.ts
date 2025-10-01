@@ -80,7 +80,10 @@ serve(async (req) => {
       'gestor_ads_001': '5c852ff2-1fdc-4d54-b765-948fe54397e4', // UUID da vaga de Gestor de Ads
       'analista_de_inteligencia_artificial_e_automacoes_390000': '72a59b27-5286-4591-b841-af1c5dfcc87d', // UUID da vaga de Analista de IA
       'analista_de_seo_079246': 'a7e9ba85-9792-467e-ad9a-06b8f3b91e17', // UUID da vaga de Analista de SEO
-      'auxiliar_administrativo_671609': 'db99c48e-603e-4b56-a9f0-88ad5d34ba49' // UUID da vaga de Auxiliar Administrativo
+      'auxiliar_administrativo_671609': 'db99c48e-603e-4b56-a9f0-88ad5d34ba49', // UUID da vaga de Auxiliar Administrativo
+      'assistente_de_vendas_825303': '7370c7cb-fb47-4c53-a6af-4897c610f10a', // UUID da vaga de Assistente de Vendas
+      'operador_de_call_center_762189': 'f01f2dca-8102-48db-bd4c-2c3041851de7', // UUID da vaga de Operador de Call Center
+      'atendente_de_telemarketing_682982': 'a6e56bf3-04bb-47b3-8dfc-d51fcae0ac48' // UUID da vaga de Atendente de Telemarketing
     };
 
     const mappedPositionId = candidateData.id ? positionMapping[candidateData.id] || candidateData.id : null;
