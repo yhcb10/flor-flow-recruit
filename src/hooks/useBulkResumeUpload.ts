@@ -189,7 +189,22 @@ export function useBulkResumeUpload() {
     onComplete?: (processed: number, errors: number) => void
   ) => {
     const pendingFiles = files.filter(f => f.status === 'pending');
-    if (pendingFiles.length === 0) return;
+    
+    console.log(`📊 [BULK UPLOAD] Verificando arquivos pendentes...`);
+    console.log(`📊 [BULK UPLOAD] Total de arquivos: ${files.length}`);
+    console.log(`📊 [BULK UPLOAD] Arquivos pendentes: ${pendingFiles.length}`);
+    console.log(`📊 [BULK UPLOAD] Position ID: ${positionId}`);
+    console.log(`📊 [BULK UPLOAD] Position Title: ${positionTitle}`);
+    
+    if (pendingFiles.length === 0) {
+      console.log(`⚠️ [BULK UPLOAD] Nenhum arquivo pendente para processar`);
+      toast({
+        title: "Nenhum arquivo pendente",
+        description: "Adicione arquivos antes de processar.",
+        variant: "destructive"
+      });
+      return;
+    }
 
     setIsProcessing(true);
     setProgress(0);
@@ -197,23 +212,30 @@ export function useBulkResumeUpload() {
     let processed = 0;
     let errors = 0;
 
-    console.log(`📊 Iniciando processamento de ${pendingFiles.length} arquivo(s)`);
+    console.log(`🚀 [BULK UPLOAD] Iniciando processamento de ${pendingFiles.length} arquivo(s)`);
 
     for (let i = 0; i < pendingFiles.length; i++) {
       const file = pendingFiles[i];
-      console.log(`🔄 Processando arquivo ${i + 1}/${pendingFiles.length}: ${file.name}`);
+      console.log(`🔄 [BULK UPLOAD] [${i + 1}/${pendingFiles.length}] Processando: ${file.name}`);
       
-      const success = await processFile(file, positionId, positionTitle);
-      
-      if (success) {
-        processed++;
-        console.log(`✅ Arquivo ${file.name} processado com sucesso`);
-      } else {
+      try {
+        const success = await processFile(file, positionId, positionTitle);
+        
+        if (success) {
+          processed++;
+          console.log(`✅ [BULK UPLOAD] [${i + 1}/${pendingFiles.length}] Sucesso: ${file.name}`);
+        } else {
+          errors++;
+          console.log(`❌ [BULK UPLOAD] [${i + 1}/${pendingFiles.length}] Falha: ${file.name}`);
+        }
+      } catch (error) {
         errors++;
-        console.log(`❌ Erro ao processar arquivo ${file.name}`);
+        console.error(`❌ [BULK UPLOAD] [${i + 1}/${pendingFiles.length}] Erro não capturado:`, error);
       }
       
-      setProgress(((i + 1) / pendingFiles.length) * 100);
+      const newProgress = ((i + 1) / pendingFiles.length) * 100;
+      setProgress(newProgress);
+      console.log(`📈 [BULK UPLOAD] Progresso: ${Math.round(newProgress)}%`);
       
       // Small delay between files to avoid overwhelming the system
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -222,11 +244,14 @@ export function useBulkResumeUpload() {
     setCurrentProcessing(null);
     setIsProcessing(false);
 
-    console.log(`✨ Processamento concluído: ${processed} sucesso(s), ${errors} erro(s)`);
+    console.log(`✨ [BULK UPLOAD] Processamento concluído!`);
+    console.log(`✨ [BULK UPLOAD] Sucessos: ${processed}`);
+    console.log(`✨ [BULK UPLOAD] Erros: ${errors}`);
+    console.log(`✨ [BULK UPLOAD] Total: ${processed + errors}`);
 
     toast({
       title: "Processamento concluído",
-      description: `${processed} arquivo(s) processado(s) com sucesso. ${errors} erro(s).`,
+      description: `${processed} arquivo(s) processado(s) com sucesso. ${errors > 0 ? `${errors} erro(s).` : ''}`,
       variant: errors > 0 ? "destructive" : "default"
     });
 
