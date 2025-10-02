@@ -92,14 +92,22 @@ export function useBulkResumeUpload() {
       setCurrentProcessing(processedFile.name);
 
       // Buscar o endpoint_id da vaga
+      console.log(`🔍 Buscando endpoint_id para position_id: ${positionId}`);
       const { data: jobPosition, error: jobError } = await supabase
         .from('job_positions')
-        .select('endpoint_id')
+        .select('endpoint_id, title')
         .eq('id', positionId)
         .single();
 
-      if (jobError || !jobPosition?.endpoint_id) {
-        throw new Error('Não foi possível encontrar o endpoint_id da vaga');
+      console.log('📋 Vaga encontrada:', jobPosition);
+      console.log('❌ Erro ao buscar vaga:', jobError);
+
+      if (jobError) {
+        throw new Error(`Erro ao buscar vaga: ${jobError.message}`);
+      }
+
+      if (!jobPosition?.endpoint_id) {
+        throw new Error(`A vaga "${jobPosition?.title || 'desconhecida'}" não possui endpoint_id configurado. Configure o endpoint_id nas configurações da vaga.`);
       }
 
       // Upload file to Supabase Storage
