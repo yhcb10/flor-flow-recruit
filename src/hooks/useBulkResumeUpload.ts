@@ -91,13 +91,31 @@ export function useBulkResumeUpload() {
       ));
       setCurrentProcessing(processedFile.name);
 
-      // Buscar o endpoint_id da vaga
-      console.log(`🔍 Buscando endpoint_id para position_id: ${positionId}`);
-      const { data: jobPosition, error: jobError } = await supabase
-        .from('job_positions')
-        .select('endpoint_id, title')
-        .eq('id', positionId)
-        .single();
+      // Buscar a vaga por id (UUID) ou endpoint_id (string do N8N)
+      const isUuid = (val: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(val);
+      const byUuid = isUuid(positionId);
+      console.log(`🔍 Resolvendo vaga. Valor recebido: ${positionId} (é UUID? ${byUuid})`);
+
+      let jobPosition: { id?: string; endpoint_id?: string; title?: string } | null = null;
+      let jobError: any = null;
+
+      if (byUuid) {
+        const { data, error } = await supabase
+          .from('job_positions')
+          .select('id, endpoint_id, title')
+          .eq('id', positionId)
+          .maybeSingle();
+        jobPosition = data;
+        jobError = error;
+      } else {
+        const { data, error } = await supabase
+          .from('job_positions')
+          .select('id, endpoint_id, title')
+          .eq('endpoint_id', positionId)
+          .maybeSingle();
+        jobPosition = data;
+        jobError = error;
+      }
 
       console.log('📋 Vaga encontrada:', jobPosition);
       console.log('❌ Erro ao buscar vaga:', jobError);
@@ -106,8 +124,10 @@ export function useBulkResumeUpload() {
         throw new Error(`Erro ao buscar vaga: ${jobError.message}`);
       }
 
-      if (!jobPosition?.endpoint_id) {
-        throw new Error(`A vaga "${jobPosition?.title || 'desconhecida'}" não possui endpoint_id configurado. Configure o endpoint_id nas configurações da vaga.`);
+      const endpointForN8n = jobPosition?.endpoint_id || (byUuid ? null : positionId);
+
+      if (!endpointForN8n) {
+        throw new Error(`Não foi possível determinar o endpoint_id para a vaga. Configure o endpoint_id nas configurações da vaga.`);
       }
 
       // Upload file to Supabase Storage
@@ -135,17 +155,16 @@ export function useBulkResumeUpload() {
       console.log(`📤 Enviando currículo para N8N:`, {
         resumeUrl: publicUrl,
         fileName: processedFile.file.name,
-        positionId: positionId,
-        endpointId: jobPosition.endpoint_id,
+        positionId: endpointForN8n,
         positionTitle: positionTitle
       });
 
-      // Send to N8N for analysis - usar endpoint_id em vez de positionId
+      // Send to N8N for analysis - sempre enviar endpoint_id
       const { data: n8nResponse, error: n8nError } = await supabase.functions.invoke('send-resume-to-n8n', {
         body: {
           resumeUrl: publicUrl,
           fileName: processedFile.file.name,
-          positionId: jobPosition.endpoint_id, // Usar endpoint_id aqui
+          positionId: endpointForN8n,
           positionTitle: positionTitle
         }
       });
