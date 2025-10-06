@@ -440,7 +440,7 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, o
                   size="sm"
                   variant="ghost"
                   className="h-6 w-6 p-0 ml-1 hover:bg-success/20 hover:text-success"
-                  title="Abrir WhatsApp"
+                  title="Copiar link do WhatsApp"
                   onClick={(e) => {
                     e.stopPropagation();
                     const normalized = normalizeWhatsappPhoneBR(candidate.phone);
@@ -454,29 +454,27 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, o
                     }
                     const text = 'Olá! Vi seu currículo e gostaria de conversar sobre a vaga.';
                     const encoded = encodeURIComponent(text);
-                    const deepLink = `whatsapp://send?phone=${normalized}&text=${encoded}`;
-                    const webLink = `https://web.whatsapp.com/send?phone=${normalized}&text=${encoded}`;
                     const waMeLink = `https://wa.me/${normalized}?text=${encoded}`;
-                    // Tenta abrir via protocolo (app) — funciona mesmo quando domínios web estão bloqueados no preview
-                    window.location.href = deepLink;
-                    // Fallback: tenta abrir o WhatsApp Web em nova aba
-                    setTimeout(() => {
-                      try {
-                        window.open(webLink, '_blank', 'noopener,noreferrer');
-                      } catch (e) {
-                        // noop
-                      }
-                    }, 600);
-                    // Ajuda adicional: copia o link para o usuário usar fora do preview caso tudo esteja bloqueado
                     if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
                       navigator.clipboard.writeText(waMeLink)
                         .then(() => {
                           toast({
                             title: 'Link do WhatsApp copiado',
-                            description: 'Se não abrir automaticamente, cole o link copiado no navegador.',
+                            description: 'Cole onde preferir (navegador ou app).',
                           });
                         })
-                        .catch(() => {/* ignore */});
+                        .catch(() => {
+                          toast({
+                            title: 'Não foi possível copiar',
+                            description: waMeLink,
+                            variant: 'destructive',
+                          });
+                        });
+                    } else {
+                      toast({
+                        title: 'Copie manualmente',
+                        description: waMeLink,
+                      });
                     }
                   }}
                 >
