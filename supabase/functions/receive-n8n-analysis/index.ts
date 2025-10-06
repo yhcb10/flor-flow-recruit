@@ -25,6 +25,7 @@ interface N8NCandidateData {
   download_url?: string; // URL para download do PDF
   curriculo_pdf?: string; // PDF em base64 (compatibilidade)
   nome_arquivo?: string; // Nome do arquivo PDF
+  source?: string; // Fonte do currículo (indeed, linkedin, manual)
 }
 
 serve(async (req) => {
@@ -201,7 +202,7 @@ serve(async (req) => {
       email: candidateData.email || '',
       phone: candidateData.telefone || '',
       position_id: mappedPositionId, // Este já é o UUID correto
-      source: 'manual',
+      source: candidateData.source || 'manual',
       stage: 'analise_ia',
       resume_url: resumeUrl,
       resume_file_name: resumeFileName,

@@ -10,6 +10,7 @@ interface RequestBody {
   fileName: string;
   positionId: string;
   positionTitle: string;
+  source?: string;
   customWebhookUrl?: string;
 }
 
@@ -36,7 +37,7 @@ serve(async (req) => {
       throw new Error(`JSON inválido: ${parseError.message}`);
     }
     
-    const { resumeUrl, fileName, positionId, positionTitle, customWebhookUrl }: RequestBody = requestBody;
+    const { resumeUrl, fileName, positionId, positionTitle, source, customWebhookUrl }: RequestBody = requestBody;
 
     // Validar campos obrigatórios
     if (!resumeUrl || !fileName || !positionId || !positionTitle) {
@@ -49,6 +50,7 @@ serve(async (req) => {
       fileName,
       positionId,
       positionTitle,
+      source,
       customWebhookUrl
     });
 
@@ -75,7 +77,8 @@ serve(async (req) => {
       resumeUrl,
       fileName,
       positionId,
-      positionTitle
+      positionTitle,
+      source: source || 'manual'
     };
 
     // Enviar para o N8N

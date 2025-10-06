@@ -34,7 +34,7 @@ export interface Candidate {
   resumeUrl?: string;
   resumeText?: string;
   resumeFileName?: string;
-  source: 'indeed' | 'manual' | 'referral';
+  source: 'indeed' | 'linkedin' | 'manual' | 'referral';
   stage: CandidateStage;
   aiAnalysis?: AIAnalysis;
   notes: CandidateNote[];

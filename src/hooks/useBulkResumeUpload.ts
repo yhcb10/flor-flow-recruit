@@ -78,7 +78,8 @@ export function useBulkResumeUpload() {
   const processFile = async (
     processedFile: ProcessedFile,
     positionId: string,
-    positionTitle: string
+    positionTitle: string,
+    source: 'indeed' | 'linkedin'
   ): Promise<boolean> => {
     if (!processedFile.file) return false;
 
@@ -156,7 +157,8 @@ export function useBulkResumeUpload() {
         resumeUrl: publicUrl,
         fileName: processedFile.file.name,
         positionId: endpointForN8n,
-        positionTitle: positionTitle
+        positionTitle: positionTitle,
+        source: 'manual' // sempre manual para bulk upload
       });
 
       // Send to N8N for analysis - sempre enviar endpoint_id
@@ -165,7 +167,8 @@ export function useBulkResumeUpload() {
           resumeUrl: publicUrl,
           fileName: processedFile.file.name,
           positionId: endpointForN8n,
-          positionTitle: positionTitle
+          positionTitle: positionTitle,
+          source: 'manual' // sempre manual para bulk upload
         }
       });
 
@@ -205,6 +208,7 @@ export function useBulkResumeUpload() {
   const processAllFiles = async (
     positionId: string,
     positionTitle: string,
+    source: 'indeed' | 'linkedin',
     onComplete?: (processed: number, errors: number) => void
   ) => {
     const pendingFiles = files.filter(f => f.status === 'pending');
@@ -232,13 +236,14 @@ export function useBulkResumeUpload() {
     let errors = 0;
 
     console.log(`🚀 [BULK UPLOAD] Iniciando processamento de ${pendingFiles.length} arquivo(s)`);
+    console.log(`📍 [BULK UPLOAD] Fonte selecionada: ${source}`);
 
     for (let i = 0; i < pendingFiles.length; i++) {
       const file = pendingFiles[i];
       console.log(`🔄 [BULK UPLOAD] [${i + 1}/${pendingFiles.length}] Processando: ${file.name}`);
       
       try {
-        const success = await processFile(file, positionId, positionTitle);
+        const success = await processFile(file, positionId, positionTitle, source);
         
         if (success) {
           processed++;

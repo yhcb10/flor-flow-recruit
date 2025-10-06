@@ -18,21 +18,26 @@ interface ExtractedData {
 
 interface ResumeUploadProps {
   candidateId?: string;
-  onUploadComplete?: (url: string, fileName: string) => void;
+  onUploadComplete?: (url: string, fileName: string, source?: 'indeed' | 'linkedin') => void;
   onDataExtracted?: (data: ExtractedData, fullText?: string) => void;
   maxSizeMB?: number;
+  source?: 'indeed' | 'linkedin';
+  onSourceChange?: (source: 'indeed' | 'linkedin') => void;
 }
 
 export function ResumeUpload({ 
   candidateId, 
   onUploadComplete,
   onDataExtracted,
-  maxSizeMB = 10 
+  maxSizeMB = 10,
+  source = 'indeed',
+  onSourceChange
 }: ResumeUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<string | null>(null);
+  const [selectedSource, setSelectedSource] = useState<'indeed' | 'linkedin'>(source);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { extractResumeData, isExtracting } = useResumeExtraction();
@@ -136,7 +141,7 @@ export function ResumeUpload({
         description: "Currículo enviado com sucesso!",
       });
 
-      onUploadComplete?.(publicUrl, file.name);
+      onUploadComplete?.(publicUrl, file.name, selectedSource);
 
       // Extrair dados automaticamente se a callback foi fornecida
       if (onDataExtracted) {
@@ -207,9 +212,36 @@ export function ResumeUpload({
     }
   };
 
+  const handleSourceChange = (newSource: 'indeed' | 'linkedin') => {
+    setSelectedSource(newSource);
+    onSourceChange?.(newSource);
+  };
+
   return (
     <Card className="w-full">
       <CardContent className="p-6">
+        {/* Source Selection */}
+        <div className="mb-4">
+          <label className="text-sm font-medium mb-2 block">Fonte do Currículo</label>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant={selectedSource === 'indeed' ? 'default' : 'outline'}
+              onClick={() => handleSourceChange('indeed')}
+              className="flex-1"
+            >
+              Indeed
+            </Button>
+            <Button
+              type="button"
+              variant={selectedSource === 'linkedin' ? 'default' : 'outline'}
+              onClick={() => handleSourceChange('linkedin')}
+              className="flex-1"
+            >
+              LinkedIn
+            </Button>
+          </div>
+        </div>
         {!uploadedFile ? (
           <div
             onDragOver={handleDragOver}

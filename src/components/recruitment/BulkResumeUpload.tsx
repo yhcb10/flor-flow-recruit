@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { Upload, FileText, X, CheckCircle, AlertCircle, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,14 +10,19 @@ interface BulkResumeUploadProps {
   positionTitle: string;
   onProcessingComplete?: (totalProcessed: number, totalErrors: number) => void;
   maxSizeMB?: number;
+  source?: 'indeed' | 'linkedin';
+  onSourceChange?: (source: 'indeed' | 'linkedin') => void;
 }
 
 export function BulkResumeUpload({ 
   positionId,
   positionTitle,
   onProcessingComplete,
-  maxSizeMB = 10 
+  maxSizeMB = 10,
+  source = 'indeed',
+  onSourceChange
 }: BulkResumeUploadProps) {
+  const [selectedSource, setSelectedSource] = useState<'indeed' | 'linkedin'>(source);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const {
@@ -52,7 +57,12 @@ export function BulkResumeUpload({
   };
 
   const handleProcessAll = async () => {
-    await processAllFiles(positionId, positionTitle, onProcessingComplete);
+    await processAllFiles(positionId, positionTitle, selectedSource, onProcessingComplete);
+  };
+
+  const handleSourceChange = (newSource: 'indeed' | 'linkedin') => {
+    setSelectedSource(newSource);
+    onSourceChange?.(newSource);
   };
 
   const getStatusIcon = (status: 'pending' | 'processing' | 'completed' | 'error') => {
@@ -78,6 +88,31 @@ export function BulkResumeUpload({
       </CardHeader>
       
       <CardContent className="space-y-6">
+        {/* Source Selection */}
+        <div>
+          <label className="text-sm font-medium mb-2 block">Fonte dos Currículos</label>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant={selectedSource === 'indeed' ? 'default' : 'outline'}
+              onClick={() => handleSourceChange('indeed')}
+              className="flex-1"
+              disabled={isProcessing}
+            >
+              Indeed
+            </Button>
+            <Button
+              type="button"
+              variant={selectedSource === 'linkedin' ? 'default' : 'outline'}
+              onClick={() => handleSourceChange('linkedin')}
+              className="flex-1"
+              disabled={isProcessing}
+            >
+              LinkedIn
+            </Button>
+          </div>
+        </div>
+
         {/* Upload Area */}
         <div
           onDragOver={handleDragOver}

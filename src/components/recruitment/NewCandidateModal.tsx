@@ -28,9 +28,10 @@ export function NewCandidateModal({ isOpen, onClose, selectedPosition, available
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<string>('');
   const [selectedJobPosition, setSelectedJobPosition] = useState<string>(selectedPosition?.id || '');
+  const [selectedSource, setSelectedSource] = useState<'indeed' | 'linkedin'>('indeed');
   const { toast } = useToast();
 
-  const handleResumeUpload = async (url: string, fileName: string) => {
+  const handleResumeUpload = async (url: string, fileName: string, source?: 'indeed' | 'linkedin') => {
     if (!selectedJobPosition) {
       toast({
         title: "Selecione uma vaga",
@@ -52,7 +53,8 @@ export function NewCandidateModal({ isOpen, onClose, selectedPosition, available
           resumeUrl: url,
           fileName: fileName,
           positionId: position?.endpointId || selectedJobPosition,
-          positionTitle: position?.title || 'Posição não especificada'
+          positionTitle: position?.title || 'Posição não especificada',
+          source: source || selectedSource
         }
       });
 
@@ -96,6 +98,7 @@ export function NewCandidateModal({ isOpen, onClose, selectedPosition, available
   const handleClose = () => {
     setUploadedFile('');
     setIsProcessing(false);
+    setSelectedSource('indeed');
     onClose();
   };
 
@@ -169,6 +172,8 @@ export function NewCandidateModal({ isOpen, onClose, selectedPosition, available
                   <ResumeUpload
                     candidateId="temp"
                     onUploadComplete={handleResumeUpload}
+                    source={selectedSource}
+                    onSourceChange={setSelectedSource}
                   />
                 </TabsContent>
                 
@@ -179,6 +184,8 @@ export function NewCandidateModal({ isOpen, onClose, selectedPosition, available
                       <BulkResumeUpload
                         positionId={position?.endpointId || selectedJobPosition}
                         positionTitle={position?.title || 'Posição não especificada'}
+                        source={selectedSource}
+                        onSourceChange={setSelectedSource}
                         onProcessingComplete={(processed, errors) => {
                           toast({
                             title: "Processamento concluído",
