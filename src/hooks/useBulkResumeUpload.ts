@@ -158,7 +158,7 @@ export function useBulkResumeUpload() {
         fileName: processedFile.file.name,
         positionId: endpointForN8n,
         positionTitle: positionTitle,
-        source: 'manual' // sempre manual para bulk upload
+        source: source
       });
 
       // Send to N8N for analysis - sempre enviar endpoint_id
@@ -168,7 +168,7 @@ export function useBulkResumeUpload() {
           fileName: processedFile.file.name,
           positionId: endpointForN8n,
           positionTitle: positionTitle,
-          source: 'manual' // sempre manual para bulk upload
+          source: source
         }
       });
 
