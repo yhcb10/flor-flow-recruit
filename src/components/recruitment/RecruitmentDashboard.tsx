@@ -69,20 +69,20 @@ export function RecruitmentDashboard({ stats }: RecruitmentDashboardProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
         {metrics.map((metric) => {
           const Icon = metric.icon;
           return (
             <Card key={metric.title}>
-              <CardContent className="flex items-center p-6">
-                <div className={`${metric.bgColor} p-3 rounded-lg mr-4`}>
-                  <Icon className={`h-6 w-6 ${metric.color}`} />
+              <CardContent className="flex flex-col sm:flex-row sm:items-center p-3 sm:p-6 gap-2 sm:gap-0">
+                <div className={`${metric.bgColor} p-2 sm:p-3 rounded-lg sm:mr-4 self-start`}>
+                  <Icon className={`h-4 w-4 sm:h-6 sm:w-6 ${metric.color}`} />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">{metric.title}</p>
-                  <p className="text-2xl font-bold">{metric.value}</p>
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">{metric.title}</p>
+                  <p className="text-lg sm:text-2xl font-bold">{metric.value}</p>
                 </div>
               </CardContent>
             </Card>
@@ -95,20 +95,20 @@ export function RecruitmentDashboard({ stats }: RecruitmentDashboardProps) {
 
       {/* Stage Distribution */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5" />
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5" />
             Distribuição por Etapa
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <CardContent className="p-4 sm:p-6 pt-0">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
             {Object.entries(stats.byStage)
               .filter(([_, count]) => count > 0)
               .map(([stage, count]) => (
-                <div key={stage} className="text-center">
-                  <div className="text-2xl font-bold text-primary">{count}</div>
-                  <div className="text-xs text-muted-foreground mt-1">
+                <div key={stage} className="text-center p-2 sm:p-0">
+                  <div className="text-xl sm:text-2xl font-bold text-primary">{count}</div>
+                  <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
                     {stageLabels[stage as keyof typeof stageLabels] || stage}
                   </div>
                 </div>
@@ -119,10 +119,10 @@ export function RecruitmentDashboard({ stats }: RecruitmentDashboardProps) {
 
       {/* Quick Actions */}
       <Card>
-        <CardHeader>
-          <CardTitle>Ações Rápidas</CardTitle>
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-base sm:text-lg">Ações Rápidas</CardTitle>
         </CardHeader>
-        <CardContent className="flex gap-2 flex-wrap">
+        <CardContent className="flex gap-2 flex-wrap p-4 sm:p-6 pt-0">
           <Badge variant="outline" className="cursor-pointer hover:bg-secondary">
             Importar Currículos Indeed
           </Badge>

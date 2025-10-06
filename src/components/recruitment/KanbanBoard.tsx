@@ -164,15 +164,15 @@ export function KanbanBoard({
       <div className="h-full flex flex-col">
         {/* Sticky Header */}
         <div className="sticky top-0 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-          <div className="bg-kanban-bg p-6">
+          <div className="bg-kanban-bg p-3 sm:p-6">
             {/* Header */}
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3 sm:mb-4">
               <div>
-                <h1 className="text-2xl font-bold text-foreground">Processo Seletivo</h1>
-                <p className="text-muted-foreground">Coroa de Flores Nobre</p>
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground">Processo Seletivo</h1>
+                <p className="text-xs sm:text-sm text-muted-foreground">Coroa de Flores Nobre</p>
               </div>
               
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                 {/* Mobile Columns List */}
                 <KanbanColumnsList 
                   columns={filteredColumns} 
@@ -180,7 +180,7 @@ export function KanbanBoard({
                 />
 
                 {/* View Toggle */}
-                <div className="flex items-center bg-muted rounded-lg p-1">
+                <div className="hidden md:flex items-center bg-muted rounded-lg p-1">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -214,13 +214,13 @@ export function KanbanBoard({
                   </Tooltip>
                 </div>
 
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <div className="relative flex-1 sm:flex-initial min-w-0">
+                  <Search className="absolute left-2 sm:left-3 top-2 sm:top-3 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Buscar candidatos..."
+                    placeholder="Buscar..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 w-64"
+                    className="pl-7 sm:pl-10 w-full sm:w-48 md:w-64 h-8 sm:h-10 text-xs sm:text-sm"
                   />
                 </div>
                 
@@ -229,11 +229,11 @@ export function KanbanBoard({
                     <Button 
                       variant="outline" 
                       size="sm"
-                      className={cn(hasActiveFilters && "bg-primary text-primary-foreground")}
+                      className={cn(hasActiveFilters && "bg-primary text-primary-foreground", "h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm")}
                     >
-                      <Filter className="h-4 w-4 mr-2" />
-                      Filtros
-                      {hasActiveFilters && <Badge variant="secondary" className="ml-2 h-5 w-5 p-0 text-xs">!</Badge>}
+                      <Filter className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                      <span className="hidden sm:inline">Filtros</span>
+                      {hasActiveFilters && <Badge variant="secondary" className="ml-1 sm:ml-2 h-4 w-4 sm:h-5 sm:w-5 p-0 text-xs">!</Badge>}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-80" align="end">
@@ -320,9 +320,11 @@ export function KanbanBoard({
                 <Button 
                   size="sm"
                   onClick={() => setShowNewCandidateModal(true)}
+                  className="h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm"
                 >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Nova Candidatura
+                  <Plus className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Nova Candidatura</span>
+                  <span className="sm:hidden">Nova</span>
                 </Button>
               </div>
             </div>
@@ -339,7 +341,7 @@ export function KanbanBoard({
         </div>
 
         {/* Kanban Board Container */}
-        <div className="flex-1 bg-kanban-bg px-6 pb-6">
+        <div className="flex-1 bg-kanban-bg px-2 sm:px-6 pb-3 sm:pb-6">
           {/* Kanban Board */}
           <DragDropContext onDragEnd={handleDragEnd}>
             <div 
@@ -350,37 +352,37 @@ export function KanbanBoard({
                 scrollbarColor: 'hsl(var(--border)) transparent'
               }}
             >
-              <div className="flex gap-4 min-h-[600px]" style={{ minWidth: 'max-content' }}>
+              <div className="flex gap-2 sm:gap-4 min-h-[400px] sm:min-h-[600px]" style={{ minWidth: 'max-content' }}>
                 {filteredColumns.map((column, index) => (
                   <div 
                     key={column.id}
-                    className="flex-shrink-0 w-80"
+                    className="flex-shrink-0 w-72 sm:w-80"
                     data-column-id={column.id}
                   >
                     <Card className="bg-kanban-column border-border h-full flex flex-col">
                       {/* Column Header */}
-                      <div className="p-4 border-b border-border">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
-                            <h3 className="font-semibold text-foreground">{column.title}</h3>
+                      <div className="p-3 sm:p-4 border-b border-border">
+                        <div className="flex items-center justify-between mb-1 sm:mb-2">
+                          <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-1">
+                            <GripVertical className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground cursor-grab flex-shrink-0" />
+                            <h3 className="font-semibold text-foreground text-sm sm:text-base truncate">{column.title}</h3>
                           </div>
-                          <Badge variant="secondary" className="text-xs">
+                          <Badge variant="secondary" className="text-xs flex-shrink-0 ml-2">
                             {column.candidates.length}
                           </Badge>
                         </div>
-                        <p className="text-sm text-muted-foreground">{column.description}</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">{column.description}</p>
                       </div>
 
                       {/* Droppable Area with ScrollArea */}
-                      <ScrollArea className="flex-1 max-h-[calc(100vh-400px)]">
+                      <ScrollArea className="flex-1 max-h-[calc(100vh-300px)] sm:max-h-[calc(100vh-400px)]">
                         <Droppable droppableId={column.id}>
                           {(provided, snapshot) => (
                             <div
                               ref={provided.innerRef}
                               {...provided.droppableProps}
                               className={cn(
-                                "p-4 min-h-[500px] transition-colors",
+                                "p-2 sm:p-4 min-h-[300px] sm:min-h-[500px] transition-colors",
                                 snapshot.isDraggingOver && "bg-primary/5"
                               )}
                             >
@@ -392,7 +394,7 @@ export function KanbanBoard({
                                       {...provided.draggableProps}
                                       {...provided.dragHandleProps}
                                       className={cn(
-                                        "mb-3",
+                                        "mb-2 sm:mb-3",
                                         snapshot.isDragging && "rotate-2 scale-105"
                                       )}
                                     >

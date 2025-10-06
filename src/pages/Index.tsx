@@ -139,20 +139,21 @@ const Index = () => {
     <div className="min-h-screen bg-kanban-bg">
       {/* Compact Header */}
       <header className="bg-card border-b border-border shadow-sm">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+        <div className="container mx-auto px-3 sm:px-4 py-2 sm:py-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
               <img 
                 src={flowNobreLogo} 
                 alt="Flow Nobre" 
-                className="h-10 w-auto"
+                className="h-8 sm:h-10 w-auto flex-shrink-0"
               />
-              <div>
-                <p className="text-lg font-semibold text-foreground">Sistema de Gestão de Processo Seletivo</p>
+              <div className="min-w-0">
+                <p className="text-sm sm:text-lg font-semibold text-foreground truncate">Sistema de Gestão</p>
+                <p className="text-xs text-muted-foreground hidden sm:block">Processo Seletivo</p>
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
+            <div className="flex items-center gap-2 sm:gap-4">
+              <div className="text-right hidden md:block">
                 <div className="text-xs text-muted-foreground opacity-75">v1.0</div>
                 <div className="text-xs text-muted-foreground opacity-75">RH • Recursos Humanos</div>
               </div>
@@ -161,10 +162,10 @@ const Index = () => {
         </div>
       </header>
 
-      <div className="container mx-auto p-4">
+      <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
 
         {/* Job Position Selector */}
-        <div className="mb-6">
+        <div className="mb-4 sm:mb-6">
           <JobPositionSelector
             positions={jobPositions}
             selectedPosition={selectedPosition}
@@ -180,26 +181,28 @@ const Index = () => {
 
 
         <Tabs defaultValue="kanban" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 max-w-2xl bg-muted/50 p-1 h-12 rounded-lg">
+          <TabsList className="grid w-full grid-cols-2 max-w-full sm:max-w-2xl bg-muted/50 p-1 h-10 sm:h-12 rounded-lg">
             <TabsTrigger 
               value="dashboard" 
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md font-medium transition-all duration-200"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md font-medium transition-all duration-200 text-xs sm:text-sm"
             >
-              📊 Dashboard
+              <span className="hidden sm:inline">📊 Dashboard</span>
+              <span className="sm:hidden">📊</span>
             </TabsTrigger>
             <TabsTrigger 
               value="kanban" 
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md font-medium transition-all duration-200"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md font-medium transition-all duration-200 text-xs sm:text-sm"
             >
-              🎯 Processo Seletivo
+              <span className="hidden sm:inline">🎯 Processo Seletivo</span>
+              <span className="sm:hidden">🎯 Processo</span>
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="dashboard" className="mt-6">
+          <TabsContent value="dashboard" className="mt-3 sm:mt-6">
             <RecruitmentDashboard stats={positionStats} />
           </TabsContent>
 
-          <TabsContent value="kanban" className="mt-6">
+          <TabsContent value="kanban" className="mt-3 sm:mt-6">
             {loading || positionsLoading ? (
               <div className="flex items-center justify-center h-64">
                 <div className="text-lg text-muted-foreground">

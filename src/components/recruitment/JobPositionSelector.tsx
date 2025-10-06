@@ -80,31 +80,32 @@ export function JobPositionSelector({
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
+        <CardHeader className="p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-2">
-              <Briefcase className="h-5 w-5 text-primary" />
-              <CardTitle>Selecionar Vaga</CardTitle>
+              <Briefcase className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
+              <CardTitle className="text-base sm:text-lg">Selecionar Vaga</CardTitle>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               {selectedPosition && (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setShowDetailsModal(true)}
-                  className="gap-2"
+                  className="gap-1 sm:gap-2 text-xs sm:text-sm h-8 sm:h-9"
                 >
-                  <Eye className="h-4 w-4" />
-                  Ver Detalhes
+                  <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Ver Detalhes</span>
+                  <span className="sm:hidden">Detalhes</span>
                 </Button>
               )}
               {selectedPosition && selectedPosition.status === 'active' && (
                 <>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="outline" size="sm" className="text-orange-600 hover:text-orange-700 hover:bg-orange-50">
-                        <Pause className="h-4 w-4 mr-2" />
-                        Pausar
+                      <Button variant="outline" size="sm" className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3">
+                        <Pause className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                        <span className="hidden sm:inline">Pausar</span>
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
@@ -128,9 +129,9 @@ export function JobPositionSelector({
                   </AlertDialog>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50">
-                        <X className="h-4 w-4 mr-2" />
-                        Encerrar
+                      <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50 text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3">
+                        <X className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                        <span className="hidden sm:inline">Encerrar</span>
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
@@ -157,9 +158,9 @@ export function JobPositionSelector({
               {selectedPosition && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50">
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Remover
+                    <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50 text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3">
+                      <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                      <span className="hidden sm:inline">Remover</span>
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
@@ -182,17 +183,18 @@ export function JobPositionSelector({
                   </AlertDialogContent>
                 </AlertDialog>
               )}
-              <Button onClick={onNewPosition} variant="outline" size="sm" className="text-green-600 hover:text-green-700 hover:bg-green-50">
-                <Plus className="h-4 w-4 mr-2" />
-                Nova Vaga
+              <Button onClick={onNewPosition} variant="outline" size="sm" className="text-green-600 hover:text-green-700 hover:bg-green-50 text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3">
+                <Plus className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Nova Vaga</span>
+                <span className="sm:hidden">Nova</span>
               </Button>
             </div>
           </div>
-          <CardDescription>
+          <CardDescription className="text-xs sm:text-sm">
             Escolha a vaga para gerenciar os candidatos
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6 pt-0">
           <Select 
             value={selectedPosition?.id || "all"} 
             onValueChange={(value) => {
