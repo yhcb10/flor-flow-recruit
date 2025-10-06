@@ -159,8 +159,9 @@ export function CandidateModal({ candidate, isOpen, onClose, onUpdate, onDelete 
                             phoneNumber = '55' + phoneNumber;
                           }
                           
-                          const whatsappUrl = `https://wa.me/${phoneNumber}`;
-                          window.open(whatsappUrl, '_blank');
+                          const message = encodeURIComponent('Olá! Vi seu currículo e gostaria de conversar sobre a vaga.');
+                          const whatsappUrl = `https://web.whatsapp.com/send?phone=${phoneNumber}&text=${message}`;
+                          window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
                         }}
                         title="Abrir WhatsApp"
                       >
