@@ -440,7 +440,7 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, o
                   size="sm"
                   variant="ghost"
                   className="h-6 w-6 p-0 ml-1 hover:bg-success/20 hover:text-success"
-                  title="Copiar link do WhatsApp"
+                  title="Abrir WhatsApp"
                   onClick={(e) => {
                     e.stopPropagation();
                     const normalized = normalizeWhatsappPhoneBR(candidate.phone);
@@ -454,28 +454,8 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, o
                     }
                     const text = 'Olá! Vi seu currículo e gostaria de conversar sobre a vaga.';
                     const encoded = encodeURIComponent(text);
-                    const waMeLink = `https://wa.me/${normalized}?text=${encoded}`;
-                    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
-                      navigator.clipboard.writeText(waMeLink)
-                        .then(() => {
-                          toast({
-                            title: 'Link do WhatsApp copiado',
-                            description: 'Cole onde preferir (navegador ou app).',
-                          });
-                        })
-                        .catch(() => {
-                          toast({
-                            title: 'Não foi possível copiar',
-                            description: waMeLink,
-                            variant: 'destructive',
-                          });
-                        });
-                    } else {
-                      toast({
-                        title: 'Copie manualmente',
-                        description: waMeLink,
-                      });
-                    }
+                    const whatsappUrl = `https://wa.me/${normalized}?text=${encoded}`;
+                    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
                   }}
                 >
                   <MessageCircle className="h-3 w-3" />
