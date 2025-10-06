@@ -457,7 +457,7 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, o
                     const isMobile = /Android|iPhone|iPad|iPod|Windows Phone/i.test(navigator.userAgent);
                     const url = isMobile
                       ? `whatsapp://send?phone=${normalized}&text=${encoded}`
-                      : `https://api.whatsapp.com/send?phone=${normalized}&text=${encoded}`;
+                      : `https://web.whatsapp.com/send?phone=${normalized}&text=${encoded}`;
                     window.open(url, '_blank', 'noopener,noreferrer');
                   }}
                 >

@@ -165,9 +165,9 @@ export function CandidateModal({ candidate, isOpen, onClose, onUpdate, onDelete 
                           const text = 'Olá! Vi seu currículo e gostaria de conversar sobre a vaga.';
                           const encoded = encodeURIComponent(text);
                           const isMobile = /Android|iPhone|iPad|iPod|Windows Phone/i.test(navigator.userAgent);
-                          const url = isMobile
-                            ? `whatsapp://send?phone=${normalized}&text=${encoded}`
-                            : `https://api.whatsapp.com/send?phone=${normalized}&text=${encoded}`;
+                           const url = isMobile
+                             ? `whatsapp://send?phone=${normalized}&text=${encoded}`
+                             : `https://web.whatsapp.com/send?phone=${normalized}&text=${encoded}`;
                           window.open(url, '_blank', 'noopener,noreferrer');
                         }}
                       >
