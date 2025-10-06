@@ -23,7 +23,7 @@ import { InterviewScheduler } from './InterviewScheduler';
 import { InPersonInterviewScheduler } from './InPersonInterviewScheduler';
 import { PDFViewer } from './PDFViewer';
 import { useToast } from '@/hooks/use-toast';
-
+import { normalizeWhatsappPhoneBR } from '@/lib/utils';
 interface CandidateModalProps {
   candidate: Candidate;
   isOpen: boolean;
@@ -151,25 +151,27 @@ export function CandidateModal({ candidate, isOpen, onClose, onUpdate, onDelete 
                         size="sm"
                         variant="ghost"
                         className="h-6 w-6 p-0 ml-1 hover:bg-success/20 hover:text-success"
-                        asChild
                         title="Abrir WhatsApp"
+                        onClick={() => {
+                          const normalized = normalizeWhatsappPhoneBR(candidate.phone);
+                          if (!normalized) {
+                            toast({
+                              title: 'Telefone inválido',
+                              description: 'Verifique DDD e número. Ex.: (11) 9XXXX-XXXX',
+                              variant: 'destructive',
+                            });
+                            return;
+                          }
+                          const text = 'Olá! Vi seu currículo e gostaria de conversar sobre a vaga.';
+                          const encoded = encodeURIComponent(text);
+                          const isMobile = /Android|iPhone|iPad|iPod|Windows Phone/i.test(navigator.userAgent);
+                          const url = isMobile
+                            ? `whatsapp://send?phone=${normalized}&text=${encoded}`
+                            : `https://api.whatsapp.com/send?phone=${normalized}&text=${encoded}`;
+                          window.open(url, '_blank', 'noopener,noreferrer');
+                        }}
                       >
-                        <a
-                          href={(() => {
-                            let p = candidate.phone.replace(/\D/g, '');
-                            if (!p.startsWith('55')) p = '55' + p;
-                            const text = 'Olá! Vi seu currículo e gostaria de conversar sobre a vaga.';
-                            const encoded = encodeURIComponent(text);
-                            const isMobile = /Android|iPhone|iPad|iPod|Windows Phone/i.test(navigator.userAgent);
-                            return isMobile
-                              ? `whatsapp://send?phone=${p}&text=${encoded}`
-                              : `https://api.whatsapp.com/send?phone=${p}&text=${encoded}`;
-                          })()}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <MessageCircle className="h-3 w-3" />
-                        </a>
+                        <MessageCircle className="h-3 w-3" />
                       </Button>
                     )}
                   </div>
