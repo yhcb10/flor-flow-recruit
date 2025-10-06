@@ -440,19 +440,25 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, o
                   size="sm"
                   variant="ghost"
                   className="h-6 w-6 p-0 ml-1 hover:bg-success/20 hover:text-success"
-onClick={(e) => {
-                    e.stopPropagation();
-                    let phoneNumber = candidate.phone.replace(/\D/g, '');
-                    if (!phoneNumber.startsWith('55')) {
-                      phoneNumber = '55' + phoneNumber;
-                    }
-                    const text = 'Olá! Vi seu currículo e gostaria de conversar sobre a vaga.';
-                    const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(text)}`;
-                    window.location.href = url;
-                  }}
+                  asChild
                   title="Abrir WhatsApp"
                 >
-                  <MessageCircle className="h-3 w-3" />
+                  <a
+                    href={(() => {
+                      let p = candidate.phone.replace(/\D/g, '');
+                      if (!p.startsWith('55')) p = '55' + p;
+                      const text = 'Olá! Vi seu currículo e gostaria de conversar sobre a vaga.';
+                      const encoded = encodeURIComponent(text);
+                      const isMobile = /Android|iPhone|iPad|iPod|Windows Phone/i.test(navigator.userAgent);
+                      return isMobile
+                        ? `whatsapp://send?phone=${p}&text=${encoded}`
+                        : `https://api.whatsapp.com/send?phone=${p}&text=${encoded}`;
+                    })()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <MessageCircle className="h-3 w-3" />
+                  </a>
                 </Button>
               )}
             </div>
