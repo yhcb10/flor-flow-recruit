@@ -151,46 +151,15 @@ export function CandidateModal({ candidate, isOpen, onClose, onUpdate, onDelete 
                         size="sm"
                         variant="ghost"
                         className="h-6 w-6 p-0 ml-1 hover:bg-success/20 hover:text-success"
-onClick={async (e) => {
+onClick={(e) => {
                           e.stopPropagation();
-                          // Remove all non-numeric characters
                           let phoneNumber = candidate.phone.replace(/\D/g, '');
-                          
-                          // Check if already has country code 55
                           if (!phoneNumber.startsWith('55')) {
                             phoneNumber = '55' + phoneNumber;
                           }
-                          
                           const text = 'Olá! Vi seu currículo e gostaria de conversar sobre a vaga.';
-                          const encoded = encodeURIComponent(text);
-                          const isMobile = /Android|iPhone|iPad|iPod|Windows Phone/i.test(navigator.userAgent);
-
-                          const tryOpen = (url: string) => {
-                            const w = window.open(url, '_blank', 'noopener,noreferrer');
-                            return !!w;
-                          };
-
-                          let opened = false;
-                          if (isMobile) {
-                            opened = tryOpen(`whatsapp://send?phone=${phoneNumber}&text=${encoded}`)
-                              || tryOpen(`https://api.whatsapp.com/send?phone=${phoneNumber}&text=${encoded}`);
-                          } else {
-                            opened = tryOpen(`https://web.whatsapp.com/send?phone=${phoneNumber}&text=${encoded}`)
-                              || tryOpen(`https://api.whatsapp.com/send?phone=${phoneNumber}&text=${encoded}`);
-                          }
-
-                          if (!opened) {
-                            try {
-                              await navigator.clipboard.writeText(`${text}\n\nContato: +${phoneNumber}`);
-                              toast({
-                                title: 'Não foi possível abrir o WhatsApp',
-                                description: 'Copiamos a mensagem e o número. Abra o WhatsApp e cole para enviar.',
-                                variant: 'default',
-                              });
-                            } catch {
-                              alert('Não foi possível abrir o WhatsApp. Copie o número: +' + phoneNumber);
-                            }
-                          }
+                          const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(text)}`;
+                          window.location.href = url;
                         }}
                         title="Abrir WhatsApp"
                       >
