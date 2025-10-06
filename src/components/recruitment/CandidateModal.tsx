@@ -22,6 +22,7 @@ import { ResumeUpload } from './ResumeUpload';
 import { InterviewScheduler } from './InterviewScheduler';
 import { InPersonInterviewScheduler } from './InPersonInterviewScheduler';
 import { PDFViewer } from './PDFViewer';
+import { useToast } from '@/hooks/use-toast';
 
 interface CandidateModalProps {
   candidate: Candidate;
@@ -33,6 +34,7 @@ interface CandidateModalProps {
 
 export function CandidateModal({ candidate, isOpen, onClose, onUpdate, onDelete }: CandidateModalProps) {
   const [newNote, setNewNote] = useState('');
+  const { toast } = useToast();
 
   const handleResumeUpload = (url: string, fileName: string) => {
     const updatedCandidate = {
@@ -149,7 +151,7 @@ export function CandidateModal({ candidate, isOpen, onClose, onUpdate, onDelete 
                         size="sm"
                         variant="ghost"
                         className="h-6 w-6 p-0 ml-1 hover:bg-success/20 hover:text-success"
-                        onClick={(e) => {
+onClick={async (e) => {
                           e.stopPropagation();
                           // Remove all non-numeric characters
                           let phoneNumber = candidate.phone.replace(/\D/g, '');
@@ -159,9 +161,36 @@ export function CandidateModal({ candidate, isOpen, onClose, onUpdate, onDelete 
                             phoneNumber = '55' + phoneNumber;
                           }
                           
-                          const message = encodeURIComponent('Olá! Vi seu currículo e gostaria de conversar sobre a vaga.');
-                          const whatsappUrl = `https://web.whatsapp.com/send?phone=${phoneNumber}&text=${message}`;
-                          window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+                          const text = 'Olá! Vi seu currículo e gostaria de conversar sobre a vaga.';
+                          const encoded = encodeURIComponent(text);
+                          const isMobile = /Android|iPhone|iPad|iPod|Windows Phone/i.test(navigator.userAgent);
+
+                          const tryOpen = (url: string) => {
+                            const w = window.open(url, '_blank', 'noopener,noreferrer');
+                            return !!w;
+                          };
+
+                          let opened = false;
+                          if (isMobile) {
+                            opened = tryOpen(`whatsapp://send?phone=${phoneNumber}&text=${encoded}`)
+                              || tryOpen(`https://api.whatsapp.com/send?phone=${phoneNumber}&text=${encoded}`);
+                          } else {
+                            opened = tryOpen(`https://web.whatsapp.com/send?phone=${phoneNumber}&text=${encoded}`)
+                              || tryOpen(`https://api.whatsapp.com/send?phone=${phoneNumber}&text=${encoded}`);
+                          }
+
+                          if (!opened) {
+                            try {
+                              await navigator.clipboard.writeText(`${text}\n\nContato: +${phoneNumber}`);
+                              toast({
+                                title: 'Não foi possível abrir o WhatsApp',
+                                description: 'Copiamos a mensagem e o número. Abra o WhatsApp e cole para enviar.',
+                                variant: 'default',
+                              });
+                            } catch {
+                              alert('Não foi possível abrir o WhatsApp. Copie o número: +' + phoneNumber);
+                            }
+                          }
                         }}
                         title="Abrir WhatsApp"
                       >
