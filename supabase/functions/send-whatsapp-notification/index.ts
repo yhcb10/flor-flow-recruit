@@ -6,6 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const FUNCTION_VERSION = 'v2-2025-10-10-1807';
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -15,6 +17,7 @@ serve(async (req) => {
   try {
     const { candidateId, candidateName, candidatePhone, positionId } = await req.json();
 
+    console.log('🚀 Function version:', FUNCTION_VERSION);
     console.log('📱 Enviando notificação WhatsApp:', { candidateId, candidateName, candidatePhone, positionId });
 
     // Validar dados recebidos
@@ -43,9 +46,11 @@ serve(async (req) => {
     console.log('📋 Vaga encontrada:', position);
 
     // Construir payload para N8N
+    const digits = String(candidatePhone || '').replace(/\D/g, '');
+    const normalizedPhone = digits.startsWith('55') ? digits : `55${digits}`;
     const n8nPayload = {
       titulo_vaga: position.title,
-      numero_candidato: candidatePhone,
+      numero_candidato: normalizedPhone,
       nome_candidato: candidateName,
       candidate_id: candidateId,
       position_id: positionId,
