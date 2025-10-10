@@ -57,8 +57,8 @@ serve(async (req) => {
       timestamp: new Date().toISOString()
     };
 
-    // URL do webhook de teste do N8N
-    const n8nWebhookUrl = 'https://n8neditor.agentenobre.store/webhook-test/disparo';
+    // URL do webhook de produção do N8N
+    const n8nWebhookUrl = 'https://n8nwebhook.agentenobre.store/webhook/disparo';
 
     console.log('🔗 Enviando para N8N:', n8nWebhookUrl);
     console.log('📦 Payload:', n8nPayload);
