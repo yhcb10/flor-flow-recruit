@@ -44,27 +44,19 @@ serve(async (req) => {
 
     // Construir payload para N8N
     const n8nPayload = {
-      candidateId,
-      candidateName,
-      candidatePhone,
-      positionId,
-      positionTitle: position.title,
-      endpointId: position.endpoint_id,
-      timestamp: new Date().toISOString(),
-      action: 'send_whatsapp_notification'
+      titulo_vaga: position.title,
+      numero_candidato: candidatePhone,
+      nome_candidato: candidateName,
+      candidate_id: candidateId,
+      position_id: positionId,
+      timestamp: new Date().toISOString()
     };
 
-    // Obter URL do N8N do endpoint da vaga
-    // Formato: https://n8n.flownobre.com.br/webhook/<endpoint_id>
-    const n8nWebhookUrl = position.endpoint_id 
-      ? `https://n8n.flownobre.com.br/webhook/${position.endpoint_id}`
-      : null;
-
-    if (!n8nWebhookUrl) {
-      throw new Error('Endpoint N8N não configurado para esta vaga');
-    }
+    // URL do webhook de teste do N8N
+    const n8nWebhookUrl = 'https://n8neditor.agentenobre.store/webhook-test/disparo';
 
     console.log('🔗 Enviando para N8N:', n8nWebhookUrl);
+    console.log('📦 Payload:', n8nPayload);
 
     // Enviar para N8N
     const n8nResponse = await fetch(n8nWebhookUrl, {
