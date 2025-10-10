@@ -337,9 +337,9 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, o
         description: 'O candidato receberá a mensagem em breve.',
       });
 
-      // Move candidate to pre_entrevista stage
+      // Move candidate to aguardando_feedback_pre_entrevista stage
       if (onStageChange) {
-        onStageChange(candidate.id, 'pre_entrevista');
+        onStageChange(candidate.id, 'aguardando_feedback_pre_entrevista');
       }
     } catch (error: any) {
       console.error('Erro ao enviar mensagem:', error);

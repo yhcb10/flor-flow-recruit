@@ -406,7 +406,7 @@ export const kanbanColumns: KanbanColumn[] = [
   },
   {
     id: 'aguardando_feedback_pre_entrevista',
-    title: 'Aguardando Feedback',
+    title: 'Análise Vídeo',
     description: 'Aguardando retorno pós pré-entrevista',
     color: 'bg-status-pre-interview',
     candidates: [],
