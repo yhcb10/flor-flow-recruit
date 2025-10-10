@@ -332,9 +332,20 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, o
 
       if (error) throw error;
 
+      // Update candidate stage in database BEFORE showing success message
+      const { error: updateError } = await supabase
+        .from('candidates')
+        .update({ 
+          stage: 'aguardando_feedback_pre_entrevista',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', candidate.id);
+
+      if (updateError) throw updateError;
+
       toast({
         title: 'Mensagem enviada!',
-        description: 'O candidato receberá a mensagem em breve.',
+        description: 'O candidato foi movido para Análise Vídeo.',
       });
 
       // Move candidate to aguardando_feedback_pre_entrevista stage
