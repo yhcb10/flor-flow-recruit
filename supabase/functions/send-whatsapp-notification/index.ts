@@ -63,14 +63,13 @@ serve(async (req) => {
     console.log('🔗 Enviando para N8N:', n8nWebhookUrl);
     console.log('📦 Payload:', n8nPayload);
 
-    // Enviar para N8N
-    const n8nResponse = await fetch(n8nWebhookUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(n8nPayload),
+    // Enviar para N8N (GET com query params para webhook de teste)
+    const url = new URL(n8nWebhookUrl);
+    Object.entries(n8nPayload).forEach(([k, v]) => {
+      url.searchParams.set(k, String(v ?? ''));
     });
+
+    const n8nResponse = await fetch(url.toString(), { method: 'GET' });
 
     if (!n8nResponse.ok) {
       const errorText = await n8nResponse.text();
@@ -78,7 +77,13 @@ serve(async (req) => {
       throw new Error(`Falha ao enviar para N8N: ${n8nResponse.status} - ${errorText}`);
     }
 
-    const n8nResult = await n8nResponse.json();
+    let n8nResult: any;
+    const contentType = n8nResponse.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      n8nResult = await n8nResponse.json();
+    } else {
+      n8nResult = await n8nResponse.text();
+    }
     console.log('✅ Resposta do N8N:', n8nResult);
 
     return new Response(
