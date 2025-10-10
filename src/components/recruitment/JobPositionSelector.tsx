@@ -218,17 +218,20 @@ export function JobPositionSelector({
                   </div>
                 </div>
               </SelectItem>
-              {positions.map((position) => (
-                <SelectItem key={position.id} value={position.id}>
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="flex-1">
-                      <div className="font-medium truncate">{position.title}</div>
-                      <div className="text-sm text-muted-foreground truncate">{position.department}</div>
+              {positions.map((position) => {
+                if (!position || !position.id) return null;
+                return (
+                  <SelectItem key={position.id} value={position.id}>
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="flex-1">
+                        <div className="font-medium truncate">{position.title || 'Sem título'}</div>
+                        <div className="text-sm text-muted-foreground truncate">{position.department || 'Não especificado'}</div>
+                      </div>
+                      {getStatusBadge(position.status || 'active')}
                     </div>
-                    {getStatusBadge(position.status)}
-                  </div>
-                </SelectItem>
-              ))}
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
         </CardContent>

@@ -24,14 +24,14 @@ type DatabaseJobPosition = {
 // Convert database type to app type
 const convertDbToJobPosition = (dbPosition: DatabaseJobPosition): JobPosition => ({
   id: dbPosition.id,
-  title: dbPosition.title,
-  department: dbPosition.department,
-  description: dbPosition.description,
-  requirements: dbPosition.requirements,
-  responsibilities: dbPosition.responsibilities,
-  status: dbPosition.status as JobPosition['status'],
-  createdAt: new Date(dbPosition.created_at),
-  endpointId: dbPosition.endpoint_id,
+  title: dbPosition.title || 'Sem título',
+  department: dbPosition.department || 'Não especificado',
+  description: dbPosition.description || '',
+  requirements: Array.isArray(dbPosition.requirements) ? dbPosition.requirements : [],
+  responsibilities: Array.isArray(dbPosition.responsibilities) ? dbPosition.responsibilities : [],
+  status: (dbPosition.status as JobPosition['status']) || 'active',
+  createdAt: dbPosition.created_at ? new Date(dbPosition.created_at) : new Date(),
+  endpointId: dbPosition.endpoint_id || '',
   // Default values for missing fields
   culturalValues: [],
   minimumQualification: 'Ensino Médio completo',
@@ -41,15 +41,15 @@ const convertDbToJobPosition = (dbPosition: DatabaseJobPosition): JobPosition =>
 
 // Convert app type to database type
 const convertJobPositionToDb = (position: Omit<JobPosition, 'id' | 'createdAt' | 'updatedAt'>): Omit<DatabaseJobPosition, 'id' | 'created_at' | 'updated_at'> => ({
-  title: position.title,
-  department: position.department,
-  location: position.department, // Using department as location for now
-  type: 'full-time', // Default type
-  status: position.status,
-  requirements: position.requirements,
-  responsibilities: position.responsibilities,
-  benefits: [], // Default empty benefits
-  salary_range: '', // Default empty salary range
+  title: position.title || 'Sem título',
+  department: position.department || 'Não especificado',
+  location: position.department || 'Não especificado',
+  type: 'full-time',
+  status: position.status || 'active',
+  requirements: Array.isArray(position.requirements) ? position.requirements : [],
+  responsibilities: Array.isArray(position.responsibilities) ? position.responsibilities : [],
+  benefits: [],
+  salary_range: '',
   description: position.description || '',
   endpoint_id: position.endpointId || ''
 });
@@ -110,6 +110,10 @@ export const useJobPositions = () => {
         .single();
 
       if (error) throw error;
+      
+      if (!data) {
+        throw new Error('Nenhum dado retornado ao criar vaga');
+      }
 
       const newPosition = convertDbToJobPosition(data);
       setJobPositions(prev => [newPosition, ...prev]);
@@ -131,6 +135,10 @@ export const useJobPositions = () => {
         .single();
 
       if (error) throw error;
+      
+      if (!data) {
+        throw new Error('Nenhum dado retornado ao atualizar vaga');
+      }
 
       const updatedPosition = convertDbToJobPosition(data);
       setJobPositions(prev => 
