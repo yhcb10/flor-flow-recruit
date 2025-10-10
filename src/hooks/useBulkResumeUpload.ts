@@ -92,10 +92,10 @@ export function useBulkResumeUpload() {
       ));
       setCurrentProcessing(processedFile.name);
 
-      // Buscar a vaga por id (UUID) ou endpoint_id (string do N8N)
+      // VALIDAÇÃO CRÍTICA: Buscar a vaga por UUID ou endpoint_id
       const isUuid = (val: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(val);
       const byUuid = isUuid(positionId);
-      console.log(`🔍 Resolvendo vaga. Valor recebido: ${positionId} (é UUID? ${byUuid})`);
+      console.log(`🔍 [VALIDAÇÃO] Resolvendo vaga. Valor: ${positionId} (é UUID? ${byUuid})`);
 
       let jobPosition: { id?: string; endpoint_id?: string; title?: string } | null = null;
       let jobError: any = null;
@@ -118,17 +118,23 @@ export function useBulkResumeUpload() {
         jobError = error;
       }
 
-      console.log('📋 Vaga encontrada:', jobPosition);
-      console.log('❌ Erro ao buscar vaga:', jobError);
-
       if (jobError) {
+        console.error('❌ [ERRO] Erro ao buscar vaga:', jobError);
         throw new Error(`Erro ao buscar vaga: ${jobError.message}`);
       }
 
-      const endpointForN8n = jobPosition?.endpoint_id || (byUuid ? null : positionId);
+      if (!jobPosition) {
+        console.error('❌ [ERRO CRÍTICO] Vaga não encontrada:', positionId);
+        throw new Error(`Vaga não encontrada. Verifique se a vaga "${positionTitle}" está cadastrada no sistema.`);
+      }
+
+      console.log('✅ [VALIDAÇÃO] Vaga encontrada:', jobPosition);
+
+      const endpointForN8n = jobPosition.endpoint_id || (byUuid ? null : positionId);
 
       if (!endpointForN8n) {
-        throw new Error(`Não foi possível determinar o endpoint_id para a vaga. Configure o endpoint_id nas configurações da vaga.`);
+        console.error('❌ [ERRO CRÍTICO] endpoint_id não configurado para a vaga');
+        throw new Error(`A vaga "${jobPosition.title}" não possui um endpoint_id configurado. Configure o endpoint_id nas configurações da vaga.`);
       }
 
       // Upload file to Supabase Storage

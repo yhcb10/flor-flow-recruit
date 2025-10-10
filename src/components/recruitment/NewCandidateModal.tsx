@@ -32,6 +32,7 @@ export function NewCandidateModal({ isOpen, onClose, selectedPosition, available
   const { toast } = useToast();
 
   const handleResumeUpload = async (url: string, fileName: string, source?: 'indeed' | 'linkedin') => {
+    // VALIDAÇÃO CRÍTICA: Verificar se vaga foi selecionada
     if (!selectedJobPosition) {
       toast({
         title: "Selecione uma vaga",
@@ -41,19 +42,45 @@ export function NewCandidateModal({ isOpen, onClose, selectedPosition, available
       return;
     }
 
+    // VALIDAÇÃO: Verificar se a vaga existe
+    const position = availablePositions.find(p => p.id === selectedJobPosition);
+    if (!position) {
+      toast({
+        title: "Vaga inválida",
+        description: "A vaga selecionada não foi encontrada. Por favor, selecione outra vaga.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // VALIDAÇÃO: Verificar se a vaga tem endpoint_id configurado
+    if (!position.endpointId) {
+      toast({
+        title: "Configuração incompleta",
+        description: `A vaga "${position.title}" não possui um endpoint_id configurado. Configure nas configurações da vaga.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setUploadedFile(fileName);
     setIsProcessing(true);
     
     try {
-      const position = availablePositions.find(p => p.id === selectedJobPosition);
+      console.log('📤 Enviando currículo para análise:', {
+        vaga: position.title,
+        positionId: position.id,
+        endpointId: position.endpointId,
+        source: source || selectedSource
+      });
       
       // Enviar para o N8N usando a edge function atualizada
       const { data, error } = await supabase.functions.invoke('send-resume-to-n8n', {
         body: {
           resumeUrl: url,
           fileName: fileName,
-          positionId: position?.endpointId || selectedJobPosition,
-          positionTitle: position?.title || 'Posição não especificada',
+          positionId: position.endpointId, // Sempre enviar o endpoint_id
+          positionTitle: position.title,
           source: source || selectedSource
         }
       });
@@ -64,7 +91,7 @@ export function NewCandidateModal({ isOpen, onClose, selectedPosition, available
 
       toast({
         title: "Currículo enviado para análise",
-        description: `O currículo foi enviado para processamento da vaga: ${position?.title}`,
+        description: `O currículo foi enviado para processamento da vaga: ${position.title}`,
       });
       
       // Fechar modal após sucesso
@@ -73,7 +100,7 @@ export function NewCandidateModal({ isOpen, onClose, selectedPosition, available
       }, 2000);
       
     } catch (error) {
-      console.error('Erro ao enviar currículo:', error);
+      console.error('❌ Erro ao enviar currículo:', error);
       
       // Check if the error is due to N8N workflow being inactive
       const errorMessage = error?.message || '';
@@ -86,7 +113,7 @@ export function NewCandidateModal({ isOpen, onClose, selectedPosition, available
       } else {
         toast({
           title: "Erro no envio",
-          description: "Falha ao enviar currículo para análise.",
+          description: errorMessage || "Falha ao enviar currículo para análise.",
           variant: "destructive",
         });
       }

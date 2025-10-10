@@ -75,6 +75,13 @@ serve(async (req) => {
     console.log('========================');
 
     // Map position IDs
+    // ⚠️ CRÍTICO: Este mapeamento converte os IDs do N8N (endpoint_id) para os UUIDs do Supabase
+    // Ao criar uma NOVA VAGA no sistema:
+    // 1. Cadastre a vaga através da interface
+    // 2. Configure o endpoint_id da vaga (ex: "vendedor_002")
+    // 3. ADICIONE o mapeamento abaixo: 'endpoint_id': 'UUID-da-vaga'
+    // 4. Faça deploy desta função
+    // Veja VALIDACAO_CANDIDATOS.md para mais detalhes
     const positionMapping: { [key: string]: string } = {
       'vendedor_001': '4b941ff1-0efc-4c43-a654-f37ed43286d3', // UUID da vaga de Vendedor
       'vendedor_interno_849750': '8f120339-2b13-425d-a504-8157dd77f411', // UUID da vaga de Vendedor Interno (Farmer)
@@ -92,6 +99,39 @@ serve(async (req) => {
     console.log('ID recebido do N8N:', candidateData.id);
     console.log('Position ID mapeado:', mappedPositionId);
     console.log('Mapeamento disponível:', positionMapping);
+
+    // VALIDAÇÃO CRÍTICA: Verificar se position_id é um UUID válido e existe no banco
+    if (!mappedPositionId) {
+      console.error('❌ ERRO CRÍTICO: position_id não fornecido pelo N8N');
+      throw new Error('position_id é obrigatório. Configure o ID da vaga no N8N workflow.');
+    }
+
+    // Validar formato UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(mappedPositionId)) {
+      console.error('❌ ERRO CRÍTICO: position_id não é um UUID válido:', mappedPositionId);
+      throw new Error(`position_id "${mappedPositionId}" não é um UUID válido. Verifique o mapeamento de posições.`);
+    }
+
+    // Verificar se a vaga existe no banco de dados
+    const { data: jobPosition, error: jobError } = await supabase
+      .from('job_positions')
+      .select('id, title')
+      .eq('id', mappedPositionId)
+      .maybeSingle();
+
+    if (jobError) {
+      console.error('❌ ERRO ao buscar vaga:', jobError);
+      throw new Error(`Erro ao validar vaga: ${jobError.message}`);
+    }
+
+    if (!jobPosition) {
+      console.error('❌ ERRO CRÍTICO: Vaga não encontrada no banco:', mappedPositionId);
+      console.error('IDs de vagas disponíveis:', Object.values(positionMapping));
+      throw new Error(`Vaga com ID "${mappedPositionId}" não existe. Verifique se a vaga está cadastrada no sistema.`);
+    }
+
+    console.log('✅ Vaga validada:', jobPosition.title, mappedPositionId);
 
     // Verificar se já existe candidato com mesmo email para a mesma vaga
     if (candidateData.email && mappedPositionId) {
@@ -196,12 +236,17 @@ serve(async (req) => {
     }
   }
 
+    // VALIDAÇÃO FINAL: Garantir que todos os campos obrigatórios estão presentes
+    if (!candidateData.nome_completo || candidateData.nome_completo.trim() === '') {
+      throw new Error('nome_completo é obrigatório');
+    }
+
     // Transform N8N data to candidate format
     const candidate = {
-      name: candidateData.nome_completo,
-      email: candidateData.email || '',
-      phone: candidateData.telefone || '',
-      position_id: mappedPositionId, // Este já é o UUID correto
+      name: candidateData.nome_completo.trim(),
+      email: candidateData.email?.trim().toLowerCase() || '',
+      phone: candidateData.telefone?.trim() || '',
+      position_id: mappedPositionId, // Já validado como UUID válido e existente
       source: candidateData.source || 'manual',
       stage: 'analise_ia',
       resume_url: resumeUrl,
@@ -219,7 +264,7 @@ serve(async (req) => {
       }
     };
 
-    console.log('Candidato a ser inserido:', JSON.stringify(candidate, null, 2));
+    console.log('✅ Candidato validado e pronto para inserção:', JSON.stringify(candidate, null, 2));
 
     // Insert candidate into database
     const { data, error } = await supabase
