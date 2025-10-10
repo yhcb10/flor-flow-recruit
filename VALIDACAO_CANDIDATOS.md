@@ -11,6 +11,30 @@ Anteriormente, candidatos eram criados com `position_id` inválidos (strings em 
 - Dados inconsistentes no banco
 - Erros ao tentar filtrar por vaga
 
+## Campo `origem_candidato` (Novo)
+
+A partir de agora, o N8N deve enviar a variável `origem_candidato` com a origem real do candidato:
+- **"Indeed"** - Candidatos vindos do Indeed
+- **"LinkedIn"** - Candidatos vindos do LinkedIn
+- **"Indicação"** - Candidatos indicados
+- **"Outro"** ou qualquer outro valor personalizado
+
+**Prioridade de origem:**
+1. `origem_candidato` (novo, prioritário)
+2. `source` (antigo, deprecated)
+3. "manual" (fallback padrão)
+
+**Exemplo de payload N8N:**
+```json
+{
+  "nome_completo": "João Silva",
+  "email": "joao@email.com",
+  "origem_candidato": "Indeed",
+  "id": "vendedor_001",
+  ...
+}
+```
+
 ## Validações Implementadas
 
 ### 1. **Banco de Dados (Migration)**

@@ -25,7 +25,8 @@ interface N8NCandidateData {
   download_url?: string; // URL para download do PDF
   curriculo_pdf?: string; // PDF em base64 (compatibilidade)
   nome_arquivo?: string; // Nome do arquivo PDF
-  source?: string; // Fonte do currículo (indeed, linkedin, manual)
+  source?: string; // Fonte do currículo (indeed, linkedin, manual) - DEPRECATED: use origem_candidato
+  origem_candidato?: string; // Nova variável: origem real do candidato (ex: "Indeed", "LinkedIn", "Indicação", etc)
 }
 
 serve(async (req) => {
@@ -72,6 +73,8 @@ serve(async (req) => {
     console.log('download_url:', candidateData.download_url);
     console.log('curriculo_pdf:', candidateData.curriculo_pdf);
     console.log('nome_arquivo:', candidateData.nome_arquivo);
+    console.log('origem_candidato:', candidateData.origem_candidato);
+    console.log('source (deprecated):', candidateData.source);
     console.log('========================');
 
     // Map position IDs
@@ -241,13 +244,17 @@ serve(async (req) => {
       throw new Error('nome_completo é obrigatório');
     }
 
+    // Determinar a origem do candidato (priorizar origem_candidato, depois source, depois manual)
+    const candidateSource = candidateData.origem_candidato?.trim() || candidateData.source?.trim() || 'manual';
+    console.log('📍 Origem do candidato:', candidateSource);
+
     // Transform N8N data to candidate format
     const candidate = {
       name: candidateData.nome_completo.trim(),
       email: candidateData.email?.trim().toLowerCase() || '',
       phone: candidateData.telefone?.trim() || '',
       position_id: mappedPositionId, // Já validado como UUID válido e existente
-      source: candidateData.source || 'manual',
+      source: candidateSource, // Usar origem_candidato se disponível
       stage: 'analise_ia',
       resume_url: resumeUrl,
       resume_file_name: resumeFileName,
