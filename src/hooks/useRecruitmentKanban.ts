@@ -201,8 +201,8 @@ export function useRecruitmentKanban() {
       let sortedCandidates = candidatesByStage[column.id] || [];
       
       // Ordenar por horário de entrevista nas colunas específicas
-      if (column.id === 'pre_entrevista' || column.id === 'entrevista_presencial') {
-        const targetInterviewType = column.id === 'pre_entrevista' ? 'pre_interview' : 'in_person';
+      if (column.id === 'pre_entrevista' || column.id === 'aguardando_feedback_pre_entrevista' || column.id === 'entrevista_presencial') {
+        const targetInterviewType = (column.id === 'pre_entrevista' || column.id === 'aguardando_feedback_pre_entrevista') ? 'pre_interview' : 'in_person';
         
         sortedCandidates = sortedCandidates.sort((a, b) => {
           // Encontrar a próxima entrevista agendada do tipo correto

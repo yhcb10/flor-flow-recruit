@@ -402,6 +402,14 @@ export const kanbanColumns: KanbanColumn[] = [
     description: 'Entrevista online agendada',
     color: 'bg-status-interview',
     candidates: [],
+    allowedTransitions: ['aguardando_feedback_pre_entrevista', 'nao_aprovado']
+  },
+  {
+    id: 'aguardando_feedback_pre_entrevista',
+    title: 'Aguardando Feedback',
+    description: 'Aguardando retorno pós pré-entrevista',
+    color: 'bg-status-pre-interview',
+    candidates: [],
     allowedTransitions: ['selecao_entrevista_presencial', 'nao_aprovado']
   },
   {

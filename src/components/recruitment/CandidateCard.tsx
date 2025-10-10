@@ -15,6 +15,7 @@ import { InPersonInterviewScheduler } from './InPersonInterviewScheduler';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CandidateCardProps {
   candidate: Candidate;
@@ -64,6 +65,7 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, o
         };
       case 'selecao_pre_entrevista':
       case 'pre_entrevista':
+      case 'aguardando_feedback_pre_entrevista':
         return {
           bg: 'bg-status-pre-interview',
           border: 'border-status-pre-interview-border',
@@ -257,8 +259,8 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, o
         };
       case 'selecao_pre_entrevista':
         return {
-          title: 'Aguardando Agendamento',
-          description: 'Você precisa agendar a pré-entrevista com este candidato.'
+          title: 'Aguardando Ação',
+          description: 'Agende ou dispare mensagem para o candidato.'
         };
       case 'pre_entrevista':
         const hasScheduledInterview = Array.isArray(candidate.interviews) && candidate.interviews.some(i => i.status === 'scheduled' && i.type === 'pre_interview');
@@ -267,6 +269,11 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, o
           description: hasScheduledInterview 
             ? 'Pré-entrevista agendada. Aguardando realização.'
             : 'Você precisa agendar a pré-entrevista com este candidato.'
+        };
+      case 'aguardando_feedback_pre_entrevista':
+        return {
+          title: 'Aguardando Feedback',
+          description: 'Pré-entrevista realizada. Aguardando retorno e avaliação.'
         };
       case 'selecao_entrevista_presencial':
         return {
@@ -300,15 +307,54 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, o
     }
   };
 
+  const handleScheduleInterview = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowInterviewScheduler(true);
+  };
+
+  const handleSendWhatsAppMessage = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    try {
+      toast({
+        title: 'Enviando mensagem...',
+        description: 'Disparando mensagem via WhatsApp.',
+      });
+
+      const { error } = await supabase.functions.invoke('send-whatsapp-notification', {
+        body: {
+          candidateId: candidate.id,
+          candidateName: candidate.name,
+          candidatePhone: candidate.phone,
+          positionId: candidate.positionId
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Mensagem enviada!',
+        description: 'O candidato receberá a mensagem em breve.',
+      });
+
+      // Move candidate to pre_entrevista stage
+      if (onStageChange) {
+        onStageChange(candidate.id, 'pre_entrevista');
+      }
+    } catch (error: any) {
+      console.error('Erro ao enviar mensagem:', error);
+      toast({
+        title: 'Erro ao enviar mensagem',
+        description: error.message || 'Não foi possível disparar a mensagem.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handleApprove = (e: React.MouseEvent) => {
     e.stopPropagation();
     
-    // Para estágios de seleção, abrir modal de agendamento
-    if (candidate.stage === 'selecao_pre_entrevista') {
-      setShowInterviewScheduler(true);
-      return;
-    }
-    
+    // Para seleção de entrevista presencial, abrir modal de agendamento
     if (candidate.stage === 'selecao_entrevista_presencial') {
       setShowInPersonScheduler(true);
       return;
@@ -503,7 +549,26 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, o
           {/* Action Buttons - Always at bottom */}
           {canShowActionButtons && (
             <div className="flex gap-2 mt-3 pt-3 border-t border-muted/20">
-              {(candidate.stage === 'selecao_pre_entrevista' || candidate.stage === 'selecao_entrevista_presencial') ? (
+              {candidate.stage === 'selecao_pre_entrevista' ? (
+                <>
+                  <Button
+                    size="sm"
+                    onClick={handleScheduleInterview}
+                    className="flex-1 h-8 bg-warning text-warning-foreground hover:bg-warning/90"
+                  >
+                    <Clock className="h-3 w-3 mr-2" />
+                    Agendar
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleSendWhatsAppMessage}
+                    className="flex-1 h-8 bg-success text-success-foreground hover:bg-success/90"
+                  >
+                    <MessageCircle className="h-3 w-3 mr-2" />
+                    Disparar
+                  </Button>
+                </>
+              ) : candidate.stage === 'selecao_entrevista_presencial' ? (
                 <Button
                   size="sm"
                   onClick={handleApprove}

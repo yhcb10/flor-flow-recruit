@@ -50,6 +50,7 @@ export type CandidateStage =
   | 'analise_ia'
   | 'selecao_pre_entrevista'
   | 'pre_entrevista'
+  | 'aguardando_feedback_pre_entrevista'
   | 'selecao_entrevista_presencial'
   | 'entrevista_presencial'
   | 'aprovado'

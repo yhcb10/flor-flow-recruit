@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.refresh-google-token]
 verify_jwt = false
+
+[functions.send-whatsapp-notification]
+verify_jwt = false
