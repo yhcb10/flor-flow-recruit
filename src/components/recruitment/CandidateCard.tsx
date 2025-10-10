@@ -120,7 +120,7 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, o
     }
   };
 
-  const canShowActionButtons = ['analise_ia', 'pre_entrevista', 'entrevista_presencial', 'selecao_pre_entrevista', 'selecao_entrevista_presencial'].includes(candidate.stage);
+  const canShowActionButtons = ['analise_ia', 'pre_entrevista', 'entrevista_presencial', 'selecao_pre_entrevista', 'selecao_entrevista_presencial', 'aguardando_feedback_pre_entrevista'].includes(candidate.stage);
   const canShowTalentPoolButton = ['aprovado', 'nao_aprovado'].includes(candidate.stage);
 
   // Get interview status for visual indicators
@@ -577,6 +577,30 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, o
                   <Clock className="h-3 w-3 mr-2" />
                   Agendar
                 </Button>
+              ) : candidate.stage === 'aguardando_feedback_pre_entrevista' ? (
+                <>
+                  <Button
+                    size="sm"
+                    onClick={handleReject}
+                    className="flex-1 h-8 bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    <X className="h-3 w-3 mr-2" />
+                    Recusar
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onStageChange) {
+                        onStageChange(candidate.id, 'selecao_entrevista_presencial');
+                      }
+                    }}
+                    className="flex-1 h-8 bg-success text-success-foreground hover:bg-success/90"
+                  >
+                    <Check className="h-3 w-3 mr-2" />
+                    Aprovar
+                  </Button>
+                </>
               ) : candidate.stage === 'pre_entrevista' && Array.isArray(candidate.interviews) && candidate.interviews.some(i => i.status === 'scheduled' && i.type === 'pre_interview') ? (
                 <>
                   <Button
