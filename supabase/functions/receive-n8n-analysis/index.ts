@@ -138,23 +138,32 @@ serve(async (req) => {
     console.log('✅ Vaga validada:', jobPosition.title, mappedPositionId);
 
     // Verificar se já existe candidato com mesmo email para a mesma vaga
+    // IMPORTANTE: Só verifica duplicados se o email for válido e não for "não informado"
     let existingCandidateId = null;
-    if (candidateData.email && mappedPositionId) {
+    const normalizedEmail = candidateData.email?.trim().toLowerCase();
+    const isValidEmail = normalizedEmail && 
+                        normalizedEmail !== 'não informado' && 
+                        normalizedEmail !== 'nao informado' &&
+                        normalizedEmail.includes('@');
+    
+    if (isValidEmail && mappedPositionId) {
       const { data: existingCandidate, error: checkError } = await supabase
         .from('candidates')
         .select('id, name, email, position_id, stage')
-        .eq('email', candidateData.email.trim().toLowerCase())
+        .eq('email', normalizedEmail)
         .eq('position_id', mappedPositionId)
         .maybeSingle();
 
       if (checkError) {
         console.error('Erro ao verificar candidato existente:', checkError);
       } else if (existingCandidate) {
-        console.log(`✅ Candidato duplicado encontrado: ${candidateData.nome_completo} (${candidateData.email})`);
+        console.log(`✅ Candidato duplicado encontrado: ${candidateData.nome_completo} (${normalizedEmail})`);
         console.log(`📝 Candidato existente está no stage: ${existingCandidate.stage}`);
         console.log(`🔄 Atualizando dados do candidato ao invés de criar novo`);
         existingCandidateId = existingCandidate.id;
       }
+    } else if (!isValidEmail) {
+      console.log(`⚠️ Email inválido ou não informado - criando novo candidato sem verificar duplicatas`);
     }
 
   // Handle PDF download if provided - try multiple field variations
