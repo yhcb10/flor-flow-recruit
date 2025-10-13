@@ -3,8 +3,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Plus, Briefcase, Pause, X, Eye, Trash2 } from 'lucide-react';
+import { Plus, Briefcase, Pause, X, Eye, Trash2, Archive } from 'lucide-react';
 import { JobPosition } from '@/types/recruitment';
 import { useToast } from '@/hooks/use-toast';
 import { JobPositionDetailsModal } from './JobPositionDetailsModal';
@@ -32,6 +34,7 @@ export function JobPositionSelector({
 }: JobPositionSelectorProps) {
   const { toast } = useToast();
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showClosedPositions, setShowClosedPositions] = useState(false);
 
   const handleClosePosition = (positionId: string) => {
     const position = positions.find(p => p.id === positionId);
@@ -77,6 +80,11 @@ export function JobPositionSelector({
     return <Badge variant="outline" className={config.className}>{config.label}</Badge>;
   };
 
+  // Filtrar vagas baseado no toggle
+  const activePositions = positions.filter(p => p.status === 'active');
+  const closedPositions = positions.filter(p => p.status === 'closed' || p.status === 'paused');
+  const displayedPositions = showClosedPositions ? positions : activePositions;
+
   return (
     <div className="space-y-4">
       <Card>
@@ -84,9 +92,26 @@ export function JobPositionSelector({
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-2">
               <Briefcase className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
-              <CardTitle className="text-base sm:text-lg">Selecionar Vaga</CardTitle>
+              <div>
+                <CardTitle className="text-base sm:text-lg">Selecionar Vaga</CardTitle>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {activePositions.length} ativas • {closedPositions.length} encerradas
+                </p>
+              </div>
             </div>
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex gap-2 flex-wrap items-center">
+              <div className="flex items-center space-x-2 bg-muted/50 px-3 py-1.5 rounded-md">
+                <Switch
+                  id="show-closed"
+                  checked={showClosedPositions}
+                  onCheckedChange={setShowClosedPositions}
+                />
+                <Label htmlFor="show-closed" className="text-xs cursor-pointer flex items-center gap-1.5">
+                  <Archive className="h-3 w-3" />
+                  <span className="hidden sm:inline">Mostrar encerradas</span>
+                  <span className="sm:hidden">Encerradas</span>
+                </Label>
+              </div>
               {selectedPosition && (
                 <Button
                   variant="outline"
@@ -191,7 +216,9 @@ export function JobPositionSelector({
             </div>
           </div>
           <CardDescription className="text-xs sm:text-sm">
-            Escolha a vaga para gerenciar os candidatos
+            {showClosedPositions 
+              ? 'Mostrando todas as vagas (ativas e encerradas)' 
+              : 'Mostrando apenas vagas ativas • Ative o toggle acima para ver vagas encerradas'}
           </CardDescription>
         </CardHeader>
         <CardContent className="p-4 sm:p-6 pt-0">
@@ -213,12 +240,14 @@ export function JobPositionSelector({
               <SelectItem value="all">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <div className="flex-1">
-                    <div className="font-medium">🌟 Todas as Vagas</div>
-                    <div className="text-sm text-muted-foreground">Ver todos os candidatos</div>
+                    <div className="font-medium">🌟 Todas as Vagas {showClosedPositions ? '(Ativas + Encerradas)' : '(Apenas Ativas)'}</div>
+                    <div className="text-sm text-muted-foreground">
+                      Ver candidatos de {displayedPositions.length} vaga(s)
+                    </div>
                   </div>
                 </div>
               </SelectItem>
-              {positions.map((position) => {
+              {displayedPositions.map((position) => {
                 if (!position || !position.id) return null;
                 return (
                   <SelectItem key={position.id} value={position.id}>

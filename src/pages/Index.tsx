@@ -35,19 +35,21 @@ const Index = () => {
   console.log('📊 Total candidatos no Index:', candidates.length);
   console.log('📍 Posição selecionada:', selectedPosition?.title || 'Todas as Vagas');
   
-  // Filter candidates by selected position (using position_id which is the UUID)
+  // Filter candidates by selected position and only active job positions
+  const activeJobPositionIds = jobPositions.filter(p => p.status === 'active').map(p => p.id);
+  
   const positionCandidates = selectedPosition 
     ? candidates.filter(candidate => candidate.positionId === selectedPosition.id)
-    : candidates;
+    : candidates.filter(candidate => activeJobPositionIds.includes(candidate.positionId));
     
-  console.log('🔍 Candidatos filtrados:', positionCandidates.length, 'de', candidates.length);
+  console.log('🔍 Candidatos filtrados:', positionCandidates.length, 'de', candidates.length, '(apenas vagas ativas)');
   
-  // Filter columns to only show candidates for selected position
+  // Filter columns to only show candidates for selected position or active positions
   const filteredColumns = columns.map(column => ({
     ...column,
     candidates: selectedPosition 
       ? column.candidates.filter(candidate => candidate.positionId === selectedPosition.id)
-      : column.candidates
+      : column.candidates.filter(candidate => activeJobPositionIds.includes(candidate.positionId))
   }));
   
   // Calculate stats for selected position only
