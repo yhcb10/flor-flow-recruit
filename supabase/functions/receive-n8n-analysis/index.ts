@@ -77,65 +77,66 @@ serve(async (req) => {
     console.log('source (deprecated):', candidateData.source);
     console.log('========================');
 
-    // Map position IDs
-    // ⚠️ CRÍTICO: Este mapeamento converte os IDs do N8N (endpoint_id) para os UUIDs do Supabase
-    // Ao criar uma NOVA VAGA no sistema:
-    // 1. Cadastre a vaga através da interface
-    // 2. Configure o endpoint_id da vaga (ex: "vendedor_002")
-    // 3. ADICIONE o mapeamento abaixo: 'endpoint_id': 'UUID-da-vaga'
-    // 4. Faça deploy desta função
-    // Veja VALIDACAO_CANDIDATOS.md para mais detalhes
-    const positionMapping: { [key: string]: string } = {
-      'vendedor_001': '4b941ff1-0efc-4c43-a654-f37ed43286d3', // UUID da vaga de Vendedor
-      'vendedor_interno_849750': '8f120339-2b13-425d-a504-8157dd77f411', // UUID da vaga de Vendedor Interno (Farmer)
-      'gestor_ads_001': '5c852ff2-1fdc-4d54-b765-948fe54397e4', // UUID da vaga de Gestor de Ads
-      'analista_de_inteligencia_artificial_e_automacoes_390000': '72a59b27-5286-4591-b841-af1c5dfcc87d', // UUID da vaga de Analista de IA
-      'analista_de_seo_079246': 'a7e9ba85-9792-467e-ad9a-06b8f3b91e17', // UUID da vaga de Analista de SEO
-      'auxiliar_administrativo_671609': 'db99c48e-603e-4b56-a9f0-88ad5d34ba49', // UUID da vaga de Auxiliar Administrativo
-      'assistente_de_vendas_825303': '7370c7cb-fb47-4c53-a6af-4897c610f10a', // UUID da vaga de Assistente de Vendas
-      'operador_de_call_center_762189': 'f01f2dca-8102-48db-bd4c-2c3041851de7', // UUID da vaga de Operador de Call Center
-      'atendente_de_telemarketing_682982': 'a6e56bf3-04bb-47b3-8dfc-d51fcae0ac48', // UUID da vaga de Atendente de Telemarketing
-      'gerente_de_contas_b2b_703662': 'e15bc7b4-add0-4916-9581-cbc342b9cd92' // UUID da vaga de Gerente de Contas B2B
-    };
+    // Resolver position_id de forma dinâmica e robusta (aceita UUID, endpoint_id e estruturas aninhadas)
+    // Suporta: { id }, { position_id }, { vaga: { id } }, { vaga_id }, { job_id }
+    const rawPositionIdentifier: string | null = (
+      (candidateData as any).position_id ||
+      candidateData.id ||
+      (candidateData as any).vaga?.id ||
+      (candidateData as any).vaga_id ||
+      (candidateData as any).job_id ||
+      null
+    );
 
-    const mappedPositionId = candidateData.id ? positionMapping[candidateData.id] || candidateData.id : null;
-    
-    console.log('ID recebido do N8N:', candidateData.id);
-    console.log('Position ID mapeado:', mappedPositionId);
-    console.log('Mapeamento disponível:', positionMapping);
+    console.log('Identificador de vaga recebido:', rawPositionIdentifier);
 
-    // VALIDAÇÃO CRÍTICA: Verificar se position_id é um UUID válido e existe no banco
-    if (!mappedPositionId) {
-      console.error('❌ ERRO CRÍTICO: position_id não fornecido pelo N8N');
-      throw new Error('position_id é obrigatório. Configure o ID da vaga no N8N workflow.');
+    if (!rawPositionIdentifier) {
+      console.error('❌ ERRO CRÍTICO: position_id/endpoint_id não fornecido no payload do N8N');
+      throw new Error('position_id é obrigatório. Envie o UUID da vaga ou o endpoint_id configurado na vaga.');
     }
 
     // Validar formato UUID
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(mappedPositionId)) {
-      console.error('❌ ERRO CRÍTICO: position_id não é um UUID válido:', mappedPositionId);
-      throw new Error(`position_id "${mappedPositionId}" não é um UUID válido. Verifique o mapeamento de posições.`);
+
+    let mappedPositionId: string | null = null;
+    let jobPosition: { id: string; title: string } | null = null;
+
+    if (uuidRegex.test(rawPositionIdentifier)) {
+      // Já é um UUID: validar existência
+      const { data, error } = await supabase
+        .from('job_positions')
+        .select('id, title')
+        .eq('id', rawPositionIdentifier)
+        .maybeSingle();
+      if (error) {
+        console.error('❌ ERRO ao validar vaga por UUID:', error);
+        throw new Error(`Erro ao validar vaga: ${error.message}`);
+      }
+      if (!data) {
+        throw new Error(`Vaga com ID "${rawPositionIdentifier}" não existe.`);
+      }
+      mappedPositionId = data.id;
+      jobPosition = data as any;
+    } else {
+      // Não é UUID: tratar como endpoint_id dinâmico
+      const endpointId = rawPositionIdentifier.toString().trim();
+      const { data, error } = await supabase
+        .from('job_positions')
+        .select('id, title, endpoint_id')
+        .eq('endpoint_id', endpointId)
+        .maybeSingle();
+      if (error) {
+        console.error('❌ ERRO ao buscar vaga por endpoint_id:', error);
+        throw new Error(`Erro ao validar vaga (endpoint_id): ${error.message}`);
+      }
+      if (!data) {
+        throw new Error(`Vaga com endpoint_id "${endpointId}" não encontrada. Configure o endpoint_id da vaga e reenvie.`);
+      }
+      mappedPositionId = (data as any).id;
+      jobPosition = { id: (data as any).id, title: (data as any).title };
     }
 
-    // Verificar se a vaga existe no banco de dados
-    const { data: jobPosition, error: jobError } = await supabase
-      .from('job_positions')
-      .select('id, title')
-      .eq('id', mappedPositionId)
-      .maybeSingle();
-
-    if (jobError) {
-      console.error('❌ ERRO ao buscar vaga:', jobError);
-      throw new Error(`Erro ao validar vaga: ${jobError.message}`);
-    }
-
-    if (!jobPosition) {
-      console.error('❌ ERRO CRÍTICO: Vaga não encontrada no banco:', mappedPositionId);
-      console.error('IDs de vagas disponíveis:', Object.values(positionMapping));
-      throw new Error(`Vaga com ID "${mappedPositionId}" não existe. Verifique se a vaga está cadastrada no sistema.`);
-    }
-
-    console.log('✅ Vaga validada:', jobPosition.title, mappedPositionId);
+    console.log('✅ Vaga validada:', jobPosition?.title, mappedPositionId);
 
     // Verificar se já existe candidato com mesmo email para a mesma vaga
     // IMPORTANTE: Só verifica duplicados se o email for válido e não for "não informado"
@@ -249,26 +250,56 @@ serve(async (req) => {
     const candidateSource = candidateData.origem_candidato?.trim() || candidateData.source?.trim() || 'manual';
     console.log('📍 Origem do candidato:', candidateSource);
 
+    // Normalizar dados recebidos (suporta estruturas aninhadas do N8N)
+    const nomeCompleto = (candidateData.nome_completo ?? (candidateData as any).candidato?.nome_completo ?? '').toString().trim();
+    const emailNorm = ((candidateData.email ?? (candidateData as any).candidato?.email ?? '') as string).toString().trim().toLowerCase();
+    const telefoneNorm = ((candidateData.telefone ?? (candidateData as any).candidato?.telefone ?? '') as string).toString().trim();
+
+    const notaFinalRaw = (candidateData as any).nota_final ?? (candidateData as any).avaliacao?.nota_final;
+    const score = typeof notaFinalRaw === 'string' ? parseFloat(notaFinalRaw) : Number(notaFinalRaw ?? 0);
+
+    const justificativa = (candidateData as any).justificativa ?? (candidateData as any).avaliacao?.justificativa ?? '';
+    const pontosFortesRaw = (candidateData as any).pontos_fortes ?? (candidateData as any).avaliacao?.pontos_fortes;
+    const pontosFracosRaw = (candidateData as any).pontos_fracos ?? (candidateData as any).avaliacao?.pontos_fracos;
+
+    const parseArray = (val: any): string[] => {
+      if (!val) return [];
+      if (Array.isArray(val)) return val;
+      if (typeof val === 'string') {
+        try {
+          const parsed = JSON.parse(val);
+          return Array.isArray(parsed) ? parsed : [val];
+        } catch {
+          return [val];
+        }
+      }
+      return [];
+    };
+
+    const recomendacaoRaw = ((candidateData as any).recomendacao ?? (candidateData as any).avaliacao?.recomendacao ?? '').toString().toUpperCase();
+    const observacoes = (candidateData as any).observacoes ?? (candidateData as any).avaliacao?.observacoes ?? '';
+    const proximosPassos = (candidateData as any).proximos_passos ?? (candidateData as any).avaliacao?.proximos_passos ?? '';
+
     // Transform N8N data to candidate format
     const candidate = {
-      name: candidateData.nome_completo.trim(),
-      email: candidateData.email?.trim().toLowerCase() || '',
-      phone: candidateData.telefone?.trim() || '',
+      name: nomeCompleto,
+      email: emailNorm || '',
+      phone: telefoneNorm,
       position_id: mappedPositionId, // Já validado como UUID válido e existente
       source: candidateSource, // Usar origem_candidato se disponível
       stage: 'analise_ia',
       resume_url: resumeUrl,
       resume_file_name: resumeFileName,
       ai_analysis: {
-        score: candidateData.nota_final || 0,
-        reasoning: candidateData.justificativa || '',
-        pontoFortes: candidateData.pontos_fortes || [],
-        pontosAtencao: candidateData.pontos_fracos || [],
-        recommendation: candidateData.recomendacao === 'APROVAR' ? 'advance' : 'review',
-        recomendacaoFinal: candidateData.recomendacao === 'APROVAR' ? 'aprovado' : 'nao_recomendado',
+        score: isNaN(score) ? 0 : score,
+        reasoning: justificativa || '',
+        pontoFortes: parseArray(pontosFortesRaw),
+        pontosAtencao: parseArray(pontosFracosRaw),
+        recommendation: recomendacaoRaw === 'APROVAR' ? 'advance' : 'review',
+        recomendacaoFinal: recomendacaoRaw === 'APROVAR' ? 'aprovado' : 'nao_recomendado',
         analyzedAt: new Date().toISOString(),
-        observacoes: candidateData.observacoes || '',
-        proximosPassos: candidateData.proximos_passos || ''
+        observacoes: observacoes || '',
+        proximosPassos: proximosPassos || ''
       }
     };
 

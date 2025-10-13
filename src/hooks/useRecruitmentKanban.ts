@@ -311,26 +311,9 @@ export function useRecruitmentKanban() {
     }
   };
 
-  // Function to process all candidates in analise_ia stage on mount
-  const processExistingAIAnalyses = () => {
-    candidates.forEach(candidate => {
-      if (candidate.stage === 'analise_ia' && candidate.aiAnalysis) {
-        console.log('🔄 Processando análise IA existente para:', candidate.name, 'Nota:', candidate.aiAnalysis.score);
-        checkAndApplyAIAutomation(candidate);
-      }
-    });
-  };
+  // Desativado: não processar em massa análises IA existentes para evitar migração involuntária de estágio
+  // Mantemos a automação apenas em eventos explícitos (por exemplo, ações do usuário ou futuras lógicas controladas).
 
-  // Process existing AI analyses when component mounts - only run once
-  useEffect(() => {
-    if (loading || candidates.length === 0) return;
-    
-    const timer = setTimeout(() => {
-      processExistingAIAnalyses();
-    }, 2000); // Wait 2 seconds after mount to process existing analyses
-    
-    return () => clearTimeout(timer);
-  }, [loading]); // Only run when loading changes, not when candidates change
 
   const addCandidate = (newCandidate: Candidate) => {
     setCandidates(prev => [...prev, newCandidate]);
