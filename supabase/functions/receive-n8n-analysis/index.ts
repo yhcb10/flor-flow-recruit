@@ -138,10 +138,11 @@ serve(async (req) => {
     console.log('✅ Vaga validada:', jobPosition.title, mappedPositionId);
 
     // Verificar se já existe candidato com mesmo email para a mesma vaga
+    let existingCandidateId = null;
     if (candidateData.email && mappedPositionId) {
       const { data: existingCandidate, error: checkError } = await supabase
         .from('candidates')
-        .select('id, name, email, position_id')
+        .select('id, name, email, position_id, stage')
         .eq('email', candidateData.email.trim().toLowerCase())
         .eq('position_id', mappedPositionId)
         .maybeSingle();
@@ -149,20 +150,10 @@ serve(async (req) => {
       if (checkError) {
         console.error('Erro ao verificar candidato existente:', checkError);
       } else if (existingCandidate) {
-        console.log(`Candidato duplicado detectado: ${candidateData.nome_completo} (${candidateData.email}) já existe para a vaga ${mappedPositionId}`);
-        
-        return new Response(
-          JSON.stringify({
-            success: false,
-            message: `Candidato ${candidateData.nome_completo} já existe para esta vaga`,
-            duplicate: true,
-            existing_candidate: existingCandidate
-          }),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 409, // Conflict
-          }
-        );
+        console.log(`✅ Candidato duplicado encontrado: ${candidateData.nome_completo} (${candidateData.email})`);
+        console.log(`📝 Candidato existente está no stage: ${existingCandidate.stage}`);
+        console.log(`🔄 Atualizando dados do candidato ao invés de criar novo`);
+        existingCandidateId = existingCandidate.id;
       }
     }
 
@@ -272,26 +263,58 @@ serve(async (req) => {
       }
     };
 
-    console.log('✅ Candidato validado e pronto para inserção:', JSON.stringify(candidate, null, 2));
+    console.log('✅ Candidato validado e pronto para processamento:', JSON.stringify(candidate, null, 2));
 
-    // Insert candidate into database
-    const { data, error } = await supabase
-      .from('candidates')
-      .insert(candidate)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error inserting candidate:', error);
-      throw error;
+    let data, error;
+    
+    // Se candidato já existe, atualiza ao invés de inserir
+    if (existingCandidateId) {
+      console.log(`🔄 Atualizando candidato existente ID: ${existingCandidateId}`);
+      const updateResult = await supabase
+        .from('candidates')
+        .update({
+          ...candidate,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', existingCandidateId)
+        .select()
+        .single();
+      
+      data = updateResult.data;
+      error = updateResult.error;
+      
+      if (!error) {
+        console.log(`✅ Candidato atualizado com sucesso: ${candidateData.nome_completo}`);
+      }
+    } else {
+      // Inserir novo candidato
+      console.log(`➕ Criando novo candidato no banco de dados`);
+      const insertResult = await supabase
+        .from('candidates')
+        .insert(candidate)
+        .select()
+        .single();
+      
+      data = insertResult.data;
+      error = insertResult.error;
+      
+      if (!error) {
+        console.log(`✅ Novo candidato criado: ${candidateData.nome_completo}`);
+      }
     }
 
-    console.log(`Successfully created candidate: ${candidateData.nome_completo}`, data);
+    if (error) {
+      console.error('Erro ao processar candidato:', error);
+      throw error;
+    }
     
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Successfully created candidate: ${candidateData.nome_completo}`,
+        message: existingCandidateId 
+          ? `Candidato ${candidateData.nome_completo} atualizado com sucesso`
+          : `Novo candidato ${candidateData.nome_completo} criado com sucesso`,
+        action: existingCandidateId ? 'updated' : 'created',
         data: data
       }),
       {
