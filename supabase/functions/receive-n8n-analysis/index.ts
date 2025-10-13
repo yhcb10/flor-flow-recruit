@@ -94,7 +94,8 @@ serve(async (req) => {
       'auxiliar_administrativo_671609': 'db99c48e-603e-4b56-a9f0-88ad5d34ba49', // UUID da vaga de Auxiliar Administrativo
       'assistente_de_vendas_825303': '7370c7cb-fb47-4c53-a6af-4897c610f10a', // UUID da vaga de Assistente de Vendas
       'operador_de_call_center_762189': 'f01f2dca-8102-48db-bd4c-2c3041851de7', // UUID da vaga de Operador de Call Center
-      'atendente_de_telemarketing_682982': 'a6e56bf3-04bb-47b3-8dfc-d51fcae0ac48' // UUID da vaga de Atendente de Telemarketing
+      'atendente_de_telemarketing_682982': 'a6e56bf3-04bb-47b3-8dfc-d51fcae0ac48', // UUID da vaga de Atendente de Telemarketing
+      'gerente_de_contas_b2b_703662': 'e15bc7b4-add0-4916-9581-cbc342b9cd92' // UUID da vaga de Gerente de Contas B2B
     };
 
     const mappedPositionId = candidateData.id ? positionMapping[candidateData.id] || candidateData.id : null;
