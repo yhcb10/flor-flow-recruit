@@ -142,11 +142,16 @@ serve(async (req) => {
     // IMPORTANTE: Só verifica duplicados se o email for válido e não for "não informado"
     let existingCandidateId = null;
     const normalizedEmail = candidateData.email?.trim().toLowerCase();
+    
+    // Lista de emails inválidos (variações de "não informado")
+    const invalidEmails = ['não informado', 'nao informado', 'n/a', 'na', 'not provided', ''];
     const isValidEmail = normalizedEmail && 
-                        normalizedEmail !== 'não informado' && 
-                        normalizedEmail !== 'nao informado' &&
+                        !invalidEmails.includes(normalizedEmail) &&
                         normalizedEmail.includes('@');
     
+    // MUDANÇA: Desabilitar verificação de duplicados temporariamente para permitir reenvios
+    // Se necessário reativar no futuro, descomentar o bloco abaixo
+    /*
     if (isValidEmail && mappedPositionId) {
       const { data: existingCandidate, error: checkError } = await supabase
         .from('candidates')
@@ -166,6 +171,10 @@ serve(async (req) => {
     } else if (!isValidEmail) {
       console.log(`⚠️ Email inválido ou não informado - criando novo candidato sem verificar duplicatas`);
     }
+    */
+    
+    console.log(`➕ Sempre criando novo candidato (verificação de duplicados desabilitada)`);
+    existingCandidateId = null;
 
   // Handle PDF download if provided - try multiple field variations
   let resumeUrl = null;
@@ -307,40 +316,19 @@ serve(async (req) => {
 
     let data, error;
     
-    // Se candidato já existe, atualiza ao invés de inserir
-    if (existingCandidateId) {
-      console.log(`🔄 Atualizando candidato existente ID: ${existingCandidateId}`);
-      const updateResult = await supabase
-        .from('candidates')
-        .update({
-          ...candidate,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', existingCandidateId)
-        .select()
-        .single();
-      
-      data = updateResult.data;
-      error = updateResult.error;
-      
-      if (!error) {
-        console.log(`✅ Candidato atualizado com sucesso: ${candidateData.nome_completo}`);
-      }
-    } else {
-      // Inserir novo candidato
-      console.log(`➕ Criando novo candidato no banco de dados`);
-      const insertResult = await supabase
-        .from('candidates')
-        .insert(candidate)
-        .select()
-        .single();
-      
-      data = insertResult.data;
-      error = insertResult.error;
-      
-      if (!error) {
-        console.log(`✅ Novo candidato criado: ${candidateData.nome_completo}`);
-      }
+    // SEMPRE criar novo candidato (verificação de duplicados desabilitada)
+    console.log(`➕ Criando novo candidato no banco de dados`);
+    const insertResult = await supabase
+      .from('candidates')
+      .insert(candidate)
+      .select()
+      .single();
+    
+    data = insertResult.data;
+    error = insertResult.error;
+    
+    if (!error) {
+      console.log(`✅ Novo candidato criado: ${candidateData.nome_completo}`);
     }
 
     if (error) {
@@ -351,10 +339,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: existingCandidateId 
-          ? `Candidato ${candidateData.nome_completo} atualizado com sucesso`
-          : `Novo candidato ${candidateData.nome_completo} criado com sucesso`,
-        action: existingCandidateId ? 'updated' : 'created',
+        message: `Novo candidato ${candidateData.nome_completo} criado com sucesso`,
+        action: 'created',
         data: data
       }),
       {
