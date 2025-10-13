@@ -7,17 +7,14 @@ export function useRecruitmentKanban() {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Load candidates from Supabase with job position info
+  // Load candidates from Supabase
   useEffect(() => {
     const loadCandidates = async () => {
       try {
         console.log('🔄 Carregando candidatos do Supabase...');
         const { data, error } = await supabase
           .from('candidates')
-          .select(`
-            *,
-            job_positions!candidates_position_id_fkey(id, title, status)
-          `)
+          .select('*')
           .order('created_at', { ascending: false });
 
         if (error) {
@@ -26,22 +23,10 @@ export function useRecruitmentKanban() {
           setCandidates(mockCandidates);
         } else {
           console.log('📊 Total de candidatos carregados do Supabase:', data.length);
-          
-          // Separar candidatos de vagas ativas vs encerradas
-          const candidatosVagasAtivas = data.filter((c: any) => 
-            c.job_positions && c.job_positions.status === 'active'
-          );
-          const candidatosVagasEncerradas = data.filter((c: any) => 
-            !c.job_positions || c.job_positions.status !== 'active'
-          );
-          
-          console.log('✅ Candidatos de vagas ativas:', candidatosVagasAtivas.length);
-          console.log('📦 Candidatos de vagas encerradas/excluídas:', candidatosVagasEncerradas.length);
           console.log('📋 Candidatos por stage:', data.reduce((acc: any, c: any) => {
             acc[c.stage] = (acc[c.stage] || 0) + 1;
             return acc;
           }, {}));
-          
           // Log candidates with interviews for debugging
           data.forEach((candidate: any) => {
             if (candidate.interviews && Array.isArray(candidate.interviews) && candidate.interviews.length > 0) {
@@ -49,8 +34,8 @@ export function useRecruitmentKanban() {
             }
           });
           
-          // Transform data from database format to app format (apenas vagas ativas)
-          const transformedCandidates: Candidate[] = candidatosVagasAtivas.map((candidate: any) => ({
+          // Transform data from database format to app format
+          const transformedCandidates: Candidate[] = data.map((candidate: any) => ({
             id: candidate.id,
             name: candidate.name,
             email: candidate.email,

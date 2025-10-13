@@ -35,14 +35,17 @@ const Index = () => {
   console.log('📊 Total candidatos no Index:', candidates.length);
   console.log('📍 Posição selecionada:', selectedPosition?.title || 'Todas as Vagas');
   
-  // Filter candidates by selected position and only active job positions
-  const activeJobPositionIds = jobPositions.filter(p => p.status === 'active').map(p => p.id);
+  // Filter candidates by selected position and only active job positions (toggle via localStorage)
+  const showClosed = localStorage.getItem('showClosedPositions') === 'true';
+  const activeJobPositionIds = showClosed 
+    ? jobPositions.map(p => p.id)
+    : jobPositions.filter(p => p.status === 'active').map(p => p.id);
   
   const positionCandidates = selectedPosition 
     ? candidates.filter(candidate => candidate.positionId === selectedPosition.id)
     : candidates.filter(candidate => activeJobPositionIds.includes(candidate.positionId));
     
-  console.log('🔍 Candidatos filtrados:', positionCandidates.length, 'de', candidates.length, '(apenas vagas ativas)');
+  console.log('🔍 Candidatos filtrados:', positionCandidates.length, 'de', candidates.length, showClosed ? '(todas as vagas)' : '(apenas vagas ativas)');
   
   // Filter columns to only show candidates for selected position or active positions
   const filteredColumns = columns.map(column => ({

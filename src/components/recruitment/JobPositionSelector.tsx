@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -34,7 +34,11 @@ export function JobPositionSelector({
 }: JobPositionSelectorProps) {
   const { toast } = useToast();
   const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [showClosedPositions, setShowClosedPositions] = useState(false);
+  const [showClosedPositions, setShowClosedPositions] = useState(() => localStorage.getItem('showClosedPositions') === 'true');
+
+  useEffect(() => {
+    localStorage.setItem('showClosedPositions', String(showClosedPositions));
+  }, [showClosedPositions]);
 
   const handleClosePosition = (positionId: string) => {
     const position = positions.find(p => p.id === positionId);
