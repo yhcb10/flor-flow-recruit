@@ -67,8 +67,16 @@ export function useRecruitmentKanban() {
             createdAt: new Date(candidate.created_at),
              updatedAt: new Date(candidate.updated_at)
            }));
-           console.log('🎯 Candidatos transformados para o estado local:', transformedCandidates.length);
-           setCandidates(transformedCandidates);
+          console.log('🎯 Candidatos transformados para o estado local:', transformedCandidates.length);
+          setCandidates(transformedCandidates);
+          
+          // Aplicar automação IA para candidatos que já têm análise
+          transformedCandidates.forEach(candidate => {
+            if (candidate.stage === 'analise_ia' && candidate.aiAnalysis) {
+              console.log('🤖 Aplicando automação para candidato carregado:', candidate.name);
+              checkAndApplyAIAutomation(candidate);
+            }
+          });
         }
       } catch (error) {
         console.error('Error loading candidates:', error);
@@ -130,6 +138,12 @@ export function useRecruitmentKanban() {
 
           // Add the new candidate to the beginning of the list
           setCandidates(prev => [transformedCandidate, ...prev]);
+          
+          // Aplicar automação IA se o candidato já vem com análise
+          if (transformedCandidate.stage === 'analise_ia' && transformedCandidate.aiAnalysis) {
+            console.log('🤖 Aplicando automação para novo candidato:', transformedCandidate.name);
+            checkAndApplyAIAutomation(transformedCandidate);
+          }
         }
       )
       .on(
@@ -179,6 +193,12 @@ export function useRecruitmentKanban() {
           setCandidates(prev => prev.map(candidate => 
             candidate.id === transformedCandidate.id ? transformedCandidate : candidate
           ));
+          
+          // Aplicar automação IA se o candidato atualizado tem análise
+          if (transformedCandidate.stage === 'analise_ia' && transformedCandidate.aiAnalysis) {
+            console.log('🤖 Aplicando automação para candidato atualizado:', transformedCandidate.name);
+            checkAndApplyAIAutomation(transformedCandidate);
+          }
         }
       )
       .subscribe();
