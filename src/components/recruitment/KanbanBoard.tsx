@@ -109,6 +109,22 @@ export function KanbanBoard({
     return latestInterview.status;
   };
 
+  const normalizeSource = (value?: string) => {
+    if (!value) return 'unknown';
+    const val = String(value).trim().toLowerCase();
+    // Remove accents/diacritics
+    const plain = val.normalize('NFD').replace(/\p{Diacritic}/gu, '');
+    if (plain.includes('linkedin')) return 'linkedin';
+    if (plain.includes('indeed')) return 'indeed';
+    if (plain.includes('infojobs')) return 'infojobs';
+    if (plain.includes('instagram')) return 'instagram';
+    if (plain.includes('facebook')) return 'facebook';
+    if (plain.includes('indicacao')) return 'referral';
+    if (plain.includes('referral')) return 'referral';
+    if (plain.includes('manual')) return 'manual';
+    return plain;
+  };
+
   const filteredColumns = columns.map(column => ({
     ...column,
     candidates: column.candidates.filter(candidate => {
@@ -118,7 +134,8 @@ export function KanbanBoard({
         candidate.email.toLowerCase().includes(searchTerm.toLowerCase());
 
       // Source filter
-      const matchesSource = filters.source === 'all' || candidate.source === filters.source;
+      const candidateSource = normalizeSource(candidate.source as unknown as string);
+      const matchesSource = filters.source === 'all' || candidateSource === filters.source;
 
       // AI Score filter
       const matchesAiScore = filters.aiScore === 'all' || (() => {

@@ -39,12 +39,32 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, o
   };
 
   const getSourceBadge = (source: string) => {
+    const normalizeSource = (value?: string) => {
+      if (!value) return 'unknown';
+      const val = String(value).trim().toLowerCase();
+      const plain = val.normalize('NFD').replace(/\p{Diacritic}/gu, '');
+      if (plain.includes('linkedin')) return 'linkedin';
+      if (plain.includes('indeed')) return 'indeed';
+      if (plain.includes('infojobs')) return 'infojobs';
+      if (plain.includes('instagram')) return 'instagram';
+      if (plain.includes('facebook')) return 'facebook';
+      if (plain.includes('indicacao')) return 'referral';
+      if (plain.includes('referral')) return 'referral';
+      if (plain.includes('manual')) return 'manual';
+      return plain;
+    };
+
+    const key = normalizeSource(source);
     const sourceMap = {
       indeed: { label: 'Indeed', variant: 'default' as const },
+      linkedin: { label: 'LinkedIn', variant: 'default' as const },
+      infojobs: { label: 'Infojobs', variant: 'default' as const },
+      instagram: { label: 'Instagram', variant: 'secondary' as const },
+      facebook: { label: 'Facebook', variant: 'secondary' as const },
       manual: { label: 'Manual', variant: 'secondary' as const },
-      referral: { label: 'Indicação', variant: 'outline' as const }
+      referral: { label: 'Indicação', variant: 'outline' as const },
     };
-    return sourceMap[source as keyof typeof sourceMap] || { label: source, variant: 'default' as const };
+    return (sourceMap as Record<string, {label: string; variant: 'default' | 'secondary' | 'outline'}>)[key] || { label: source, variant: 'default' as const };
   };
 
   const sourceBadge = getSourceBadge(candidate.source);
