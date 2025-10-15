@@ -259,8 +259,11 @@ export function KanbanBoard({
                               <SelectItem value="all">Todas</SelectItem>
                               <SelectItem value="indeed">Indeed</SelectItem>
                               <SelectItem value="linkedin">LinkedIn</SelectItem>
-                              <SelectItem value="manual">Manual</SelectItem>
+                              <SelectItem value="infojobs">Infojobs</SelectItem>
+                              <SelectItem value="instagram">Instagram</SelectItem>
                               <SelectItem value="referral">Indicação</SelectItem>
+                              <SelectItem value="facebook">Facebook</SelectItem>
+                              <SelectItem value="manual">Manual</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
