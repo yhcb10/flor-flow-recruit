@@ -166,11 +166,12 @@ export function InterviewScheduler({ candidate, onInterviewScheduled, isReschedu
       }
 
       console.log('Dados sendo enviados para edge function:', {
+        type: 'pre_interview',
         candidate: {
           id: candidate.id,
           name: candidate.name,
           email: candidate.email,
-          position: candidate.positionId,
+          positionId: candidate.positionId,
         },
         interview: {
           scheduledAt: scheduledAt.toISOString(),
@@ -180,17 +181,17 @@ export function InterviewScheduler({ candidate, onInterviewScheduled, isReschedu
         }
       });
 
-      // Chamar edge function para criar evento no Google Calendar e enviar emails
-      console.log('=== CHAMANDO EDGE FUNCTION ===');
-      console.log('URL da função:', `https://burxedzkpugyavsqkzaj.supabase.co/functions/v1/schedule-interview`);
+      // Chamar edge function para enviar dados ao n8n
+      console.log('=== CHAMANDO EDGE FUNCTION SEND-TO-N8N-INTERVIEW ===');
       
-      const response = await supabase.functions.invoke('schedule-interview', {
+      const response = await supabase.functions.invoke('send-to-n8n-interview', {
         body: {
+          type: 'pre_interview',
           candidate: {
             id: candidate.id,
             name: candidate.name,
             email: candidate.email,
-            position: candidate.positionId,
+            positionId: candidate.positionId,
           },
           interview: {
             scheduledAt: scheduledAt.toISOString(),
