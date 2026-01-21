@@ -160,6 +160,201 @@ export type Database = {
         }
         Relationships: []
       }
+      metas_diarias_agg: {
+        Row: {
+          created_at: string | null
+          data: string
+          faturamento_total: number | null
+          meta_faturamento: number | null
+          meta_repasse: number | null
+          repasse_total: number | null
+          ticket_medio: number | null
+          total_pedidos: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          data: string
+          faturamento_total?: number | null
+          meta_faturamento?: number | null
+          meta_repasse?: number | null
+          repasse_total?: number | null
+          ticket_medio?: number | null
+          total_pedidos?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          data?: string
+          faturamento_total?: number | null
+          meta_faturamento?: number | null
+          meta_repasse?: number | null
+          repasse_total?: number | null
+          ticket_medio?: number | null
+          total_pedidos?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      metas_diarias_time: {
+        Row: {
+          created_at: string | null
+          data: string
+          fat: number | null
+          repasse: number | null
+          time: string
+          tm: number | null
+          tt_pedidos: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          data: string
+          fat?: number | null
+          repasse?: number | null
+          time: string
+          tm?: number | null
+          tt_pedidos?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          data?: string
+          fat?: number | null
+          repasse?: number | null
+          time?: string
+          tm?: number | null
+          tt_pedidos?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      metas_diarias_vendedor: {
+        Row: {
+          created_at: string | null
+          data: string
+          fat: number | null
+          repasse: number | null
+          tm: number | null
+          tt_pedidos: number | null
+          updated_at: string | null
+          vendedor: string
+        }
+        Insert: {
+          created_at?: string | null
+          data: string
+          fat?: number | null
+          repasse?: number | null
+          tm?: number | null
+          tt_pedidos?: number | null
+          updated_at?: string | null
+          vendedor: string
+        }
+        Update: {
+          created_at?: string | null
+          data?: string
+          fat?: number | null
+          repasse?: number | null
+          tm?: number | null
+          tt_pedidos?: number | null
+          updated_at?: string | null
+          vendedor?: string
+        }
+        Relationships: []
+      }
+      metas_jobs: {
+        Row: {
+          created_at: string | null
+          error: string | null
+          id: string
+          payload: Json
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          error?: string | null
+          id: string
+          payload: Json
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          error?: string | null
+          id?: string
+          payload?: Json
+          status?: string | null
+        }
+        Relationships: []
+      }
+      metas_mensais_agg: {
+        Row: {
+          ano: number
+          faturamento_total: number | null
+          lucro_bruto_total: number | null
+          mes: number
+          repasse_total: number | null
+          taxa_total: number | null
+          ticket_medio: number | null
+          total_pedidos: number | null
+        }
+        Insert: {
+          ano: number
+          faturamento_total?: number | null
+          lucro_bruto_total?: number | null
+          mes: number
+          repasse_total?: number | null
+          taxa_total?: number | null
+          ticket_medio?: number | null
+          total_pedidos?: number | null
+        }
+        Update: {
+          ano?: number
+          faturamento_total?: number | null
+          lucro_bruto_total?: number | null
+          mes?: number
+          repasse_total?: number | null
+          taxa_total?: number | null
+          ticket_medio?: number | null
+          total_pedidos?: number | null
+        }
+        Relationships: []
+      }
+      metas_mensais_vendedor: {
+        Row: {
+          ano: number
+          fat: number | null
+          lb: number | null
+          mes: number
+          pedidos: number | null
+          repasse: number | null
+          taxa: number | null
+          tm: number | null
+          vendedor: string
+        }
+        Insert: {
+          ano: number
+          fat?: number | null
+          lb?: number | null
+          mes: number
+          pedidos?: number | null
+          repasse?: number | null
+          taxa?: number | null
+          tm?: number | null
+          vendedor: string
+        }
+        Update: {
+          ano?: number
+          fat?: number | null
+          lb?: number | null
+          mes?: number
+          pedidos?: number | null
+          repasse?: number | null
+          taxa?: number | null
+          tm?: number | null
+          vendedor?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -192,16 +387,34 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      has_hr_access: {
-        Args: { _user_id: string }
-        Returns: boolean
-      }
+      has_hr_access: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      metas_decrement_agg: {
+        Args: {
+          p_ano: number
+          p_mes: number
+          p_rep: number
+          p_tax: number
+          p_val: number
+        }
+        Returns: undefined
+      }
+      metas_decrement_vend: {
+        Args: {
+          p_ano: number
+          p_mes: number
+          p_rep: number
+          p_tax: number
+          p_val: number
+          p_vendedor: string
+        }
+        Returns: undefined
       }
     }
     Enums: {

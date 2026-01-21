@@ -38,3 +38,6 @@ verify_jwt = false
 
 [functions.send-whatsapp-notification]
 verify_jwt = false
+
+[functions.send-to-n8n-interview]
+verify_jwt = false

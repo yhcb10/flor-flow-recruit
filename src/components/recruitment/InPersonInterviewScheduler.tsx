@@ -168,11 +168,12 @@ export function InPersonInterviewScheduler({ candidate, onInterviewScheduled, is
       }
 
       console.log('Dados sendo enviados para edge function:', {
+        type: 'in_person',
         candidate: {
           id: candidate.id,
           name: candidate.name,
           email: candidate.email,
-          position: candidate.positionId,
+          positionId: candidate.positionId,
         },
         interview: {
           scheduledAt: scheduledAt.toISOString(),
@@ -180,18 +181,20 @@ export function InPersonInterviewScheduler({ candidate, onInterviewScheduled, is
           location,
           notes,
           inviteeEmails: inviteeEmails.split(',').map(email => email.trim()).filter(Boolean),
-          type: 'in_person'
         }
       });
 
-      // Chamar edge function para enviar emails de entrevista presencial
-      const response = await supabase.functions.invoke('schedule-inperson-interview', {
+      // Chamar edge function para enviar dados ao n8n
+      console.log('=== CHAMANDO EDGE FUNCTION SEND-TO-N8N-INTERVIEW ===');
+      
+      const response = await supabase.functions.invoke('send-to-n8n-interview', {
         body: {
+          type: 'in_person',
           candidate: {
             id: candidate.id,
             name: candidate.name,
             email: candidate.email,
-            position: candidate.positionId,
+            positionId: candidate.positionId,
           },
           interview: {
             scheduledAt: scheduledAt.toISOString(),
@@ -199,7 +202,6 @@ export function InPersonInterviewScheduler({ candidate, onInterviewScheduled, is
             location,
             notes,
             inviteeEmails: inviteeEmails.split(',').map(email => email.trim()).filter(Boolean),
-            type: 'in_person'
           }
         }
       });
