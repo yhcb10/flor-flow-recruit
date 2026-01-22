@@ -10,29 +10,6 @@ interface KanbanColumnsListProps {
   onColumnClick: (columnId: string) => void;
 }
 
-const getColumnIcon = (columnId: string) => {
-  switch (columnId) {
-    case 'nova_candidatura':
-      return '📄';
-    case 'analise_ia':
-      return '🤖';
-    case 'selecao_pre_entrevista':
-      return '📋';
-    case 'pre_entrevista':
-      return '💻';
-    case 'selecao_entrevista_presencial':
-      return '📝';
-    case 'entrevista_presencial':
-      return '🤝';
-    case 'aprovado':
-      return '✅';
-    case 'nao_aprovado':
-      return '❌';
-    default:
-      return '📁';
-  }
-};
-
 const getColumnColor = (columnId: string) => {
   switch (columnId) {
     case 'nova_candidatura':
@@ -84,7 +61,6 @@ export function KanbanColumnsList({ columns, onColumnClick }: KanbanColumnsListP
                 >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-3">
-                      <span className="text-2xl">{getColumnIcon(column.id)}</span>
                       <div>
                         <h3 className="font-semibold text-foreground">{column.title}</h3>
                         <p className="text-sm text-muted-foreground">{column.description}</p>
