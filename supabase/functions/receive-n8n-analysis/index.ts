@@ -113,6 +113,16 @@ serve(async (req) => {
       console.log('🔁 Reanálise detectada. candidate_id:', candidateIdFromPayload);
     }
 
+    // Fallback (anti-duplicação): se o n8n NÃO devolver candidate_id, tentar identificar o candidato
+    // com base no currículo (resume_url/download_url) e vaga.
+    // Isso mantém compatibilidade com fluxos antigos e evita duplicar em reanálises.
+    const resumeUrlFromPayload: string | null = (
+      (candidateData as any).download_url ||
+      (candidateData as any).resume_url ||
+      (candidateData as any).pdf_url ||
+      null
+    );
+
     // Resolver position_id de forma dinâmica e robusta (aceita UUID, endpoint_id e estruturas aninhadas)
     // Suporta: { id }, { position_id }, { vaga: { id } }, { vaga_id }, { job_id }
     const rawPositionIdentifier: string | null = (
@@ -363,11 +373,34 @@ serve(async (req) => {
 
     console.log('✅ Candidato validado e pronto para processamento:', JSON.stringify(candidate, null, 2));
 
+    // Se ainda não temos candidateId, mas temos resumeUrl e vaga, tentamos localizar o candidato exato.
+    // Critério: mesmo position_id + mesmo resume_url (match exato), pega o mais recentemente atualizado.
+    let matchedCandidateId: string | null = null;
+    if (!candidateIdFromPayload && mappedPositionId && resumeUrlFromPayload) {
+      const { data: match, error: matchError } = await supabase
+        .from('candidates')
+        .select('id')
+        .eq('position_id', mappedPositionId)
+        .eq('resume_url', resumeUrlFromPayload)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (matchError) {
+        console.error('⚠️ Erro ao buscar candidato por resume_url para evitar duplicação:', matchError);
+      } else if (match?.id) {
+        matchedCandidateId = match.id;
+        console.log('🧩 Fallback match por resume_url + vaga. candidate_id inferido:', matchedCandidateId);
+      }
+    }
+
     let data, error;
 
-    if (candidateIdFromPayload) {
+    const effectiveCandidateId = candidateIdFromPayload || matchedCandidateId;
+
+    if (effectiveCandidateId) {
       // UPDATE: reanálise
-      console.log(`🔁 Atualizando candidato existente no banco de dados: ${candidateIdFromPayload}`);
+      console.log(`🔁 Atualizando candidato existente no banco de dados: ${effectiveCandidateId}`);
       const updatePayload: any = {
         name: candidate.name,
         email: candidate.email,
@@ -384,7 +417,7 @@ serve(async (req) => {
       const updateResult = await supabase
         .from('candidates')
         .update(updatePayload)
-        .eq('id', candidateIdFromPayload)
+        .eq('id', effectiveCandidateId)
         .select()
         .single();
 
