@@ -215,35 +215,14 @@ export function CandidateCard({
         // Sem "sinalização" extra nesta etapa (os botões já indicam as ações)
         return null;
       case 'pre_entrevista':
-        const hasScheduledInterview = Array.isArray(candidate.interviews) && candidate.interviews.some(i => i.status === 'scheduled' && i.type === 'pre_interview');
-        return (
-          <div className={cn(
-            "rounded-full px-2 py-1 shadow-md border flex items-center gap-1",
-            hasScheduledInterview 
-              ? "bg-info text-info-foreground border-info/20" 
-              : "bg-warning text-warning-foreground border-warning/20"
-          )}>
-            <span className="text-xs font-medium">{hasScheduledInterview ? 'Agendado' : 'Agendar'}</span>
-          </div>
-        );
+        // Removido o badge de "Agendar/Agendado" para não duplicar sinalização (a ação está nos botões)
+        return null;
       case 'selecao_entrevista_presencial':
-        return (
-          <div className="bg-warning text-warning-foreground rounded-full px-2 py-1 shadow-md border border-warning/20 flex items-center gap-1">
-            <span className="text-xs font-medium">Agendar</span>
-          </div>
-        );
+        // Removido o badge de "Agendar" para não duplicar sinalização (a ação está nos botões)
+        return null;
       case 'entrevista_presencial':
-        const hasScheduledInPersonInterview = Array.isArray(candidate.interviews) && candidate.interviews.some(i => i.status === 'scheduled' && i.type === 'in_person');
-        return (
-          <div className={cn(
-            "rounded-full px-2 py-1 shadow-md border flex items-center gap-1",
-            hasScheduledInPersonInterview 
-              ? "bg-info text-info-foreground border-info/20" 
-              : "bg-warning text-warning-foreground border-warning/20"
-          )}>
-            <span className="text-xs font-medium">{hasScheduledInPersonInterview ? 'Agendado' : 'Agendar'}</span>
-          </div>
-        );
+        // Removido o badge de "Agendar/Agendado" para não duplicar sinalização (a ação está nos botões)
+        return null;
       case 'analise_ia':
         return (
           <div className="bg-primary text-primary-foreground rounded-full px-2 py-1 shadow-md border border-primary/20 flex items-center gap-1">
@@ -479,6 +458,261 @@ export function CandidateCard({
     }
   };
 
+  const renderActionButtons = () => {
+    const gridBase = "grid grid-cols-2 gap-2";
+    const iconOnlyBtn = "h-8 px-2 justify-center";
+    const leftBtn = "h-8 justify-start";
+
+    if (candidate.stage === 'selecao_pre_entrevista') {
+      return (
+        <div className={gridBase}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleReanalyzeN8n}
+            className={leftBtn}
+            title="Reanalisar candidato no n8n"
+          >
+            <RotateCcw className="h-3 w-3 mr-2" />
+            <span className="text-xs">Reanalisar</span>
+          </Button>
+
+          <Button
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onStageChange) {
+                onStageChange(candidate.id, 'nao_aprovado', 'Reprovado manualmente (Seleção Pré-Entrevista)');
+              }
+            }}
+            className={cn(leftBtn, "bg-destructive text-destructive-foreground hover:bg-destructive/90")}
+            title="Mover para Não aprovado"
+          >
+            <X className="h-3 w-3 mr-2" />
+            <span className="text-xs">Reprovar</span>
+          </Button>
+
+          <Button
+            size="sm"
+            onClick={handleScheduleInterview}
+            className={cn(leftBtn, "bg-warning text-warning-foreground hover:bg-warning/90")}
+          >
+            <Clock className="h-3 w-3 mr-2" />
+            <span className="text-xs">Agendar</span>
+          </Button>
+
+          <Button
+            size="sm"
+            onClick={handleSendWhatsAppMessage}
+            className={cn(leftBtn, "bg-success text-success-foreground hover:bg-success/90")}
+          >
+            <MessageCircle className="h-3 w-3 mr-2" />
+            <span className="text-xs">Disparar</span>
+          </Button>
+        </div>
+      );
+    }
+
+    if (candidate.stage === 'selecao_entrevista_presencial') {
+      return (
+        <div className={gridBase}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleReanalyzeN8n}
+            className={iconOnlyBtn}
+            title="Reanalisar candidato no n8n"
+          >
+            <RotateCcw className="h-3 w-3" />
+          </Button>
+
+          <Button
+            size="sm"
+            onClick={handleApprove}
+            className={cn(leftBtn, "bg-warning text-warning-foreground hover:bg-warning/90")}
+          >
+            <Clock className="h-3 w-3 mr-2" />
+            <span className="text-xs">Agendar</span>
+          </Button>
+        </div>
+      );
+    }
+
+    if (candidate.stage === 'aguardando_feedback_pre_entrevista') {
+      return (
+        <div className={gridBase}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleReanalyzeN8n}
+            className={iconOnlyBtn}
+            title="Reanalisar candidato no n8n"
+          >
+            <RotateCcw className="h-3 w-3" />
+          </Button>
+
+          <Button
+            size="sm"
+            onClick={handleReject}
+            className={cn(leftBtn, "bg-destructive text-destructive-foreground hover:bg-destructive/90")}
+          >
+            <X className="h-3 w-3 mr-2" />
+            <span className="text-xs">Recusar</span>
+          </Button>
+
+          <Button
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onStageChange) {
+                onStageChange(candidate.id, 'selecao_entrevista_presencial');
+              }
+            }}
+            className={cn("col-span-2", leftBtn, "bg-success text-success-foreground hover:bg-success/90")}
+          >
+            <Check className="h-3 w-3 mr-2" />
+            <span className="text-xs">Aprovar</span>
+          </Button>
+        </div>
+      );
+    }
+
+    const hasPreInterviewScheduled =
+      candidate.stage === 'pre_entrevista' &&
+      Array.isArray(candidate.interviews) &&
+      candidate.interviews.some((i) => i.status === 'scheduled' && i.type === 'pre_interview');
+
+    if (hasPreInterviewScheduled) {
+      return (
+        <div className={gridBase}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleReanalyzeN8n}
+            className={iconOnlyBtn}
+            title="Reanalisar candidato no n8n"
+          >
+            <RotateCcw className="h-3 w-3" />
+          </Button>
+
+          <Button
+            size="sm"
+            onClick={handleReject}
+            className={cn(leftBtn, "bg-destructive text-destructive-foreground hover:bg-destructive/90")}
+          >
+            <X className="h-3 w-3 mr-2" />
+            <span className="text-xs">Recusar</span>
+          </Button>
+
+          <Button
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowInterviewScheduler(true);
+            }}
+            className={cn(iconOnlyBtn, "bg-info text-info-foreground hover:bg-info/90")}
+            title="Reagendar pré-entrevista"
+          >
+            <Clock className="h-3 w-3" />
+          </Button>
+
+          <Button
+            size="sm"
+            onClick={handleApprove}
+            className={cn(leftBtn, "bg-success text-success-foreground hover:bg-success/90")}
+          >
+            <Check className="h-3 w-3 mr-2" />
+            <span className="text-xs">Aprovar</span>
+          </Button>
+        </div>
+      );
+    }
+
+    const hasInPersonScheduled =
+      candidate.stage === 'entrevista_presencial' &&
+      Array.isArray(candidate.interviews) &&
+      candidate.interviews.some((i) => i.status === 'scheduled' && i.type === 'in_person');
+
+    if (hasInPersonScheduled) {
+      return (
+        <div className={gridBase}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleReanalyzeN8n}
+            className={iconOnlyBtn}
+            title="Reanalisar candidato no n8n"
+          >
+            <RotateCcw className="h-3 w-3" />
+          </Button>
+
+          <Button
+            size="sm"
+            onClick={handleReject}
+            className={cn(leftBtn, "bg-destructive text-destructive-foreground hover:bg-destructive/90")}
+          >
+            <X className="h-3 w-3 mr-2" />
+            <span className="text-xs">Recusar</span>
+          </Button>
+
+          <Button
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowInPersonScheduler(true);
+            }}
+            className={cn(iconOnlyBtn, "bg-info text-info-foreground hover:bg-info/90")}
+            title="Reagendar entrevista presencial"
+          >
+            <Clock className="h-3 w-3" />
+          </Button>
+
+          <Button
+            size="sm"
+            onClick={handleApprove}
+            className={cn(leftBtn, "bg-success text-success-foreground hover:bg-success/90")}
+          >
+            <Check className="h-3 w-3 mr-2" />
+            <span className="text-xs">Aprovar</span>
+          </Button>
+        </div>
+      );
+    }
+
+    // Fallback padrão (analise_ia / pre_entrevista sem agendamento / entrevista_presencial sem agendamento)
+    return (
+      <div className={gridBase}>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handleReanalyzeN8n}
+          className={iconOnlyBtn}
+          title="Reanalisar candidato no n8n"
+        >
+          <RotateCcw className="h-3 w-3" />
+        </Button>
+
+        <Button
+          size="sm"
+          onClick={handleReject}
+          className={cn(leftBtn, "bg-destructive text-destructive-foreground hover:bg-destructive/90")}
+        >
+          <X className="h-3 w-3 mr-2" />
+          <span className="text-xs">Recusar</span>
+        </Button>
+
+        <Button
+          size="sm"
+          onClick={handleApprove}
+          className={cn("col-span-2", leftBtn, "bg-success text-success-foreground hover:bg-success/90")}
+        >
+          <Check className="h-3 w-3 mr-2" />
+          <span className="text-xs">Aprovar</span>
+        </Button>
+      </div>
+    );
+  };
+
   return (
     <Card 
       className={cn(
@@ -630,221 +864,7 @@ export function CandidateCard({
           {/* Action Buttons - Always at bottom */}
           {canShowActionButtons && (
             <div className="mt-3 pt-3 border-t border-muted/20">
-              {candidate.stage === 'selecao_pre_entrevista' ? (
-                <div className="grid grid-cols-2 gap-2">
-                  {/* 1) Reanalisar */}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleReanalyzeN8n}
-                    className="h-8 justify-start"
-                    title="Reanalisar candidato no n8n"
-                  >
-                    <RotateCcw className="h-3 w-3 mr-2" />
-                    <span className="text-xs">Reanalisar</span>
-                  </Button>
-
-                  {/* 2) Reprovar */}
-                  <Button
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (onStageChange) {
-                        onStageChange(candidate.id, 'nao_aprovado', 'Reprovado manualmente (Seleção Pré-Entrevista)');
-                      }
-                    }}
-                    className="h-8 bg-destructive text-destructive-foreground hover:bg-destructive/90 justify-start"
-                    title="Mover para Não aprovado"
-                  >
-                    <X className="h-3 w-3 mr-2" />
-                    <span className="text-xs">Reprovar</span>
-                  </Button>
-
-                  {/* 3) Agendar */}
-                  <Button
-                    size="sm"
-                    onClick={handleScheduleInterview}
-                    className="h-8 bg-warning text-warning-foreground hover:bg-warning/90 justify-start"
-                  >
-                    <Clock className="h-3 w-3 mr-2" />
-                    <span className="text-xs">Agendar</span>
-                  </Button>
-
-                  {/* 4) Disparar */}
-                  <Button
-                    size="sm"
-                    onClick={handleSendWhatsAppMessage}
-                    className="h-8 bg-success text-success-foreground hover:bg-success/90 justify-start"
-                  >
-                    <MessageCircle className="h-3 w-3 mr-2" />
-                    <span className="text-xs">Disparar</span>
-                  </Button>
-                </div>
-              ) : candidate.stage === 'selecao_entrevista_presencial' ? (
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleReanalyzeN8n}
-                    className="h-8 px-2"
-                    title="Reanalisar candidato no n8n"
-                  >
-                    <RotateCcw className="h-3 w-3" />
-                  </Button>
-
-                  <Button
-                    size="sm"
-                    onClick={handleApprove}
-                    className="flex-1 min-w-[140px] h-8 bg-warning text-warning-foreground hover:bg-warning/90"
-                  >
-                    <Clock className="h-3 w-3 mr-2" />
-                    Agendar
-                  </Button>
-                </div>
-              ) : candidate.stage === 'aguardando_feedback_pre_entrevista' ? (
-                <>
-                  {/* Reanálise */}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleReanalyzeN8n}
-                    className="h-8 px-2"
-                    title="Reanalisar candidato no n8n"
-                  >
-                    <RotateCcw className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={handleReject}
-                    className="flex-1 h-8 bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    <X className="h-3 w-3 mr-2" />
-                    Recusar
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (onStageChange) {
-                        onStageChange(candidate.id, 'selecao_entrevista_presencial');
-                      }
-                    }}
-                    className="flex-1 h-8 bg-success text-success-foreground hover:bg-success/90"
-                  >
-                    <Check className="h-3 w-3 mr-2" />
-                    Aprovar
-                  </Button>
-                </>
-              ) : candidate.stage === 'pre_entrevista' && Array.isArray(candidate.interviews) && candidate.interviews.some(i => i.status === 'scheduled' && i.type === 'pre_interview') ? (
-                <>
-                  {/* Reanálise */}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleReanalyzeN8n}
-                    className="h-8 px-2"
-                    title="Reanalisar candidato no n8n"
-                  >
-                    <RotateCcw className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={handleReject}
-                    className="flex-1 h-8 bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    <X className="h-3 w-3 mr-2" />
-                    Recusar
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowInterviewScheduler(true);
-                    }}
-                    className="h-8 px-2 bg-info text-info-foreground hover:bg-info/90"
-                    title="Reagendar pré-entrevista"
-                  >
-                    <Clock className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={handleApprove}
-                    className="flex-1 h-8 bg-success text-success-foreground hover:bg-success/90"
-                  >
-                    <Check className="h-3 w-3 mr-2" />
-                    Aprovar
-                  </Button>
-                </>
-              ) : candidate.stage === 'entrevista_presencial' && Array.isArray(candidate.interviews) && candidate.interviews.some(i => i.status === 'scheduled' && i.type === 'in_person') ? (
-                <>
-                  {/* Reanálise */}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleReanalyzeN8n}
-                    className="h-8 px-2"
-                    title="Reanalisar candidato no n8n"
-                  >
-                    <RotateCcw className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={handleReject}
-                    className="flex-1 h-8 bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    <X className="h-3 w-3 mr-2" />
-                    Recusar
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowInPersonScheduler(true);
-                    }}
-                    className="h-8 px-2 bg-info text-info-foreground hover:bg-info/90"
-                    title="Reagendar entrevista presencial"
-                  >
-                    <Clock className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={handleApprove}
-                    className="flex-1 h-8 bg-success text-success-foreground hover:bg-success/90"
-                  >
-                    <Check className="h-3 w-3 mr-2" />
-                    Aprovar
-                  </Button>
-                </>
-              ) : (
-                <>
-                  {/* Reanálise */}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleReanalyzeN8n}
-                    className="h-8 px-2"
-                    title="Reanalisar candidato no n8n"
-                  >
-                    <RotateCcw className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={handleReject}
-                    className="flex-1 h-8 bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    <X className="h-3 w-3 mr-2" />
-                    Recusar
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={handleApprove}
-                    className="flex-1 h-8 bg-success text-success-foreground hover:bg-success/90"
-                  >
-                    <Check className="h-3 w-3 mr-2" />
-                    Aprovar
-                  </Button>
-                </>
-              )}
+              {renderActionButtons()}
             </div>
           )}
 
