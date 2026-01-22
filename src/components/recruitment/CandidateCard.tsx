@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 
-import { CalendarDays, Mail, Phone, Star, Clock, MessageSquare, Check, X, User, MessageCircle } from 'lucide-react';
+import { CalendarDays, Mail, Phone, Star, Clock, MessageSquare, Check, X, User, MessageCircle, RotateCcw } from 'lucide-react';
 import { Candidate, CandidateStage } from '@/types/recruitment';
 import { cn, normalizeWhatsappPhoneBR } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface CandidateCardProps {
   candidate: Candidate;
@@ -24,9 +25,22 @@ interface CandidateCardProps {
   onStageChange?: (candidateId: string, newStage: CandidateStage, rejectionReason?: string, talentPoolReason?: string) => void;
   onCandidateUpdate?: (candidate: Candidate) => void;
   isCompactView?: boolean;
+  selectionEnabled?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: (candidateId: string) => void;
 }
 
-export function CandidateCard({ candidate, onClick, isDragging, onStageChange, onCandidateUpdate, isCompactView = false }: CandidateCardProps) {
+export function CandidateCard({
+  candidate,
+  onClick,
+  isDragging,
+  onStageChange,
+  onCandidateUpdate,
+  isCompactView = false,
+  selectionEnabled = false,
+  isSelected = false,
+  onToggleSelect,
+}: CandidateCardProps) {
   const [showRejectionModal, setShowRejectionModal] = useState(false);
   const [showTalentPoolModal, setShowTalentPoolModal] = useState(false);
   const [showInterviewScheduler, setShowInterviewScheduler] = useState(false);
@@ -442,6 +456,42 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, o
     }
   };
 
+  const handleReanalyzeN8n = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    try {
+      toast({
+        title: 'Reanálise solicitada',
+        description: 'Enviando candidato para reanálise no n8n...'
+      });
+
+      const { error, data } = await supabase.functions.invoke('reanalyze-candidates-n8n', {
+        body: { candidateIds: [candidate.id] }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      // Garantir o efeito no funil imediatamente no UI
+      if (onStageChange) {
+        onStageChange(candidate.id, 'analise_ia');
+      }
+
+      toast({
+        title: 'Reanálise disparada',
+        description: data?.message || 'O n8n irá retornar a nova análise e o candidato será atualizado.'
+      });
+    } catch (err: any) {
+      console.error('Erro ao disparar reanálise no n8n:', err);
+      toast({
+        title: 'Erro ao reanalisar',
+        description: err?.message || 'Não foi possível disparar a reanálise no n8n.',
+        variant: 'destructive'
+      });
+    }
+  };
+
   return (
     <Card 
       className={cn(
@@ -456,7 +506,7 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, o
     >
         <div className={cn(isCompactView ? "space-y-2" : "space-y-3")}>
           {/* Header */}
-          <div className="flex items-start justify-between">
+           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3 min-w-0 flex-1">
               <Avatar className={cn(isCompactView ? "h-8 w-8" : "h-10 w-10")}>
                 <AvatarFallback className={cn("font-semibold", stageColors.text, stageColors.bg)}>
@@ -489,17 +539,31 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, o
                 )}
               </div>
             </div>
-            
-            {/* Compact view - show AI score on the right */}
-            {isCompactView && candidate.aiAnalysis && (
-              <div className={cn(
-                "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ml-2",
-                getScoreColor(candidate.aiAnalysis.score)
-              )}>
-                <Star className="h-3 w-3" />
-                {Number(candidate.aiAnalysis.score).toFixed(1)}
-              </div>
-            )}
+
+            <div className="flex items-center gap-2 ml-2 flex-shrink-0">
+              {selectionEnabled && (
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleSelect?.(candidate.id);
+                  }}
+                  className="flex items-center"
+                >
+                  <Checkbox checked={isSelected} aria-label="Selecionar candidato" />
+                </div>
+              )}
+
+              {/* Compact view - show AI score on the right */}
+              {isCompactView && candidate.aiAnalysis && (
+                <div className={cn(
+                  "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium",
+                  getScoreColor(candidate.aiAnalysis.score)
+                )}>
+                  <Star className="h-3 w-3" />
+                  {Number(candidate.aiAnalysis.score).toFixed(1)}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Contact Info */}
@@ -580,6 +644,17 @@ export function CandidateCard({ candidate, onClick, isDragging, onStageChange, o
           {/* Action Buttons - Always at bottom */}
           {canShowActionButtons && (
             <div className="flex gap-2 mt-3 pt-3 border-t border-muted/20">
+              {/* Reanálise sempre disponível (n8n reprocessa e atualiza o candidato existente) */}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleReanalyzeN8n}
+                className="h-8 px-2"
+                title="Reanalisar candidato no n8n"
+              >
+                <RotateCcw className="h-3 w-3" />
+              </Button>
+
               {candidate.stage === 'selecao_pre_entrevista' ? (
                 <>
                   <Button

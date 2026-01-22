@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.send-to-n8n-interview]
 verify_jwt = false
+
+[functions.reanalyze-candidates-n8n]
+verify_jwt = false
