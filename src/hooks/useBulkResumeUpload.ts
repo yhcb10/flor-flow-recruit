@@ -92,31 +92,21 @@ export function useBulkResumeUpload() {
       ));
       setCurrentProcessing(processedFile.name);
 
-      // VALIDAÇÃO CRÍTICA: Buscar a vaga por UUID ou endpoint_id
+      // VALIDAÇÃO: Buscar a vaga por UUID
       const isUuid = (val: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(val);
-      const byUuid = isUuid(positionId);
-      console.log(`🔍 [VALIDAÇÃO] Resolvendo vaga. Valor: ${positionId} (é UUID? ${byUuid})`);
-
-      let jobPosition: { id?: string; endpoint_id?: string; title?: string } | null = null;
-      let jobError: any = null;
-
-      if (byUuid) {
-        const { data, error } = await supabase
-          .from('job_positions')
-          .select('id, endpoint_id, title')
-          .eq('id', positionId)
-          .maybeSingle();
-        jobPosition = data;
-        jobError = error;
-      } else {
-        const { data, error } = await supabase
-          .from('job_positions')
-          .select('id, endpoint_id, title')
-          .eq('endpoint_id', positionId)
-          .maybeSingle();
-        jobPosition = data;
-        jobError = error;
+      
+      if (!isUuid(positionId)) {
+        console.error('❌ [ERRO] positionId não é um UUID válido:', positionId);
+        throw new Error(`ID da vaga inválido: ${positionId}. Esperava um UUID.`);
       }
+      
+      console.log(`🔍 [VALIDAÇÃO] Buscando vaga com UUID: ${positionId}`);
+
+      const { data: jobPosition, error: jobError } = await supabase
+        .from('job_positions')
+        .select('id, n8n_webhook_path, title')
+        .eq('id', positionId)
+        .maybeSingle();
 
       if (jobError) {
         console.error('❌ [ERRO] Erro ao buscar vaga:', jobError);
@@ -130,11 +120,9 @@ export function useBulkResumeUpload() {
 
       console.log('✅ [VALIDAÇÃO] Vaga encontrada:', jobPosition);
 
-      const endpointForN8n = jobPosition.endpoint_id || (byUuid ? null : positionId);
-
-      if (!endpointForN8n) {
-        console.error('❌ [ERRO CRÍTICO] endpoint_id não configurado para a vaga');
-        throw new Error(`A vaga "${jobPosition.title}" não possui um endpoint_id configurado. Configure o endpoint_id nas configurações da vaga.`);
+      if (!jobPosition.n8n_webhook_path) {
+        console.error('❌ [ERRO CRÍTICO] n8n_webhook_path não configurado para a vaga');
+        throw new Error(`A vaga "${jobPosition.title}" não possui um webhook path configurado. Configure o campo "Path do Webhook N8N" nas configurações da vaga.`);
       }
 
       // Upload file to Supabase Storage
@@ -162,17 +150,17 @@ export function useBulkResumeUpload() {
       console.log(`📤 Enviando currículo para N8N:`, {
         resumeUrl: publicUrl,
         fileName: processedFile.file.name,
-        positionId: endpointForN8n,
+        positionId: jobPosition.id, // Enviar UUID da vaga
         positionTitle: positionTitle,
         source: source
       });
 
-      // Send to N8N for analysis - sempre enviar endpoint_id
+      // Send to N8N for analysis - enviar UUID da vaga
       const { data: n8nResponse, error: n8nError } = await supabase.functions.invoke('send-resume-to-n8n', {
         body: {
           resumeUrl: publicUrl,
           fileName: processedFile.file.name,
-          positionId: endpointForN8n,
+          positionId: jobPosition.id, // UUID da vaga
           positionTitle: positionTitle,
           source: source
         }
