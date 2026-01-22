@@ -333,7 +333,7 @@ export function CandidateModal({ candidate, isOpen, onClose, onUpdate, onDelete 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-sm">🔍 Avaliação Detalhada</CardTitle>
+                      <CardTitle className="text-sm">Avaliação Detalhada</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-2 text-sm">
                       <div className="flex justify-between">
@@ -366,17 +366,15 @@ export function CandidateModal({ candidate, isOpen, onClose, onUpdate, onDelete 
 
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-sm">📌 Recomendação Final</CardTitle>
+                      <CardTitle className="text-sm">Recomendação Final</CardTitle>
                     </CardHeader>
                     <CardContent className="text-center">
                       {candidate.aiAnalysis.recomendacaoFinal === 'aprovado' ? (
                         <div className="text-success">
-                          <div className="text-2xl mb-1">✅</div>
                           <div className="font-bold">Aprovado para entrevista</div>
                         </div>
                       ) : (
                         <div className="text-destructive">
-                          <div className="text-2xl mb-1">❌</div>
                           <div className="font-bold">Não recomendado neste momento</div>
                         </div>
                       )}

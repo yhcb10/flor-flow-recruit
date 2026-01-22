@@ -10,29 +10,6 @@ interface KanbanMinimapProps {
   onColumnClick: (columnId: string) => void;
 }
 
-const getColumnIcon = (columnId: string) => {
-  switch (columnId) {
-    case 'nova_candidatura':
-      return '📄';
-    case 'analise_ia':
-      return '🤖';
-    case 'selecao_pre_entrevista':
-      return '📋';
-    case 'pre_entrevista':
-      return '💻';
-    case 'selecao_entrevista_presencial':
-      return '📝';
-    case 'entrevista_presencial':
-      return '🤝';
-    case 'aprovado':
-      return '✅';
-    case 'nao_aprovado':
-      return '❌';
-    default:
-      return '📁';
-  }
-};
-
 const getColumnColor = (columnId: string) => {
   switch (columnId) {
     case 'nova_candidatura':
@@ -78,7 +55,6 @@ export function KanbanMinimap({ columns, activeColumnId, onColumnClick }: Kanban
                     isActive && "ring-2 ring-primary scale-105 shadow-md"
                   )}
                 >
-                  <span className="text-lg mr-2">{getColumnIcon(column.id)}</span>
                   <div className="flex flex-col items-start">
                     <span className="text-xs font-medium text-foreground truncate max-w-20">
                       {column.title}
