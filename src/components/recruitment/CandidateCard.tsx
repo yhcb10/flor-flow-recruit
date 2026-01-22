@@ -212,11 +212,8 @@ export function CandidateCard({
           </div>
         );
       case 'selecao_pre_entrevista':
-        return (
-          <div className="bg-warning text-warning-foreground rounded-full px-2 py-1 shadow-md border border-warning/20 flex items-center gap-1">
-            <span className="text-xs font-medium">Agendar</span>
-          </div>
-        );
+        // Sem "sinalização" extra nesta etapa (os botões já indicam as ações)
+        return null;
       case 'pre_entrevista':
         const hasScheduledInterview = Array.isArray(candidate.interviews) && candidate.interviews.some(i => i.status === 'scheduled' && i.type === 'pre_interview');
         return (
