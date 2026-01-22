@@ -118,6 +118,7 @@ export type Database = {
           endpoint_id: string | null
           id: string
           location: string
+          n8n_webhook_path: string | null
           requirements: string[] | null
           responsibilities: string[] | null
           salary_range: string | null
@@ -134,6 +135,7 @@ export type Database = {
           endpoint_id?: string | null
           id?: string
           location: string
+          n8n_webhook_path?: string | null
           requirements?: string[] | null
           responsibilities?: string[] | null
           salary_range?: string | null
@@ -150,6 +152,7 @@ export type Database = {
           endpoint_id?: string | null
           id?: string
           location?: string
+          n8n_webhook_path?: string | null
           requirements?: string[] | null
           responsibilities?: string[] | null
           salary_range?: string | null
