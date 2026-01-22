@@ -659,6 +659,20 @@ export function CandidateCard({
                 <>
                   <Button
                     size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onStageChange) {
+                        onStageChange(candidate.id, 'nao_aprovado', 'Reprovado manualmente (Seleção Pré-Entrevista)');
+                      }
+                    }}
+                    className="h-8 px-3 bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    title="Mover para Não aprovado"
+                  >
+                    <X className="h-3 w-3 mr-2" />
+                    Reprovar
+                  </Button>
+                  <Button
+                    size="sm"
                     onClick={handleScheduleInterview}
                     className="flex-1 h-8 bg-warning text-warning-foreground hover:bg-warning/90"
                   >
