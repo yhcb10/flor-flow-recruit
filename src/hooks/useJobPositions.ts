@@ -17,6 +17,7 @@ type DatabaseJobPosition = {
   salary_range: string;
   description: string;
   endpoint_id: string;
+  n8n_webhook_path: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -32,6 +33,7 @@ const convertDbToJobPosition = (dbPosition: DatabaseJobPosition): JobPosition =>
   status: (dbPosition.status as JobPosition['status']) || 'active',
   createdAt: dbPosition.created_at ? new Date(dbPosition.created_at) : new Date(),
   endpointId: dbPosition.endpoint_id || '',
+  n8nWebhookPath: dbPosition.n8n_webhook_path || undefined,
   // Default values for missing fields
   culturalValues: [],
   minimumQualification: 'Ensino Médio completo',
@@ -51,7 +53,8 @@ const convertJobPositionToDb = (position: Omit<JobPosition, 'id' | 'createdAt' |
   benefits: [],
   salary_range: '',
   description: position.description || '',
-  endpoint_id: position.endpointId || ''
+  endpoint_id: position.endpointId || '',
+  n8n_webhook_path: position.n8nWebhookPath || null
 });
 
 export const useJobPositions = () => {

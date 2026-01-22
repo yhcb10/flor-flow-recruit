@@ -11,7 +11,8 @@ export interface JobPosition {
   createdAt: Date;
   createdBy: string;
   targetHires: number;
-  endpointId?: string; // ID único para o endpoint N8N
+  endpointId?: string; // ID único para o endpoint N8N (usado para mapeamento reverso)
+  n8nWebhookPath?: string; // Path do webhook N8N para envio de currículos
   aiAnalysisPrompt?: string;
   // Campos específicos do formulário
   salarioFixo?: string;

@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,7 +12,6 @@ interface RequestBody {
   positionId: string;
   positionTitle: string;
   source?: string;
-  customWebhookUrl?: string;
 }
 
 serve(async (req) => {
@@ -21,7 +21,7 @@ serve(async (req) => {
   }
 
   try {
-    // Primeiro, vamos verificar se o request body está presente
+    // Parse request body
     const rawBody = await req.text();
     console.log('Raw request body:', rawBody);
     
@@ -37,7 +37,7 @@ serve(async (req) => {
       throw new Error(`JSON inválido: ${parseError.message}`);
     }
     
-    const { resumeUrl, fileName, positionId, positionTitle, source, customWebhookUrl }: RequestBody = requestBody;
+    const { resumeUrl, fileName, positionId, positionTitle, source }: RequestBody = requestBody;
 
     // Validar campos obrigatórios
     if (!resumeUrl || !fileName || !positionId || !positionTitle) {
@@ -50,34 +50,55 @@ serve(async (req) => {
       fileName,
       positionId,
       positionTitle,
-      source,
-      customWebhookUrl
+      source
     });
 
-    // Determinar a URL do webhook baseada na posição
-    let webhookUrl = customWebhookUrl;
-    
-    if (!webhookUrl) {
-      // URLs específicas baseadas na posição
-      if (positionTitle.toLowerCase().includes('analista') && positionTitle.toLowerCase().includes('inteligencia')) {
-        webhookUrl = 'https://n8nwebhook.agentenobre.store/webhook/curriculo-upload-analista_de_inteligencia_artificial_e_automacoes_390000';
-      } else if (positionTitle.toLowerCase().includes('assistente') && positionTitle.toLowerCase().includes('financeiro')) {
-        // URL genérica para assistente financeiro
-        webhookUrl = 'https://n8nwebhook.agentenobre.store/webhook/curriculo-upload-geral';
-      } else {
-        // URL padrão substituindo 'id' pelo positionId
-        webhookUrl = `https://n8nwebhook.agentenobre.store/webhook/curriculo-upload-${positionId}`;
-      }
+    // Inicializar Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Buscar a vaga no banco de dados para obter o n8n_webhook_path
+    const { data: jobPosition, error: jobError } = await supabase
+      .from('job_positions')
+      .select('id, title, n8n_webhook_path, endpoint_id')
+      .eq('id', positionId)
+      .single();
+
+    if (jobError) {
+      console.error('Erro ao buscar vaga:', jobError);
+      throw new Error(`Erro ao buscar vaga: ${jobError.message}`);
     }
-    
-    console.log('URL do webhook determinada:', webhookUrl);
+
+    if (!jobPosition) {
+      console.error('Vaga não encontrada:', positionId);
+      throw new Error(`Vaga não encontrada com ID: ${positionId}`);
+    }
+
+    console.log('Vaga encontrada:', jobPosition);
+
+    // Verificar se a vaga tem webhook path configurado
+    if (!jobPosition.n8n_webhook_path) {
+      console.error('Webhook path não configurado para a vaga:', jobPosition.title);
+      throw new Error(`A vaga "${jobPosition.title}" não possui um webhook path configurado. Configure o campo "Path do Webhook N8N" nas configurações da vaga.`);
+    }
+
+    // Obter URL base do webhook do secret
+    const baseUrl = Deno.env.get('N8N_WEBHOOK_BASE_URL');
+    if (!baseUrl) {
+      throw new Error('N8N_WEBHOOK_BASE_URL não está configurado nos secrets');
+    }
+
+    // Montar URL completa do webhook
+    const webhookUrl = `${baseUrl}${jobPosition.n8n_webhook_path}`;
+    console.log('URL do webhook montada:', webhookUrl);
 
     // Preparar dados para enviar ao N8N
     const n8nPayload = {
       resumeUrl,
       fileName,
-      positionId,
-      positionTitle,
+      positionId: jobPosition.endpoint_id || positionId, // Enviar endpoint_id para mapeamento reverso
+      positionTitle: jobPosition.title,
       source: source || 'manual'
     };
 
@@ -107,6 +128,7 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         message: 'Currículo enviado para N8N com sucesso',
+        webhookUrl: webhookUrl,
         n8nResponse: n8nResult
       }),
       {

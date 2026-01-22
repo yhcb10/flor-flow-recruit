@@ -30,7 +30,8 @@ export function NewJobPositionModal({ open, onOpenChange, onJobPositionCreate }:
     mindsetEsperado: '',
     criteriosAvaliacao: '',
     diferenciais: '',
-    itensNaoPontuaveis: ''
+    itensNaoPontuaveis: '',
+    n8nWebhookPath: ''
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -72,7 +73,8 @@ export function NewJobPositionModal({ open, onOpenChange, onJobPositionCreate }:
       createdAt: new Date(),
       createdBy: 'current-user',
       targetHires: 1,
-      endpointId: endpointId, // Novo campo para o ID do endpoint
+      endpointId: endpointId,
+      n8nWebhookPath: formData.n8nWebhookPath || undefined,
       aiAnalysisPrompt: `
 Analise este candidato considerando:
 
@@ -141,7 +143,8 @@ ${formData.itensNaoPontuaveis}
       mindsetEsperado: '',
       criteriosAvaliacao: '',
       diferenciais: '',
-      itensNaoPontuaveis: ''
+      itensNaoPontuaveis: '',
+      n8nWebhookPath: ''
     });
   };
 
@@ -211,7 +214,7 @@ ${formData.itensNaoPontuaveis}
               </Select>
             </div>
 
-            <div className="space-y-2 md:col-span-2">
+            <div className="space-y-2">
               <Label htmlFor="idadePreferencial">Idade Preferencial</Label>
               <Input
                 id="idadePreferencial"
@@ -219,6 +222,19 @@ ${formData.itensNaoPontuaveis}
                 onChange={(e) => handleInputChange('idadePreferencial', e.target.value)}
                 placeholder="Ex: 18 a 35 anos"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="n8nWebhookPath">Path do Webhook N8N</Label>
+              <Input
+                id="n8nWebhookPath"
+                value={formData.n8nWebhookPath}
+                onChange={(e) => handleInputChange('n8nWebhookPath', e.target.value)}
+                placeholder="Ex: /webhook/curriculo-vendas"
+              />
+              <p className="text-xs text-muted-foreground">
+                Path que será concatenado com a URL base do N8N para envio de currículos
+              </p>
             </div>
           </div>
 

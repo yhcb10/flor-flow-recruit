@@ -420,27 +420,60 @@ export const JobPositionDetailsModal = ({ position, open, onOpenChange, onPositi
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">ID do Endpoint N8N</CardTitle>
+                <CardTitle className="text-lg">Configuração N8N</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  <p className="text-sm text-muted-foreground">
-                    Use este ID para configurar o N8N e receber currículos automaticamente:
-                  </p>
-                  <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-                    <code className="flex-1 text-sm font-mono">
-                      {position.endpointId || 'ID não disponível'}
-                    </code>
-                    {position.endpointId && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={copyEndpointId}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Copy className="h-3 w-3" />
-                      </Button>
-                    )}
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-medium text-sm mb-1">Path do Webhook (Envio de Currículos)</h4>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Path concatenado com a URL base para enviar currículos:
+                    </p>
+                    <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+                      <code className="flex-1 text-sm font-mono">
+                        {position.n8nWebhookPath || 'Não configurado'}
+                      </code>
+                      {position.n8nWebhookPath && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            navigator.clipboard.writeText(position.n8nWebhookPath || '');
+                            toast({
+                              title: "Path copiado!",
+                              description: "O path do webhook foi copiado para a área de transferência."
+                            });
+                          }}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div>
+                    <h4 className="font-medium text-sm mb-1">ID do Endpoint (Mapeamento Reverso)</h4>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Use este ID no N8N para identificar a vaga:
+                    </p>
+                    <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+                      <code className="flex-1 text-sm font-mono">
+                        {position.endpointId || 'ID não disponível'}
+                      </code>
+                      {position.endpointId && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={copyEndpointId}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </CardContent>

@@ -53,11 +53,11 @@ export function NewCandidateModal({ isOpen, onClose, selectedPosition, available
       return;
     }
 
-    // VALIDAÇÃO: Verificar se a vaga tem endpoint_id configurado
-    if (!position.endpointId) {
+    // VALIDAÇÃO: Verificar se a vaga tem webhook path configurado
+    if (!position.n8nWebhookPath) {
       toast({
         title: "Configuração incompleta",
-        description: `A vaga "${position.title}" não possui um endpoint_id configurado. Configure nas configurações da vaga.`,
+        description: `A vaga "${position.title}" não possui um webhook path configurado. Configure nas configurações da vaga.`,
         variant: "destructive",
       });
       return;
@@ -70,16 +70,15 @@ export function NewCandidateModal({ isOpen, onClose, selectedPosition, available
       console.log('📤 Enviando currículo para análise:', {
         vaga: position.title,
         positionId: position.id,
-        endpointId: position.endpointId,
+        n8nWebhookPath: position.n8nWebhookPath,
         source: source || selectedSource
       });
       
-      // Enviar para o N8N usando a edge function atualizada
       const { data, error } = await supabase.functions.invoke('send-resume-to-n8n', {
         body: {
           resumeUrl: url,
           fileName: fileName,
-          positionId: position.endpointId, // Sempre enviar o endpoint_id
+          positionId: position.id, // Enviar o UUID da vaga
           positionTitle: position.title,
           source: source || selectedSource
         }
@@ -167,9 +166,9 @@ export function NewCandidateModal({ isOpen, onClose, selectedPosition, available
                   <div className="text-xs text-muted-foreground">
                     {availablePositions.find(p => p.id === selectedJobPosition)?.department}
                   </div>
-                  {availablePositions.find(p => p.id === selectedJobPosition)?.endpointId && (
+                  {availablePositions.find(p => p.id === selectedJobPosition)?.n8nWebhookPath && (
                     <div className="text-xs text-muted-foreground mt-1">
-                      ID: {availablePositions.find(p => p.id === selectedJobPosition)?.endpointId}
+                      Webhook: {availablePositions.find(p => p.id === selectedJobPosition)?.n8nWebhookPath}
                     </div>
                   )}
                 </div>
@@ -209,7 +208,7 @@ export function NewCandidateModal({ isOpen, onClose, selectedPosition, available
                     const position = availablePositions.find(p => p.id === selectedJobPosition);
                     return (
                       <BulkResumeUpload
-                        positionId={position?.endpointId || selectedJobPosition}
+                        positionId={position?.id || selectedJobPosition}
                         positionTitle={position?.title || 'Posição não especificada'}
                         source={selectedSource}
                         onSourceChange={setSelectedSource}
