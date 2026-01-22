@@ -643,20 +643,22 @@ export function CandidateCard({
 
           {/* Action Buttons - Always at bottom */}
           {canShowActionButtons && (
-            <div className="flex gap-2 mt-3 pt-3 border-t border-muted/20">
-              {/* Reanálise sempre disponível (n8n reprocessa e atualiza o candidato existente) */}
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleReanalyzeN8n}
-                className="h-8 px-2"
-                title="Reanalisar candidato no n8n"
-              >
-                <RotateCcw className="h-3 w-3" />
-              </Button>
-
+            <div className="mt-3 pt-3 border-t border-muted/20">
               {candidate.stage === 'selecao_pre_entrevista' ? (
-                <>
+                <div className="grid grid-cols-2 gap-2">
+                  {/* 1) Reanalisar */}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleReanalyzeN8n}
+                    className="h-8 justify-start"
+                    title="Reanalisar candidato no n8n"
+                  >
+                    <RotateCcw className="h-3 w-3 mr-2" />
+                    <span className="text-xs">Reanalisar</span>
+                  </Button>
+
+                  {/* 2) Reprovar */}
                   <Button
                     size="sm"
                     onClick={(e) => {
@@ -665,40 +667,66 @@ export function CandidateCard({
                         onStageChange(candidate.id, 'nao_aprovado', 'Reprovado manualmente (Seleção Pré-Entrevista)');
                       }
                     }}
-                    className="h-8 px-3 bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    className="h-8 bg-destructive text-destructive-foreground hover:bg-destructive/90 justify-start"
                     title="Mover para Não aprovado"
                   >
                     <X className="h-3 w-3 mr-2" />
-                    Reprovar
+                    <span className="text-xs">Reprovar</span>
                   </Button>
+
+                  {/* 3) Agendar */}
                   <Button
                     size="sm"
                     onClick={handleScheduleInterview}
-                    className="flex-1 h-8 bg-warning text-warning-foreground hover:bg-warning/90"
+                    className="h-8 bg-warning text-warning-foreground hover:bg-warning/90 justify-start"
+                  >
+                    <Clock className="h-3 w-3 mr-2" />
+                    <span className="text-xs">Agendar</span>
+                  </Button>
+
+                  {/* 4) Disparar */}
+                  <Button
+                    size="sm"
+                    onClick={handleSendWhatsAppMessage}
+                    className="h-8 bg-success text-success-foreground hover:bg-success/90 justify-start"
+                  >
+                    <MessageCircle className="h-3 w-3 mr-2" />
+                    <span className="text-xs">Disparar</span>
+                  </Button>
+                </div>
+              ) : candidate.stage === 'selecao_entrevista_presencial' ? (
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleReanalyzeN8n}
+                    className="h-8 px-2"
+                    title="Reanalisar candidato no n8n"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                  </Button>
+
+                  <Button
+                    size="sm"
+                    onClick={handleApprove}
+                    className="flex-1 min-w-[140px] h-8 bg-warning text-warning-foreground hover:bg-warning/90"
                   >
                     <Clock className="h-3 w-3 mr-2" />
                     Agendar
                   </Button>
-                  <Button
-                    size="sm"
-                    onClick={handleSendWhatsAppMessage}
-                    className="flex-1 h-8 bg-success text-success-foreground hover:bg-success/90"
-                  >
-                    <MessageCircle className="h-3 w-3 mr-2" />
-                    Disparar
-                  </Button>
-                </>
-              ) : candidate.stage === 'selecao_entrevista_presencial' ? (
-                <Button
-                  size="sm"
-                  onClick={handleApprove}
-                  className="flex-1 h-8 bg-warning text-warning-foreground hover:bg-warning/90"
-                >
-                  <Clock className="h-3 w-3 mr-2" />
-                  Agendar
-                </Button>
+                </div>
               ) : candidate.stage === 'aguardando_feedback_pre_entrevista' ? (
                 <>
+                  {/* Reanálise */}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleReanalyzeN8n}
+                    className="h-8 px-2"
+                    title="Reanalisar candidato no n8n"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                  </Button>
                   <Button
                     size="sm"
                     onClick={handleReject}
@@ -723,6 +751,16 @@ export function CandidateCard({
                 </>
               ) : candidate.stage === 'pre_entrevista' && Array.isArray(candidate.interviews) && candidate.interviews.some(i => i.status === 'scheduled' && i.type === 'pre_interview') ? (
                 <>
+                  {/* Reanálise */}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleReanalyzeN8n}
+                    className="h-8 px-2"
+                    title="Reanalisar candidato no n8n"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                  </Button>
                   <Button
                     size="sm"
                     onClick={handleReject}
@@ -753,6 +791,16 @@ export function CandidateCard({
                 </>
               ) : candidate.stage === 'entrevista_presencial' && Array.isArray(candidate.interviews) && candidate.interviews.some(i => i.status === 'scheduled' && i.type === 'in_person') ? (
                 <>
+                  {/* Reanálise */}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleReanalyzeN8n}
+                    className="h-8 px-2"
+                    title="Reanalisar candidato no n8n"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                  </Button>
                   <Button
                     size="sm"
                     onClick={handleReject}
@@ -783,6 +831,16 @@ export function CandidateCard({
                 </>
               ) : (
                 <>
+                  {/* Reanálise */}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleReanalyzeN8n}
+                    className="h-8 px-2"
+                    title="Reanalisar candidato no n8n"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                  </Button>
                   <Button
                     size="sm"
                     onClick={handleReject}
