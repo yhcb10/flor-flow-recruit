@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Plus, Filter, Search, X, LayoutGrid, Grid3X3, GripVertical } from 'lucide-react';
+import { Plus, Filter, Search, X, LayoutGrid, Grid3X3, GripVertical, RotateCcw } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -19,6 +19,8 @@ import { KanbanColumnsList } from './KanbanColumnsList';
 import { useKanbanNavigation } from '@/hooks/useKanbanNavigation';
 import { Candidate, CandidateStage, KanbanColumn, JobPosition } from '@/types/recruitment';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface KanbanBoardProps {
   columns: KanbanColumn[];
@@ -49,6 +51,10 @@ export function KanbanBoard({
   const [showTalentPoolModal, setShowTalentPoolModal] = useState(false);
   const [pendingTalentPoolMove, setPendingTalentPoolMove] = useState<{candidateId: string, candidateName: string} | null>(null);
   const { activeColumnId, kanbanRef, scrollToColumn } = useKanbanNavigation();
+  const { toast } = useToast();
+
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   
   // Filter states
   const [filters, setFilters] = useState({
@@ -101,6 +107,60 @@ export function KanbanBoard({
       dateRange: 'all'
     });
     setSearchTerm('');
+  };
+
+  const toggleSelectCandidate = (candidateId: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(candidateId)) {
+        next.delete(candidateId);
+      } else {
+        next.add(candidateId);
+      }
+      return next;
+    });
+  };
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+  };
+
+  const handleBulkReanalyze = async () => {
+    const candidateIds = Array.from(selectedIds);
+    if (candidateIds.length === 0) return;
+
+    const confirmed = window.confirm(`Reanalisar ${candidateIds.length} candidato(s) no n8n?\n\nEles serão retornados para "Análise IA" e, quando o n8n responder, os dados serão atualizados no mesmo registro.`);
+    if (!confirmed) return;
+
+    try {
+      toast({
+        title: 'Reanálise em andamento',
+        description: `Disparando ${candidateIds.length} candidato(s) para reanálise no n8n...`
+      });
+
+      const { data, error } = await supabase.functions.invoke('reanalyze-candidates-n8n', {
+        body: { candidateIds }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      clearSelection();
+      setSelectionMode(false);
+
+      toast({
+        title: 'Reanálise disparada',
+        description: data?.message || 'O n8n irá retornar as novas análises e os candidatos serão atualizados.'
+      });
+    } catch (err: any) {
+      console.error('Erro ao reanalisar em massa:', err);
+      toast({
+        title: 'Erro na reanálise em massa',
+        description: err?.message || 'Não foi possível disparar a reanálise em massa no n8n.',
+        variant: 'destructive'
+      });
+    }
   };
 
   const getInterviewStatus = (candidate: Candidate) => {
@@ -336,6 +396,60 @@ export function KanbanBoard({
                     </div>
                   </PopoverContent>
                 </Popover>
+
+                  {/* Seleção / ações em massa */}
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant={selectionMode ? 'default' : 'outline'}
+                      size="sm"
+                      className="h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm"
+                      onClick={() => {
+                        setSelectionMode((v) => {
+                          const next = !v;
+                          if (!next) {
+                            clearSelection();
+                          }
+                          return next;
+                        });
+                      }}
+                      title="Ativar seleção múltipla"
+                    >
+                      <span className="hidden sm:inline">Selecionar</span>
+                      <span className="sm:hidden">Sel.</span>
+                      {selectedIds.size > 0 && (
+                        <Badge variant="secondary" className="ml-2 h-5 px-2 text-xs">
+                          {selectedIds.size}
+                        </Badge>
+                      )}
+                    </Button>
+
+                    {selectionMode && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm"
+                          onClick={handleBulkReanalyze}
+                          disabled={selectedIds.size === 0}
+                          title="Reanalisar candidatos selecionados no n8n"
+                        >
+                          <RotateCcw className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                          <span className="hidden sm:inline">Reanalisar</span>
+                        </Button>
+
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm"
+                          onClick={clearSelection}
+                          disabled={selectedIds.size === 0}
+                          title="Limpar seleção"
+                        >
+                          <X className="h-3 w-3 sm:h-4 sm:w-4" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 
                 <Button 
                   size="sm"
@@ -420,11 +534,20 @@ export function KanbanBoard({
                                     >
                                       <CandidateCard
                                         candidate={candidate}
-                                        onClick={() => setSelectedCandidate(candidate)}
+                                        onClick={() => {
+                                          if (selectionMode) {
+                                            toggleSelectCandidate(candidate.id);
+                                            return;
+                                          }
+                                          setSelectedCandidate(candidate);
+                                        }}
                                         isDragging={snapshot.isDragging}
                                         onStageChange={handleStageChange}
                                         onCandidateUpdate={onCandidateUpdate}
                                         isCompactView={isCompactView}
+                                        selectionEnabled={selectionMode}
+                                        isSelected={selectedIds.has(candidate.id)}
+                                        onToggleSelect={toggleSelectCandidate}
                                       />
                                     </div>
                                   )}

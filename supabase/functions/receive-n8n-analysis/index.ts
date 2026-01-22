@@ -27,6 +27,8 @@ interface N8NCandidateData {
   nome_arquivo?: string; // Nome do arquivo PDF
   source?: string; // Fonte do currículo (indeed, linkedin, manual) - DEPRECATED: use origem_candidato
   origem_candidato?: string; // Nova variável: origem real do candidato (ex: "Indeed", "LinkedIn", "Indicação", etc)
+  candidate_id?: string; // Quando for reanálise, atualizar este candidato
+  candidateId?: string; // Alias camelCase
 }
 
 serve(async (req) => {
@@ -77,6 +79,40 @@ serve(async (req) => {
     console.log('source (deprecated):', candidateData.source);
     console.log('========================');
 
+    // Reanálise: se vier candidate_id, atualiza o candidato existente
+    const candidateIdFromPayload: string | null = (
+      (candidateData as any).candidate_id ||
+      (candidateData as any).candidateId ||
+      (candidateData as any).candidato?.id ||
+      null
+    );
+
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+    let existingCandidateRow: any = null;
+    if (candidateIdFromPayload) {
+      if (!uuidRegex.test(candidateIdFromPayload)) {
+        throw new Error(`candidate_id inválido (esperado UUID): ${candidateIdFromPayload}`);
+      }
+
+      const { data: existingCandidate, error: existingCandidateError } = await supabase
+        .from('candidates')
+        .select('id, position_id')
+        .eq('id', candidateIdFromPayload)
+        .maybeSingle();
+
+      if (existingCandidateError) {
+        console.error('❌ ERRO ao buscar candidato para reanálise:', existingCandidateError);
+        throw new Error(`Erro ao buscar candidato para reanálise: ${existingCandidateError.message}`);
+      }
+      if (!existingCandidate) {
+        throw new Error(`Candidato para reanálise não encontrado: ${candidateIdFromPayload}`);
+      }
+
+      existingCandidateRow = existingCandidate;
+      console.log('🔁 Reanálise detectada. candidate_id:', candidateIdFromPayload);
+    }
+
     // Resolver position_id de forma dinâmica e robusta (aceita UUID, endpoint_id e estruturas aninhadas)
     // Suporta: { id }, { position_id }, { vaga: { id } }, { vaga_id }, { job_id }
     const rawPositionIdentifier: string | null = (
@@ -90,18 +126,31 @@ serve(async (req) => {
 
     console.log('Identificador de vaga recebido:', rawPositionIdentifier);
 
-    if (!rawPositionIdentifier) {
+    if (!rawPositionIdentifier && !existingCandidateRow?.position_id) {
       console.error('❌ ERRO CRÍTICO: position_id/endpoint_id não fornecido no payload do N8N');
       throw new Error('position_id é obrigatório. Envie o UUID da vaga ou o endpoint_id configurado na vaga.');
     }
 
-    // Validar formato UUID
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
     let mappedPositionId: string | null = null;
     let jobPosition: { id: string; title: string } | null = null;
 
-    if (uuidRegex.test(rawPositionIdentifier)) {
+    // Se for reanálise e não veio vaga, reaproveitar a vaga já cadastrada no candidato
+    if (!rawPositionIdentifier && existingCandidateRow?.position_id) {
+      const { data, error } = await supabase
+        .from('job_positions')
+        .select('id, title')
+        .eq('id', existingCandidateRow.position_id)
+        .maybeSingle();
+      if (error) {
+        console.error('❌ ERRO ao validar vaga do candidato existente:', error);
+        throw new Error(`Erro ao validar vaga do candidato: ${error.message}`);
+      }
+      if (!data) {
+        throw new Error(`Vaga do candidato (${existingCandidateRow.position_id}) não existe.`);
+      }
+      mappedPositionId = (data as any).id;
+      jobPosition = data as any;
+    } else if (rawPositionIdentifier && uuidRegex.test(rawPositionIdentifier)) {
       // Já é um UUID: validar existência
       const { data, error } = await supabase
         .from('job_positions')
@@ -119,7 +168,7 @@ serve(async (req) => {
       jobPosition = data as any;
     } else {
       // Não é UUID: tratar como endpoint_id dinâmico
-      const endpointId = rawPositionIdentifier.toString().trim();
+      const endpointId = rawPositionIdentifier!.toString().trim();
       const { data, error } = await supabase
         .from('job_positions')
         .select('id, title, endpoint_id')
@@ -315,20 +364,51 @@ serve(async (req) => {
     console.log('✅ Candidato validado e pronto para processamento:', JSON.stringify(candidate, null, 2));
 
     let data, error;
-    
-    // SEMPRE criar novo candidato (verificação de duplicados desabilitada)
-    console.log(`➕ Criando novo candidato no banco de dados`);
-    const insertResult = await supabase
-      .from('candidates')
-      .insert(candidate)
-      .select()
-      .single();
-    
-    data = insertResult.data;
-    error = insertResult.error;
-    
-    if (!error) {
-      console.log(`✅ Novo candidato criado: ${candidateData.nome_completo}`);
+
+    if (candidateIdFromPayload) {
+      // UPDATE: reanálise
+      console.log(`🔁 Atualizando candidato existente no banco de dados: ${candidateIdFromPayload}`);
+      const updatePayload: any = {
+        name: candidate.name,
+        email: candidate.email,
+        phone: candidate.phone,
+        position_id: candidate.position_id,
+        source: candidate.source,
+        stage: 'analise_ia',
+        resume_url: candidate.resume_url,
+        resume_file_name: candidate.resume_file_name,
+        ai_analysis: candidate.ai_analysis,
+        updated_at: new Date().toISOString(),
+      };
+
+      const updateResult = await supabase
+        .from('candidates')
+        .update(updatePayload)
+        .eq('id', candidateIdFromPayload)
+        .select()
+        .single();
+
+      data = updateResult.data;
+      error = updateResult.error;
+
+      if (!error) {
+        console.log(`✅ Candidato reanalisado e atualizado: ${candidate.name}`);
+      }
+    } else {
+      // INSERT: fluxo atual
+      console.log(`➕ Criando novo candidato no banco de dados`);
+      const insertResult = await supabase
+        .from('candidates')
+        .insert(candidate)
+        .select()
+        .single();
+
+      data = insertResult.data;
+      error = insertResult.error;
+
+      if (!error) {
+        console.log(`✅ Novo candidato criado: ${candidateData.nome_completo}`);
+      }
     }
 
     if (error) {
@@ -339,8 +419,10 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Novo candidato ${candidateData.nome_completo} criado com sucesso`,
-        action: 'created',
+        message: candidateIdFromPayload
+          ? `Candidato ${candidateData.nome_completo} reanalisado e atualizado com sucesso`
+          : `Novo candidato ${candidateData.nome_completo} criado com sucesso`,
+        action: candidateIdFromPayload ? 'updated' : 'created',
         data: data
       }),
       {
