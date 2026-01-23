@@ -14,6 +14,54 @@ interface RequestBody {
 
 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+function chunkArray<T>(items: T[], chunkSize: number): T[][] {
+  if (chunkSize <= 0) return [items];
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += chunkSize) {
+    out.push(items.slice(i, i + chunkSize));
+  }
+  return out;
+}
+
+async function runWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  worker: (item: T, index: number) => Promise<R>,
+): Promise<Array<PromiseSettledResult<R>>> {
+  const limit = Math.max(1, Math.floor(concurrency || 1));
+  const results: Array<PromiseSettledResult<R>> = new Array(items.length);
+  let nextIndex = 0;
+
+  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (true) {
+      const current = nextIndex++;
+      if (current >= items.length) return;
+      try {
+        const value = await worker(items[current], current);
+        results[current] = { status: "fulfilled", value };
+      } catch (reason) {
+        results[current] = { status: "rejected", reason };
+      }
+    }
+  });
+
+  await Promise.all(runners);
+  return results;
+}
+
+function normalizeCandidateIds(body: RequestBody): string[] {
+  const raw = Array.isArray(body.candidateIds)
+    ? body.candidateIds
+    : (body.candidateId ? [body.candidateId] : []);
+  const trimmed = raw
+    .map((v) => String(v ?? "").trim())
+    .filter(Boolean);
+  // Dedup para evitar reprocessamento acidental
+  return Array.from(new Set(trimmed));
+}
+
+type PerCandidateResult = { candidateId: string; ok: boolean; error?: string; webhookUrl?: string };
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -32,18 +80,21 @@ serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const body: RequestBody = await req.json();
-    const candidateIds = Array.isArray(body.candidateIds)
-      ? body.candidateIds
-      : (body.candidateId ? [body.candidateId] : []);
+    const candidateIds = normalizeCandidateIds(body);
 
     if (candidateIds.length === 0) {
       throw new Error("candidateIds (array) ou candidateId (string) é obrigatório");
     }
 
-    // Proteção: evitar disparos gigantes acidentais
-    const MAX_BATCH = 30;
-    if (candidateIds.length > MAX_BATCH) {
-      throw new Error(`Limite de ${MAX_BATCH} candidatos por lote. Recebido: ${candidateIds.length}`);
+    // Configurações
+    // - MAX_BATCH: tamanho do lote lógico (quebra automática acima disso)
+    // - HARD_CAP: proteção contra disparos gigantes acidentais
+    // - CONCURRENCY: paralelismo controlado dentro de cada lote
+    const MAX_BATCH = 100;
+    const HARD_CAP = 1000;
+    const CONCURRENCY = 5;
+    if (candidateIds.length > HARD_CAP) {
+      throw new Error(`Limite máximo de ${HARD_CAP} candidatos por requisição. Recebido: ${candidateIds.length}`);
     }
 
     const baseUrl = Deno.env.get("N8N_WEBHOOK_BASE_URL");
@@ -51,9 +102,7 @@ serve(async (req: Request) => {
       throw new Error("N8N_WEBHOOK_BASE_URL não está configurado nos secrets");
     }
 
-    const results: Array<{ candidateId: string; ok: boolean; error?: string; webhookUrl?: string }> = [];
-
-    for (const candidateId of candidateIds) {
+    async function processCandidate(candidateId: string): Promise<PerCandidateResult> {
       try {
         if (!uuidRegex.test(candidateId)) {
           throw new Error("candidateId inválido (esperado UUID)");
@@ -134,24 +183,75 @@ serve(async (req: Request) => {
           throw new Error(`Erro ao atualizar stage do candidato: ${updateError.message}`);
         }
 
-        results.push({ candidateId, ok: true, webhookUrl });
+        return { candidateId, ok: true, webhookUrl };
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);
         console.error("Reanálise - erro por candidato:", { candidateId, err: message });
-        results.push({ candidateId, ok: false, error: message || "Erro desconhecido" });
+        return { candidateId, ok: false, error: message || "Erro desconhecido" };
       }
     }
 
-    const successCount = results.filter((r) => r.ok).length;
-    const failCount = results.length - successCount;
+    const batches = chunkArray(candidateIds, MAX_BATCH);
+    console.log("Reanálise - iniciado", {
+      totalCandidateIds: candidateIds.length,
+      batches: batches.length,
+      maxBatchSize: MAX_BATCH,
+      concurrency: CONCURRENCY,
+    });
+
+    const backgroundTask = async () => {
+      const startedAt = Date.now();
+      let totalOk = 0;
+      let totalFail = 0;
+
+      for (let i = 0; i < batches.length; i++) {
+        const batch = batches[i];
+        console.log("Reanálise - lote start", { batchIndex: i + 1, batchSize: batch.length });
+
+        const settled = await runWithConcurrency(batch, CONCURRENCY, async (id) => await processCandidate(id));
+        const results: PerCandidateResult[] = settled.map((r, idx) => {
+          if (r.status === "fulfilled") return r.value;
+          const reason = r.reason instanceof Error ? r.reason.message : String(r.reason);
+          return { candidateId: batch[idx], ok: false, error: reason || "Erro desconhecido" };
+        });
+
+        const ok = results.filter((r) => r.ok).length;
+        const fail = results.length - ok;
+        totalOk += ok;
+        totalFail += fail;
+
+        console.log("Reanálise - lote end", { batchIndex: i + 1, ok, fail });
+      }
+
+      console.log("Reanálise - finalizado", {
+        totalCandidateIds: candidateIds.length,
+        ok: totalOk,
+        fail: totalFail,
+        durationMs: Date.now() - startedAt,
+      });
+    };
+
+    // Executa em background para evitar timeout no request; a análise em si será entregue via webhook (receive-n8n-analysis)
+    // EdgeRuntime existe no ambiente de execução das Edge Functions.
+    // deno-lint-ignore no-explicit-any
+    const edgeRuntime: any = (globalThis as any).EdgeRuntime;
+    if (edgeRuntime?.waitUntil) {
+      edgeRuntime.waitUntil(backgroundTask());
+    } else {
+      // Fallback: se não suportar background tasks, executa no caminho síncrono.
+      await backgroundTask();
+    }
 
     return new Response(
       JSON.stringify({
-        success: failCount === 0,
-        message: `Reanálise disparada. Sucesso: ${successCount}. Falhas: ${failCount}.`,
-        results,
+        success: true,
+        message: `Reanálise iniciada para ${candidateIds.length} candidatos (em ${batches.length} lotes de até ${MAX_BATCH}).`,
+        totalCandidateIds: candidateIds.length,
+        batches: batches.length,
+        maxBatchSize: MAX_BATCH,
+        concurrency: CONCURRENCY,
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 202 },
     );
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
