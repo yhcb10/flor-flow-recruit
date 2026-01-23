@@ -125,6 +125,23 @@ export function KanbanBoard({
     setSelectedIds(new Set());
   };
 
+  const toggleSelectColumn = (candidateIds: string[]) => {
+    if (candidateIds.length === 0) return;
+
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      const allSelected = candidateIds.every((id) => next.has(id));
+
+      if (allSelected) {
+        candidateIds.forEach((id) => next.delete(id));
+        return next;
+      }
+
+      candidateIds.forEach((id) => next.add(id));
+      return next;
+    });
+  };
+
   const handleBulkReanalyze = async () => {
     const candidateIds = Array.from(selectedIds);
     if (candidateIds.length === 0) return;
@@ -501,9 +518,29 @@ export function KanbanBoard({
                             <GripVertical className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground cursor-grab flex-shrink-0" />
                             <h3 className="font-semibold text-foreground text-sm sm:text-base truncate">{column.title}</h3>
                           </div>
-                          <Badge variant="secondary" className="text-xs flex-shrink-0 ml-2">
-                            {column.candidates.length}
-                          </Badge>
+                          <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
+                            {selectionMode && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2 text-xs"
+                                disabled={column.candidates.length === 0}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleSelectColumn(column.candidates.map((c) => c.id));
+                                }}
+                                title="Selecionar (ou limpar) todos os candidatos desta coluna"
+                              >
+                                {column.candidates.length > 0 && column.candidates.every((c) => selectedIds.has(c.id))
+                                  ? 'Limpar'
+                                  : 'Selecionar'}
+                              </Button>
+                            )}
+
+                            <Badge variant="secondary" className="text-xs">
+                              {column.candidates.length}
+                            </Badge>
+                          </div>
                         </div>
                         <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">{column.description}</p>
                       </div>
