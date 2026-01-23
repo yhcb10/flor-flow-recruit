@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -55,6 +55,12 @@ export function KanbanBoard({
 
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // Evita que o modo de seleção fique “preso” ligado após hot-reload.
+  useEffect(() => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  }, []);
   
   // Filter states
   const [filters, setFilters] = useState({
