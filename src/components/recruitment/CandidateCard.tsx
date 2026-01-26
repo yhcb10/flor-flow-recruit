@@ -1,28 +1,45 @@
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 
-import { CalendarDays, Mail, Phone, Star, Clock, MessageSquare, Check, X, User, MessageCircle, RotateCcw } from 'lucide-react';
-import { Candidate, CandidateStage } from '@/types/recruitment';
-import { cn, normalizeWhatsappPhoneBR } from '@/lib/utils';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { RejectionReasonModal } from './RejectionReasonModal';
-import { TalentPoolReasonModal } from './TalentPoolReasonModal';
-import { InterviewScheduler } from './InterviewScheduler';
-import { InPersonInterviewScheduler } from './InPersonInterviewScheduler';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useState } from 'react';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { Checkbox } from '@/components/ui/checkbox';
+import {
+  CalendarDays,
+  Mail,
+  Phone,
+  Star,
+  Clock,
+  MessageSquare,
+  Check,
+  X,
+  User,
+  MessageCircle,
+  RotateCcw,
+} from "lucide-react";
+import { Candidate, CandidateStage } from "@/types/recruitment";
+import { cn, normalizeWhatsappPhoneBR } from "@/lib/utils";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { RejectionReasonModal } from "./RejectionReasonModal";
+import { TalentPoolReasonModal } from "./TalentPoolReasonModal";
+import { InterviewScheduler } from "./InterviewScheduler";
+import { InPersonInterviewScheduler } from "./InPersonInterviewScheduler";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface CandidateCardProps {
   candidate: Candidate;
   onClick: () => void;
   isDragging?: boolean;
-  onStageChange?: (candidateId: string, newStage: CandidateStage, rejectionReason?: string, talentPoolReason?: string) => void;
+  onStageChange?: (
+    candidateId: string,
+    newStage: CandidateStage,
+    rejectionReason?: string,
+    talentPoolReason?: string,
+  ) => void;
   onCandidateUpdate?: (candidate: Candidate) => void;
   isCompactView?: boolean;
   selectionEnabled?: boolean;
@@ -47,94 +64,99 @@ export function CandidateCard({
   const [showInPersonScheduler, setShowInPersonScheduler] = useState(false);
   const { toast } = useToast();
   const getScoreColor = (score: number) => {
-    if (score >= 8) return 'text-success bg-success/10';
-    if (score >= 6.5) return 'text-warning bg-warning/10';
-    return 'text-destructive bg-destructive/10';
+    if (score >= 8) return "text-success bg-success/10";
+    if (score >= 6.5) return "text-warning bg-warning/10";
+    return "text-destructive bg-destructive/10";
   };
 
   const getSourceBadge = (source: string) => {
     const normalizeSource = (value?: string) => {
-      if (!value) return 'unknown';
+      if (!value) return "unknown";
       const val = String(value).trim().toLowerCase();
-      const plain = val.normalize('NFD').replace(/\p{Diacritic}/gu, '');
-      if (plain.includes('linkedin')) return 'linkedin';
-      if (plain.includes('indeed')) return 'indeed';
-      if (plain.includes('infojobs')) return 'infojobs';
-      if (plain.includes('instagram')) return 'instagram';
-      if (plain.includes('facebook')) return 'facebook';
-      if (plain.includes('indicacao')) return 'referral';
-      if (plain.includes('referral')) return 'referral';
-      if (plain.includes('manual')) return 'manual';
+      const plain = val.normalize("NFD").replace(/\p{Diacritic}/gu, "");
+      if (plain.includes("linkedin")) return "linkedin";
+      if (plain.includes("indeed")) return "indeed";
+      if (plain.includes("infojobs")) return "infojobs";
+      if (plain.includes("instagram")) return "instagram";
+      if (plain.includes("facebook")) return "facebook";
+      if (plain.includes("indicacao")) return "referral";
+      if (plain.includes("referral")) return "referral";
+      if (plain.includes("manual")) return "manual";
       return plain;
     };
 
     const key = normalizeSource(source);
     const sourceMap = {
-      indeed: { label: 'Indeed', variant: 'default' as const },
-      linkedin: { label: 'LinkedIn', variant: 'default' as const },
-      infojobs: { label: 'Infojobs', variant: 'default' as const },
-      instagram: { label: 'Instagram', variant: 'secondary' as const },
-      facebook: { label: 'Facebook', variant: 'secondary' as const },
-      manual: { label: 'Manual', variant: 'secondary' as const },
-      referral: { label: 'Indicação', variant: 'outline' as const },
+      indeed: { label: "Indeed", variant: "default" as const },
+      linkedin: { label: "LinkedIn", variant: "default" as const },
+      infojobs: { label: "Infojobs", variant: "default" as const },
+      instagram: { label: "Instagram", variant: "secondary" as const },
+      facebook: { label: "Facebook", variant: "secondary" as const },
+      manual: { label: "Manual", variant: "secondary" as const },
+      referral: { label: "Indicação", variant: "outline" as const },
     };
-    return (sourceMap as Record<string, {label: string; variant: 'default' | 'secondary' | 'outline'}>)[key] || { label: source, variant: 'default' as const };
+    return (
+      (sourceMap as Record<string, { label: string; variant: "default" | "secondary" | "outline" }>)[key] || {
+        label: source,
+        variant: "default" as const,
+      }
+    );
   };
 
   const sourceBadge = getSourceBadge(candidate.source);
 
   const getStageColors = (stage: CandidateStage) => {
     switch (stage) {
-      case 'nova_candidatura':
+      case "nova_candidatura":
         return {
-          bg: 'bg-status-new',
-          border: 'border-status-new-border',
-          text: 'text-status-new-border'
+          bg: "bg-status-new",
+          border: "border-status-new-border",
+          text: "text-status-new-border",
         };
-      case 'analise_ia':
+      case "analise_ia":
         return {
-          bg: 'bg-status-analysis',
-          border: 'border-status-analysis-border',
-          text: 'text-status-analysis-border'
+          bg: "bg-status-analysis",
+          border: "border-status-analysis-border",
+          text: "text-status-analysis-border",
         };
-      case 'selecao_pre_entrevista':
-      case 'pre_entrevista':
-      case 'aguardando_feedback_pre_entrevista':
+      case "selecao_pre_entrevista":
+      case "pre_entrevista":
+      case "aguardando_feedback_pre_entrevista":
         return {
-          bg: 'bg-status-pre-interview',
-          border: 'border-status-pre-interview-border',
-          text: 'text-status-pre-interview-border'
+          bg: "bg-status-pre-interview",
+          border: "border-status-pre-interview-border",
+          text: "text-status-pre-interview-border",
         };
-      case 'selecao_entrevista_presencial':
-      case 'entrevista_presencial':
+      case "selecao_entrevista_presencial":
+      case "entrevista_presencial":
         return {
-          bg: 'bg-status-interview',
-          border: 'border-status-interview-border',
-          text: 'text-status-interview-border'
+          bg: "bg-status-interview",
+          border: "border-status-interview-border",
+          text: "text-status-interview-border",
         };
-      case 'aprovado':
+      case "aprovado":
         return {
-          bg: 'bg-status-approved',
-          border: 'border-status-approved-border',
-          text: 'text-status-approved-border'
+          bg: "bg-status-approved",
+          border: "border-status-approved-border",
+          text: "text-status-approved-border",
         };
-      case 'nao_aprovado':
+      case "nao_aprovado":
         return {
-          bg: 'bg-status-rejected',
-          border: 'border-status-rejected-border',
-          text: 'text-status-rejected-border'
+          bg: "bg-status-rejected",
+          border: "border-status-rejected-border",
+          text: "text-status-rejected-border",
         };
-      case 'banco_talentos':
+      case "banco_talentos":
         return {
-          bg: 'bg-status-talent-bank',
-          border: 'border-status-talent-bank-border',
-          text: 'text-status-talent-bank-border'
+          bg: "bg-status-talent-bank",
+          border: "border-status-talent-bank-border",
+          text: "text-status-talent-bank-border",
         };
       default:
         return {
-          bg: 'bg-muted',
-          border: 'border-muted',
-          text: 'text-muted-foreground'
+          bg: "bg-muted",
+          border: "border-muted",
+          text: "text-muted-foreground",
         };
     }
   };
@@ -143,19 +165,26 @@ export function CandidateCard({
 
   const getNextStage = (currentStage: CandidateStage): CandidateStage | null => {
     switch (currentStage) {
-      case 'analise_ia':
-        return 'selecao_pre_entrevista';
-      case 'pre_entrevista':
-        return 'selecao_entrevista_presencial';
-      case 'entrevista_presencial':
-        return 'aprovado';
+      case "analise_ia":
+        return "selecao_pre_entrevista";
+      case "pre_entrevista":
+        return "selecao_entrevista_presencial";
+      case "entrevista_presencial":
+        return "aprovado";
       default:
         return null;
     }
   };
 
-  const canShowActionButtons = ['analise_ia', 'pre_entrevista', 'entrevista_presencial', 'selecao_pre_entrevista', 'selecao_entrevista_presencial', 'aguardando_feedback_pre_entrevista'].includes(candidate.stage);
-  const canShowTalentPoolButton = ['aprovado', 'nao_aprovado'].includes(candidate.stage);
+  const canShowActionButtons = [
+    "analise_ia",
+    "pre_entrevista",
+    "entrevista_presencial",
+    "selecao_pre_entrevista",
+    "selecao_entrevista_presencial",
+    "aguardando_feedback_pre_entrevista",
+  ].includes(candidate.stage);
+  const canShowTalentPoolButton = ["aprovado", "nao_aprovado"].includes(candidate.stage);
 
   // Get interview status for visual indicators
   const getInterviewStatus = () => {
@@ -167,28 +196,28 @@ export function CandidateCard({
   const getStatusIcon = () => {
     const interviewInfo = getInterviewStatus();
     if (!interviewInfo) return null;
-    
+
     const { status, interview } = interviewInfo;
-    
+
     switch (status) {
-      case 'scheduled':
+      case "scheduled":
         const scheduledDate = new Date(interview.scheduledAt);
-        const dateStr = format(scheduledDate, 'dd/MM', { locale: ptBR });
-        const timeStr = format(scheduledDate, 'HH:mm', { locale: ptBR });
-        const fullDateStr = format(scheduledDate, 'dd/MM/yyyy \'às\' HH:mm', { locale: ptBR });
-        
+        const dateStr = format(scheduledDate, "dd/MM", { locale: ptBR });
+        const timeStr = format(scheduledDate, "HH:mm", { locale: ptBR });
+        const fullDateStr = format(scheduledDate, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+
         return {
           label: `${dateStr} ${timeStr}`,
-          color: 'text-warning',
+          color: "text-warning",
           fullDate: fullDateStr,
-          interview: interview
+          interview: interview,
         };
-      case 'completed':
-        return { label: 'Realizada', color: 'text-success' };
-      case 'no_show':
-        return { label: 'Faltou', color: 'text-destructive' };
-      case 'cancelled':
-        return { label: 'Cancelada', color: 'text-muted-foreground' };
+      case "completed":
+        return { label: "Realizada", color: "text-success" };
+      case "no_show":
+        return { label: "Faltou", color: "text-destructive" };
+      case "cancelled":
+        return { label: "Cancelada", color: "text-muted-foreground" };
       default:
         return null;
     }
@@ -199,43 +228,43 @@ export function CandidateCard({
   // Get status badge and message based on stage
   const getStatusBadge = () => {
     switch (candidate.stage) {
-      case 'aprovado':
+      case "aprovado":
         return (
           <div className="bg-success text-success-foreground rounded-full px-2 py-1 shadow-md border border-success/20 flex items-center gap-1">
             <span className="text-xs font-medium">Aprovado</span>
           </div>
         );
-      case 'nao_aprovado':
+      case "nao_aprovado":
         return (
           <div className="bg-destructive text-destructive-foreground rounded-full px-2 py-1 shadow-md border border-destructive/20 flex items-center gap-1">
             <span className="text-xs font-medium">Rejeitado</span>
           </div>
         );
-      case 'selecao_pre_entrevista':
+      case "selecao_pre_entrevista":
         // Sem "sinalização" extra nesta etapa (os botões já indicam as ações)
         return null;
-      case 'pre_entrevista':
+      case "pre_entrevista":
         // Removido o badge de "Agendar/Agendado" para não duplicar sinalização (a ação está nos botões)
         return null;
-      case 'selecao_entrevista_presencial':
+      case "selecao_entrevista_presencial":
         // Removido o badge de "Agendar" para não duplicar sinalização (a ação está nos botões)
         return null;
-      case 'entrevista_presencial':
+      case "entrevista_presencial":
         // Removido o badge de "Agendar/Agendado" para não duplicar sinalização (a ação está nos botões)
         return null;
-      case 'analise_ia':
+      case "analise_ia":
         return (
           <div className="bg-primary text-primary-foreground rounded-full px-2 py-1 shadow-md border border-primary/20 flex items-center gap-1">
             <span className="text-xs font-medium">Analisando</span>
           </div>
         );
-      case 'banco_talentos':
+      case "banco_talentos":
         return (
           <div className="bg-status-talent-bank text-status-talent-bank-foreground rounded-full px-2 py-1 shadow-md border border-status-talent-bank/20 flex items-center gap-1">
             <span className="text-xs font-medium">Banco de Talentos</span>
           </div>
         );
-      case 'nova_candidatura':
+      case "nova_candidatura":
       default:
         return (
           <div className="bg-secondary text-secondary-foreground rounded-full px-2 py-1 shadow-md border border-secondary/20 flex items-center gap-1">
@@ -247,62 +276,67 @@ export function CandidateCard({
 
   const getStatusMessage = () => {
     switch (candidate.stage) {
-      case 'aprovado':
+      case "aprovado":
         return {
-          title: 'Candidato Aprovado',
-          description: 'Processo seletivo concluído com sucesso.'
+          title: "Candidato Aprovado",
+          description: "Processo seletivo concluído com sucesso.",
         };
-      case 'nao_aprovado':
+      case "nao_aprovado":
         return {
-          title: 'Candidato Rejeitado',
-          description: candidate.rejectionReason || 'Não atendeu aos critérios do processo.'
+          title: "Candidato Rejeitado",
+          description: candidate.rejectionReason || "Não atendeu aos critérios do processo.",
         };
-      case 'selecao_pre_entrevista':
+      case "selecao_pre_entrevista":
         return {
-          title: 'Aguardando Ação',
-          description: 'Agende ou dispare mensagem para o candidato.'
+          title: "Aguardando Ação",
+          description: "Agende ou dispare mensagem para o candidato.",
         };
-      case 'pre_entrevista':
-        const hasScheduledInterview = Array.isArray(candidate.interviews) && candidate.interviews.some(i => i.status === 'scheduled' && i.type === 'pre_interview');
+      case "pre_entrevista":
+        const hasScheduledInterview =
+          Array.isArray(candidate.interviews) &&
+          candidate.interviews.some((i) => i.status === "scheduled" && i.type === "pre_interview");
         return {
-          title: hasScheduledInterview ? 'Pré-entrevista Agendada' : 'Aguardando Agendamento',
-          description: hasScheduledInterview 
-            ? 'Pré-entrevista agendada. Aguardando realização.'
-            : 'Você precisa agendar a pré-entrevista com este candidato.'
+          title: hasScheduledInterview ? "Pré-entrevista Agendada" : "Aguardando Agendamento",
+          description: hasScheduledInterview
+            ? "Pré-entrevista agendada. Aguardando realização."
+            : "Você precisa agendar a pré-entrevista com este candidato.",
         };
-      case 'aguardando_feedback_pre_entrevista':
+      case "aguardando_feedback_pre_entrevista":
         return {
-          title: 'Aguardando Feedback',
-          description: 'Pré-entrevista realizada. Aguardando retorno e avaliação.'
+          title: "Aguardando Feedback",
+          description: "Pré-entrevista realizada. Aguardando retorno e avaliação.",
         };
-      case 'selecao_entrevista_presencial':
+      case "selecao_entrevista_presencial":
         return {
-          title: 'Aguardando Agendamento',
-          description: 'Você precisa agendar a entrevista presencial com este candidato.'
+          title: "Aguardando Agendamento",
+          description: "Você precisa agendar a entrevista presencial com este candidato.",
         };
-      case 'entrevista_presencial':
-        const hasScheduledInPersonInterview = Array.isArray(candidate.interviews) && candidate.interviews.some(i => i.status === 'scheduled' && i.type === 'in_person');
+      case "entrevista_presencial":
+        const hasScheduledInPersonInterview =
+          Array.isArray(candidate.interviews) &&
+          candidate.interviews.some((i) => i.status === "scheduled" && i.type === "in_person");
         return {
-          title: hasScheduledInPersonInterview ? 'Entrevista Presencial Agendada' : 'Aguardando Agendamento',
-          description: hasScheduledInPersonInterview 
-            ? 'Entrevista presencial agendada. Aguardando realização.'
-            : 'Você precisa agendar a entrevista presencial com este candidato.'
+          title: hasScheduledInPersonInterview ? "Entrevista Presencial Agendada" : "Aguardando Agendamento",
+          description: hasScheduledInPersonInterview
+            ? "Entrevista presencial agendada. Aguardando realização."
+            : "Você precisa agendar a entrevista presencial com este candidato.",
         };
-      case 'analise_ia':
+      case "analise_ia":
         return {
-          title: 'Análise em Andamento',
-          description: 'IA está analisando o perfil do candidato.'
+          title: "Análise em Andamento",
+          description: "IA está analisando o perfil do candidato.",
         };
-      case 'banco_talentos':
+      case "banco_talentos":
         return {
-          title: 'Banco de Talentos',
-          description: candidate.talentPoolReason || 'Candidato adicionado ao banco de talentos para futuras oportunidades.'
+          title: "Banco de Talentos",
+          description:
+            candidate.talentPoolReason || "Candidato adicionado ao banco de talentos para futuras oportunidades.",
         };
-      case 'nova_candidatura':
+      case "nova_candidatura":
       default:
         return {
-          title: 'Nova Candidatura',
-          description: 'Candidato recém cadastrado. Aguardando análise inicial.'
+          title: "Nova Candidatura",
+          description: "Candidato recém cadastrado. Aguardando análise inicial.",
         };
     }
   };
@@ -314,65 +348,66 @@ export function CandidateCard({
 
   const handleSendWhatsAppMessage = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    
-    const normalizedPhone = normalizeWhatsappPhoneBR(candidate.phone || '');
-    
+
+    const normalizedPhone = normalizeWhatsappPhoneBR(candidate.phone || "");
+
     if (!normalizedPhone) {
       toast({
-        title: 'Telefone inválido',
-        description: 'O candidato não possui um número de telefone válido.',
-        variant: 'destructive',
+        title: "Telefone inválido",
+        description: "O candidato não possui um número de telefone válido.",
+        variant: "destructive",
       });
       return;
     }
 
     // Mensagem pré-definida para o candidato
-    const message = `Olá ${candidate.name}! Tudo bem? Aqui é da equipe de recrutamento. Gostaríamos de dar continuidade ao seu processo seletivo. Podemos conversar?`;
-    
+    const message =
+      "Oii! 😊\nTudo bem?\nSou Beatriz Meluci, responsável pela área de Recursos Humanos do Grupo Nobre.\n\nVi que você se candidatou para a vaga de {{$json.query.titulo_vaga}} e gostaríamos de conhecer um pouco mais sobre o seu perfil antes da etapa presencial.\nPara isso, pedimos que envie um vídeo curto (até 2 minutos) respondendo:\n- Seu nome\n- Sua idade \n- Por que você acredita que é um(a) bom(boa) vendedor(a)?\n\nGrave de forma natural, direto do celular mesmo — o que queremos entender é seu pensamento, sua energia e o quanto você se identifica com um ambiente de metas e desempenho. 🌿\n\nApós gravar, envie o vídeo por aqui mesmo para darmos sequência no processo.\n\nAgradeço pela sua dedicação e desejo boa sorte! 💚\n— Beatriz Meluci\nRecursos Humanos | Grupo Nobre";
+
     // Abrir WhatsApp em nova aba com mensagem pronta
     const whatsappUrl = `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
+    window.open(whatsappUrl, "_blank");
 
     try {
       // Atualizar o estágio do candidato no banco
       const { error: updateError } = await supabase
-        .from('candidates')
-        .update({ 
-          stage: 'aguardando_feedback_pre_entrevista',
-          updated_at: new Date().toISOString()
+        .from("candidates")
+        .update({
+          stage: "aguardando_feedback_pre_entrevista",
+          updated_at: new Date().toISOString(),
         })
-        .eq('id', candidate.id);
+        .eq("id", candidate.id);
 
       if (updateError) throw updateError;
 
       toast({
-        title: 'WhatsApp aberto!',
-        description: 'O candidato foi movido para Análise Vídeo.',
+        title: "WhatsApp aberto!",
+        description: "O candidato foi movido para Análise Vídeo.",
       });
 
       // Move candidate to aguardando_feedback_pre_entrevista stage
       if (onStageChange) {
-        onStageChange(candidate.id, 'aguardando_feedback_pre_entrevista');
+        onStageChange(candidate.id, "aguardando_feedback_pre_entrevista");
       }
     } catch (error: any) {
-      console.error('Erro ao atualizar candidato:', error);
+      console.error("Erro ao atualizar candidato:", error);
       toast({
-        title: 'Erro ao atualizar',
-        description: error.message || 'WhatsApp foi aberto, mas houve erro ao mover o candidato.',
-        variant: 'destructive',
+        title: "Erro ao atualizar",
+        description: error.message || "WhatsApp foi aberto, mas houve erro ao mover o candidato.",
+        variant: "destructive",
       });
     }
   };
 
   const handleApprove = (e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     // Para seleção de entrevista presencial, abrir modal de agendamento
-    if (candidate.stage === 'selecao_entrevista_presencial') {
+    if (candidate.stage === "selecao_entrevista_presencial") {
       setShowInPersonScheduler(true);
       return;
     }
-    
+
     // Para outros estágios, seguir fluxo normal
     const nextStage = getNextStage(candidate.stage);
     if (nextStage && onStageChange) {
@@ -387,7 +422,7 @@ export function CandidateCard({
 
   const handleRejectConfirm = (reason: string) => {
     if (onStageChange) {
-      onStageChange(candidate.id, 'nao_aprovado', reason);
+      onStageChange(candidate.id, "nao_aprovado", reason);
     }
   };
 
@@ -398,7 +433,7 @@ export function CandidateCard({
 
   const handleTalentPoolConfirm = (reason: string) => {
     if (onStageChange) {
-      onStageChange(candidate.id, 'banco_talentos', undefined, reason);
+      onStageChange(candidate.id, "banco_talentos", undefined, reason);
     }
   };
 
@@ -409,7 +444,7 @@ export function CandidateCard({
     }
     // Move to pre_entrevista stage
     if (onStageChange) {
-      onStageChange(candidate.id, 'pre_entrevista');
+      onStageChange(candidate.id, "pre_entrevista");
     }
   };
 
@@ -420,7 +455,7 @@ export function CandidateCard({
     }
     // Move to entrevista_presencial stage
     if (onStageChange) {
-      onStageChange(candidate.id, 'entrevista_presencial');
+      onStageChange(candidate.id, "entrevista_presencial");
     }
   };
 
@@ -429,12 +464,12 @@ export function CandidateCard({
 
     try {
       toast({
-        title: 'Reanálise solicitada',
-        description: 'Enviando candidato para reanálise no n8n...'
+        title: "Reanálise solicitada",
+        description: "Enviando candidato para reanálise no n8n...",
       });
 
-      const { error, data } = await supabase.functions.invoke('reanalyze-candidates-n8n', {
-        body: { candidateIds: [candidate.id] }
+      const { error, data } = await supabase.functions.invoke("reanalyze-candidates-n8n", {
+        body: { candidateIds: [candidate.id] },
       });
 
       if (error) {
@@ -443,19 +478,19 @@ export function CandidateCard({
 
       // Garantir o efeito no funil imediatamente no UI
       if (onStageChange) {
-        onStageChange(candidate.id, 'analise_ia');
+        onStageChange(candidate.id, "analise_ia");
       }
 
       toast({
-        title: 'Reanálise disparada',
-        description: data?.message || 'O n8n irá retornar a nova análise e o candidato será atualizado.'
+        title: "Reanálise disparada",
+        description: data?.message || "O n8n irá retornar a nova análise e o candidato será atualizado.",
       });
     } catch (err: any) {
-      console.error('Erro ao disparar reanálise no n8n:', err);
+      console.error("Erro ao disparar reanálise no n8n:", err);
       toast({
-        title: 'Erro ao reanalisar',
-        description: err?.message || 'Não foi possível disparar a reanálise no n8n.',
-        variant: 'destructive'
+        title: "Erro ao reanalisar",
+        description: err?.message || "Não foi possível disparar a reanálise no n8n.",
+        variant: "destructive",
       });
     }
   };
@@ -465,7 +500,7 @@ export function CandidateCard({
     const iconOnlyBtn = "h-8 px-2 justify-center";
     const leftBtn = "h-8 justify-start";
 
-    if (candidate.stage === 'selecao_pre_entrevista') {
+    if (candidate.stage === "selecao_pre_entrevista") {
       return (
         <div className={gridBase}>
           <Button
@@ -484,7 +519,7 @@ export function CandidateCard({
             onClick={(e) => {
               e.stopPropagation();
               if (onStageChange) {
-                onStageChange(candidate.id, 'nao_aprovado', 'Reprovado manualmente (Seleção Pré-Entrevista)');
+                onStageChange(candidate.id, "nao_aprovado", "Reprovado manualmente (Seleção Pré-Entrevista)");
               }
             }}
             className={cn(leftBtn, "bg-destructive text-destructive-foreground hover:bg-destructive/90")}
@@ -515,7 +550,7 @@ export function CandidateCard({
       );
     }
 
-    if (candidate.stage === 'selecao_entrevista_presencial') {
+    if (candidate.stage === "selecao_entrevista_presencial") {
       return (
         <div className={gridBase}>
           <Button
@@ -540,7 +575,7 @@ export function CandidateCard({
       );
     }
 
-    if (candidate.stage === 'aguardando_feedback_pre_entrevista') {
+    if (candidate.stage === "aguardando_feedback_pre_entrevista") {
       return (
         <div className={gridBase}>
           <Button
@@ -567,7 +602,7 @@ export function CandidateCard({
             onClick={(e) => {
               e.stopPropagation();
               if (onStageChange) {
-                onStageChange(candidate.id, 'selecao_entrevista_presencial');
+                onStageChange(candidate.id, "selecao_entrevista_presencial");
               }
             }}
             className={cn("col-span-2", leftBtn, "bg-success text-success-foreground hover:bg-success/90")}
@@ -580,9 +615,9 @@ export function CandidateCard({
     }
 
     const hasPreInterviewScheduled =
-      candidate.stage === 'pre_entrevista' &&
+      candidate.stage === "pre_entrevista" &&
       Array.isArray(candidate.interviews) &&
-      candidate.interviews.some((i) => i.status === 'scheduled' && i.type === 'pre_interview');
+      candidate.interviews.some((i) => i.status === "scheduled" && i.type === "pre_interview");
 
     if (hasPreInterviewScheduled) {
       return (
@@ -631,9 +666,9 @@ export function CandidateCard({
     }
 
     const hasInPersonScheduled =
-      candidate.stage === 'entrevista_presencial' &&
+      candidate.stage === "entrevista_presencial" &&
       Array.isArray(candidate.interviews) &&
-      candidate.interviews.some((i) => i.status === 'scheduled' && i.type === 'in_person');
+      candidate.interviews.some((i) => i.status === "scheduled" && i.type === "in_person");
 
     if (hasInPersonScheduled) {
       return (
@@ -716,239 +751,243 @@ export function CandidateCard({
   };
 
   return (
-    <Card 
+    <Card
       className={cn(
         "cursor-pointer transition-all duration-200 border-l-4",
         "hover:shadow-md hover:scale-[1.02]",
         stageColors.bg,
         stageColors.border,
         isDragging && "shadow-lg ring-2 ring-primary/20",
-        isCompactView ? "p-3" : "p-4"
+        isCompactView ? "p-3" : "p-4",
       )}
       onClick={onClick}
     >
-        <div className={cn(isCompactView ? "space-y-2" : "space-y-3")}>
-          {/* Header */}
-           <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3 min-w-0 flex-1">
-              <Avatar className={cn(isCompactView ? "h-8 w-8" : "h-10 w-10")}>
-                <AvatarFallback className={cn("font-semibold", stageColors.text, stageColors.bg)}>
-                  {candidate.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="min-w-0 flex-1">
-                <h4 className={cn(
-                  "font-semibold text-foreground truncate",
-                  isCompactView ? "text-sm" : "text-base"
-                )}>
-                  {candidate.name}
-                </h4>
-                
-                {!isCompactView && (
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge {...sourceBadge} className="text-xs">
-                      {sourceBadge.label}
-                    </Badge>
-                    {candidate.aiAnalysis && (
-                      <div className={cn(
+      <div className={cn(isCompactView ? "space-y-2" : "space-y-3")}>
+        {/* Header */}
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <Avatar className={cn(isCompactView ? "h-8 w-8" : "h-10 w-10")}>
+              <AvatarFallback className={cn("font-semibold", stageColors.text, stageColors.bg)}>
+                {candidate.name
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")
+                  .toUpperCase()
+                  .slice(0, 2)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 flex-1">
+              <h4 className={cn("font-semibold text-foreground truncate", isCompactView ? "text-sm" : "text-base")}>
+                {candidate.name}
+              </h4>
+
+              {!isCompactView && (
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge {...sourceBadge} className="text-xs">
+                    {sourceBadge.label}
+                  </Badge>
+                  {candidate.aiAnalysis && (
+                    <div
+                      className={cn(
                         "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium",
-                        getScoreColor(candidate.aiAnalysis.score)
-                      )}>
-                        <Star className="h-3 w-3" />
-                        {Number(candidate.aiAnalysis.score).toFixed(1)}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 ml-2 flex-shrink-0">
-              {selectionEnabled && (
-                <div
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onToggleSelect?.(candidate.id);
-                  }}
-                  className="flex items-center"
-                >
-                  <Checkbox checked={isSelected} aria-label="Selecionar candidato" />
+                        getScoreColor(candidate.aiAnalysis.score),
+                      )}
+                    >
+                      <Star className="h-3 w-3" />
+                      {Number(candidate.aiAnalysis.score).toFixed(1)}
+                    </div>
+                  )}
                 </div>
               )}
+            </div>
+          </div>
 
-              {/* Compact view - show AI score on the right */}
-              {isCompactView && candidate.aiAnalysis && (
-                <div className={cn(
+          <div className="flex items-center gap-2 ml-2 flex-shrink-0">
+            {selectionEnabled && (
+              <div
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleSelect?.(candidate.id);
+                }}
+                className="flex items-center"
+              >
+                <Checkbox checked={isSelected} aria-label="Selecionar candidato" />
+              </div>
+            )}
+
+            {/* Compact view - show AI score on the right */}
+            {isCompactView && candidate.aiAnalysis && (
+              <div
+                className={cn(
                   "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium",
-                  getScoreColor(candidate.aiAnalysis.score)
-                )}>
-                  <Star className="h-3 w-3" />
-                  {Number(candidate.aiAnalysis.score).toFixed(1)}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Contact Info */}
-          <div className={cn("space-y-1", isCompactView ? "text-xs" : "text-sm")}>
-            <div className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
-              <Mail className={cn(isCompactView ? "h-3 w-3" : "h-4 w-4")} />
-              <span className="truncate font-normal">{candidate.email}</span>
-            </div>
-            
-            <div className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
-              <Phone className={cn(isCompactView ? "h-3 w-3" : "h-4 w-4")} />
-              <span className="font-normal">{candidate.phone}</span>
-              {candidate.phone && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-6 w-6 p-0 ml-1 hover:bg-success/20 hover:text-success"
-                  title="Abrir WhatsApp"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const normalized = normalizeWhatsappPhoneBR(candidate.phone);
-                    if (!normalized) {
-                      toast({
-                        title: 'Telefone inválido',
-                        description: 'Verifique DDD e número. Ex.: (11) 9XXXX-XXXX',
-                        variant: 'destructive',
-                      });
-                      return;
-                    }
-                    const text = 'Olá! Vi seu currículo e gostaria de conversar sobre a vaga.';
-                    const encoded = encodeURIComponent(text);
-                    const whatsappUrl = `https://wa.me/${normalized}?text=${encoded}`;
-                    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
-                  }}
-                >
-                  <MessageCircle className="h-3 w-3" />
-                </Button>
-              )}
-            </div>
-          </div>
-
-          {/* Rejection Reason for rejected candidates */}
-          {candidate.stage === 'nao_aprovado' && candidate.rejectionReason && !isCompactView && (
-            <div className="p-2 bg-destructive/10 rounded-md border border-destructive/20">
-              <div className="text-xs font-semibold text-destructive mb-1">Motivo da Rejeição:</div>
-              <div className="text-xs text-muted-foreground font-normal">
-                {candidate.rejectionReason}
+                  getScoreColor(candidate.aiAnalysis.score),
+                )}
+              >
+                <Star className="h-3 w-3" />
+                {Number(candidate.aiAnalysis.score).toFixed(1)}
               </div>
-            </div>
-          )}
+            )}
+          </div>
+        </div>
 
-          {/* Talent Pool Reason for talent bank candidates */}
-          {candidate.stage === 'banco_talentos' && candidate.talentPoolReason && !isCompactView && (
-            <div className="p-2 bg-status-talent-bank/10 rounded-md border border-status-talent-bank/20">
-              <div className="text-xs font-semibold text-status-talent-bank-foreground mb-1">Motivo Banco de Talentos:</div>
-              <div className="text-xs text-muted-foreground font-normal">
-                {candidate.talentPoolReason}
-              </div>
-            </div>
-          )}
-
-          {/* Status and Interview Info */}
-          <div className={cn("flex items-center justify-between", isCompactView ? "mt-2" : "mt-3")}>
-            <div className="flex items-center gap-2">
-              {getStatusBadge()}
-              
-              {statusIcon && !isCompactView && (
-                <div className={cn("flex items-center gap-1 text-xs", statusIcon.color)}>
-                  <span className="font-medium" title={statusIcon.fullDate}>
-                    {statusIcon.label}
-                  </span>
-                </div>
-              )}
-            </div>
+        {/* Contact Info */}
+        <div className={cn("space-y-1", isCompactView ? "text-xs" : "text-sm")}>
+          <div className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
+            <Mail className={cn(isCompactView ? "h-3 w-3" : "h-4 w-4")} />
+            <span className="truncate font-normal">{candidate.email}</span>
           </div>
 
-          {/* Action Buttons - Always at bottom */}
-          {canShowActionButtons && (
-            <div className="mt-3 pt-3 border-t border-muted/20">
-              {renderActionButtons()}
-            </div>
-          )}
-
-          {/* Talent Pool Button for approved/rejected candidates */}
-          {canShowTalentPoolButton && (
-            <div className="flex gap-2 mt-3 pt-3 border-t border-muted/20">
+          <div className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+            <Phone className={cn(isCompactView ? "h-3 w-3" : "h-4 w-4")} />
+            <span className="font-normal">{candidate.phone}</span>
+            {candidate.phone && (
               <Button
                 size="sm"
-                onClick={handleTalentPool}
-                className="flex-1 h-8 bg-status-talent-bank text-status-talent-bank-foreground hover:bg-status-talent-bank/90"
+                variant="ghost"
+                className="h-6 w-6 p-0 ml-1 hover:bg-success/20 hover:text-success"
+                title="Abrir WhatsApp"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const normalized = normalizeWhatsappPhoneBR(candidate.phone);
+                  if (!normalized) {
+                    toast({
+                      title: "Telefone inválido",
+                      description: "Verifique DDD e número. Ex.: (11) 9XXXX-XXXX",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  const text = "Olá! Vi seu currículo e gostaria de conversar sobre a vaga.";
+                  const encoded = encodeURIComponent(text);
+                  const whatsappUrl = `https://wa.me/${normalized}?text=${encoded}`;
+                  window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+                }}
               >
-                <User className="h-3 w-3 mr-2" />
-                Banco de Talentos
+                <MessageCircle className="h-3 w-3" />
               </Button>
-            </div>
-          )}
-
-          {/* Application Date */}
-          {!isCompactView && candidate.createdAt && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t border-muted/20">
-              <CalendarDays className="h-3 w-3" />
-              <span>
-                Candidatura: {format(new Date(candidate.createdAt), 'dd/MM/yyyy', { locale: ptBR })}
-              </span>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-        
-        {/* Modais ficaram dentro do card, mas com stopPropagation */}
-        <RejectionReasonModal
-          isOpen={showRejectionModal}
-          onClose={() => setShowRejectionModal(false)}
-          onConfirm={handleRejectConfirm}
-          candidateName={candidate.name}
-        />
 
-        <TalentPoolReasonModal
-          isOpen={showTalentPoolModal}
-          onClose={() => setShowTalentPoolModal(false)}
-          onConfirm={handleTalentPoolConfirm}
-          candidateName={candidate.name}
-        />
-        
-        <Dialog open={showInterviewScheduler} onOpenChange={setShowInterviewScheduler}>
-          <DialogContent 
-            className="max-w-4xl max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <DialogHeader>
-              <DialogTitle>
-                {candidate.stage === 'pre_entrevista' && Array.isArray(candidate.interviews) && candidate.interviews.some(i => i.status === 'scheduled' && i.type === 'pre_interview') 
-                  ? `Reagendar Pré-entrevista - ${candidate.name}` 
-                  : `Agendar Pré-entrevista - ${candidate.name}`}
-              </DialogTitle>
-            </DialogHeader>
-            <InterviewScheduler
-              candidate={candidate}
-              onInterviewScheduled={handleInterviewScheduled}
-              isRescheduling={candidate.stage === 'pre_entrevista' && Array.isArray(candidate.interviews) && candidate.interviews.some(i => i.status === 'scheduled' && i.type === 'pre_interview')}
-            />
-          </DialogContent>
-        </Dialog>
-        
-        <Dialog open={showInPersonScheduler} onOpenChange={setShowInPersonScheduler}>
-          <DialogContent 
-            className="max-w-4xl max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <DialogHeader>
-              <DialogTitle>
-                {candidate.stage === 'entrevista_presencial' && Array.isArray(candidate.interviews) && candidate.interviews.some(i => i.status === 'scheduled' && i.type === 'in_person') 
-                  ? `Reagendar Entrevista Presencial - ${candidate.name}` 
-                  : `Agendar Entrevista Presencial - ${candidate.name}`}
-              </DialogTitle>
-            </DialogHeader>
-            <InPersonInterviewScheduler
-              candidate={candidate}
-              onInterviewScheduled={handleInPersonScheduled}
-              isRescheduling={candidate.stage === 'entrevista_presencial' && Array.isArray(candidate.interviews) && candidate.interviews.some(i => i.status === 'scheduled' && i.type === 'in_person')}
-            />
-          </DialogContent>
-        </Dialog>
+        {/* Rejection Reason for rejected candidates */}
+        {candidate.stage === "nao_aprovado" && candidate.rejectionReason && !isCompactView && (
+          <div className="p-2 bg-destructive/10 rounded-md border border-destructive/20">
+            <div className="text-xs font-semibold text-destructive mb-1">Motivo da Rejeição:</div>
+            <div className="text-xs text-muted-foreground font-normal">{candidate.rejectionReason}</div>
+          </div>
+        )}
+
+        {/* Talent Pool Reason for talent bank candidates */}
+        {candidate.stage === "banco_talentos" && candidate.talentPoolReason && !isCompactView && (
+          <div className="p-2 bg-status-talent-bank/10 rounded-md border border-status-talent-bank/20">
+            <div className="text-xs font-semibold text-status-talent-bank-foreground mb-1">
+              Motivo Banco de Talentos:
+            </div>
+            <div className="text-xs text-muted-foreground font-normal">{candidate.talentPoolReason}</div>
+          </div>
+        )}
+
+        {/* Status and Interview Info */}
+        <div className={cn("flex items-center justify-between", isCompactView ? "mt-2" : "mt-3")}>
+          <div className="flex items-center gap-2">
+            {getStatusBadge()}
+
+            {statusIcon && !isCompactView && (
+              <div className={cn("flex items-center gap-1 text-xs", statusIcon.color)}>
+                <span className="font-medium" title={statusIcon.fullDate}>
+                  {statusIcon.label}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Action Buttons - Always at bottom */}
+        {canShowActionButtons && <div className="mt-3 pt-3 border-t border-muted/20">{renderActionButtons()}</div>}
+
+        {/* Talent Pool Button for approved/rejected candidates */}
+        {canShowTalentPoolButton && (
+          <div className="flex gap-2 mt-3 pt-3 border-t border-muted/20">
+            <Button
+              size="sm"
+              onClick={handleTalentPool}
+              className="flex-1 h-8 bg-status-talent-bank text-status-talent-bank-foreground hover:bg-status-talent-bank/90"
+            >
+              <User className="h-3 w-3 mr-2" />
+              Banco de Talentos
+            </Button>
+          </div>
+        )}
+
+        {/* Application Date */}
+        {!isCompactView && candidate.createdAt && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t border-muted/20">
+            <CalendarDays className="h-3 w-3" />
+            <span>Candidatura: {format(new Date(candidate.createdAt), "dd/MM/yyyy", { locale: ptBR })}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Modais ficaram dentro do card, mas com stopPropagation */}
+      <RejectionReasonModal
+        isOpen={showRejectionModal}
+        onClose={() => setShowRejectionModal(false)}
+        onConfirm={handleRejectConfirm}
+        candidateName={candidate.name}
+      />
+
+      <TalentPoolReasonModal
+        isOpen={showTalentPoolModal}
+        onClose={() => setShowTalentPoolModal(false)}
+        onConfirm={handleTalentPoolConfirm}
+        candidateName={candidate.name}
+      />
+
+      <Dialog open={showInterviewScheduler} onOpenChange={setShowInterviewScheduler}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <DialogHeader>
+            <DialogTitle>
+              {candidate.stage === "pre_entrevista" &&
+              Array.isArray(candidate.interviews) &&
+              candidate.interviews.some((i) => i.status === "scheduled" && i.type === "pre_interview")
+                ? `Reagendar Pré-entrevista - ${candidate.name}`
+                : `Agendar Pré-entrevista - ${candidate.name}`}
+            </DialogTitle>
+          </DialogHeader>
+          <InterviewScheduler
+            candidate={candidate}
+            onInterviewScheduled={handleInterviewScheduled}
+            isRescheduling={
+              candidate.stage === "pre_entrevista" &&
+              Array.isArray(candidate.interviews) &&
+              candidate.interviews.some((i) => i.status === "scheduled" && i.type === "pre_interview")
+            }
+          />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showInPersonScheduler} onOpenChange={setShowInPersonScheduler}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <DialogHeader>
+            <DialogTitle>
+              {candidate.stage === "entrevista_presencial" &&
+              Array.isArray(candidate.interviews) &&
+              candidate.interviews.some((i) => i.status === "scheduled" && i.type === "in_person")
+                ? `Reagendar Entrevista Presencial - ${candidate.name}`
+                : `Agendar Entrevista Presencial - ${candidate.name}`}
+            </DialogTitle>
+          </DialogHeader>
+          <InPersonInterviewScheduler
+            candidate={candidate}
+            onInterviewScheduled={handleInPersonScheduled}
+            isRescheduling={
+              candidate.stage === "entrevista_presencial" &&
+              Array.isArray(candidate.interviews) &&
+              candidate.interviews.some((i) => i.status === "scheduled" && i.type === "in_person")
+            }
+          />
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
