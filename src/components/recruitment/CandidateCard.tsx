@@ -315,24 +315,26 @@ export function CandidateCard({
   const handleSendWhatsAppMessage = async (e: React.MouseEvent) => {
     e.stopPropagation();
     
-    try {
+    const normalizedPhone = normalizeWhatsappPhoneBR(candidate.phone || '');
+    
+    if (!normalizedPhone) {
       toast({
-        title: 'Enviando mensagem...',
-        description: 'Disparando mensagem via WhatsApp.',
+        title: 'Telefone inválido',
+        description: 'O candidato não possui um número de telefone válido.',
+        variant: 'destructive',
       });
+      return;
+    }
 
-      const { error } = await supabase.functions.invoke('send-whatsapp-notification', {
-        body: {
-          candidateId: candidate.id,
-          candidateName: candidate.name,
-          candidatePhone: candidate.phone,
-          positionId: candidate.positionId
-        }
-      });
+    // Mensagem pré-definida para o candidato
+    const message = `Olá ${candidate.name}! Tudo bem? Aqui é da equipe de recrutamento. Gostaríamos de dar continuidade ao seu processo seletivo. Podemos conversar?`;
+    
+    // Abrir WhatsApp em nova aba com mensagem pronta
+    const whatsappUrl = `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
 
-      if (error) throw error;
-
-      // Update candidate stage in database BEFORE showing success message
+    try {
+      // Atualizar o estágio do candidato no banco
       const { error: updateError } = await supabase
         .from('candidates')
         .update({ 
@@ -344,7 +346,7 @@ export function CandidateCard({
       if (updateError) throw updateError;
 
       toast({
-        title: 'Mensagem enviada!',
+        title: 'WhatsApp aberto!',
         description: 'O candidato foi movido para Análise Vídeo.',
       });
 
@@ -353,10 +355,10 @@ export function CandidateCard({
         onStageChange(candidate.id, 'aguardando_feedback_pre_entrevista');
       }
     } catch (error: any) {
-      console.error('Erro ao enviar mensagem:', error);
+      console.error('Erro ao atualizar candidato:', error);
       toast({
-        title: 'Erro ao enviar mensagem',
-        description: error.message || 'Não foi possível disparar a mensagem.',
+        title: 'Erro ao atualizar',
+        description: error.message || 'WhatsApp foi aberto, mas houve erro ao mover o candidato.',
         variant: 'destructive',
       });
     }
