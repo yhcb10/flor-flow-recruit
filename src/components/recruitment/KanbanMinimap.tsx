@@ -2,12 +2,14 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { KanbanColumn } from '@/types/recruitment';
+import { KanbanColumn, CandidateStage } from '@/types/recruitment';
 
 interface KanbanMinimapProps {
   columns: KanbanColumn[];
   activeColumnId?: string;
   onColumnClick: (columnId: string) => void;
+  terminalCounts?: Record<CandidateStage, number>;
+  isTerminalStage?: (stage: CandidateStage) => boolean;
 }
 
 const getColumnColor = (columnId: string) => {
@@ -31,7 +33,21 @@ const getColumnColor = (columnId: string) => {
   }
 };
 
-export function KanbanMinimap({ columns, activeColumnId, onColumnClick }: KanbanMinimapProps) {
+export function KanbanMinimap({ 
+  columns, 
+  activeColumnId, 
+  onColumnClick,
+  terminalCounts = {} as Record<CandidateStage, number>,
+  isTerminalStage
+}: KanbanMinimapProps) {
+  // Função helper para obter o contador correto
+  const getColumnCount = (column: KanbanColumn): number => {
+    if (isTerminalStage && isTerminalStage(column.id)) {
+      return terminalCounts[column.id] || 0;
+    }
+    return column.candidates.length;
+  };
+
   return (
     <div className="flex items-center gap-2 p-4 bg-muted/30 rounded-lg border mb-4">
       <span className="text-sm font-medium text-muted-foreground">
@@ -41,6 +57,9 @@ export function KanbanMinimap({ columns, activeColumnId, onColumnClick }: Kanban
         {columns.map((column) => {
           const isActive = activeColumnId === column.id;
           const columnColor = getColumnColor(column.id);
+          const count = getColumnCount(column);
+          const isTerminal = isTerminalStage && isTerminalStage(column.id);
+          const loadedCount = column.candidates.length;
           
           return (
             <Tooltip key={column.id}>
@@ -60,7 +79,7 @@ export function KanbanMinimap({ columns, activeColumnId, onColumnClick }: Kanban
                       {column.title}
                     </span>
                     <Badge variant="secondary" className="text-xs h-4 px-1">
-                      {column.candidates.length}
+                      {isTerminal ? `${loadedCount}/${count}` : count}
                     </Badge>
                   </div>
                 </Button>
@@ -69,7 +88,7 @@ export function KanbanMinimap({ columns, activeColumnId, onColumnClick }: Kanban
                 <div className="text-center">
                   <div className="font-medium">{column.title}</div>
                   <div className="text-xs text-muted-foreground">
-                    {column.candidates.length} candidato(s)
+                    {isTerminal ? `${loadedCount} carregados de ${count} total` : `${count} candidato(s)`}
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">
                     {column.description}
