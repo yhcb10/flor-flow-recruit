@@ -1,24 +1,26 @@
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
 import { KanbanBoard } from '@/components/recruitment/KanbanBoard';
 import { RecruitmentDashboard } from '@/components/recruitment/RecruitmentDashboard';
 import { JobPositionSelector } from '@/components/recruitment/JobPositionSelector';
 import { NewJobPositionModal } from '@/components/recruitment/NewJobPositionModal';
-
-
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { useRecruitmentKanban } from '@/hooks/useRecruitmentKanban';
 import { useJobPositions } from '@/hooks/useJobPositions';
 import { useAuth } from '@/hooks/useAuth';
 import { JobPosition } from '@/types/recruitment';
-import { LogOut } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Eye, EyeOff } from 'lucide-react';
 import flowNobreLogo from '/lovable-uploads/67eb7c82-39ed-418b-a2e4-7372542bb87d.png';
 
 const Index = () => {
-  const { signOut } = useAuth();
   const { toast } = useToast();
   const { jobPositions, loading: positionsLoading, createJobPosition, updateJobPosition, closeJobPosition, pauseJobPosition, deleteJobPosition } = useJobPositions();
+  
+  const [showClosedPositions, setShowClosedPositions] = useState(() => {
+    return localStorage.getItem('showClosedPositions') === 'true';
+  });
   
   const [selectedPosition, setSelectedPosition] = useState<JobPosition | null>(() => {
     const saved = localStorage.getItem('selectedPosition');
@@ -49,9 +51,8 @@ const Index = () => {
   console.log('📊 Total candidatos no Index:', candidates.length);
   console.log('📍 Posição selecionada:', selectedPosition?.title || 'Todas as Vagas');
   
-  // Filter candidates by selected position and only active job positions (toggle via localStorage)
-  const showClosed = localStorage.getItem('showClosedPositions') === 'true';
-  const activeJobPositionIds = showClosed 
+  // Filter candidates by selected position and only active job positions (controlled by toggle)
+  const activeJobPositionIds = showClosedPositions 
     ? jobPositions.map(p => p.id)
     : jobPositions.filter(p => p.status === 'active').map(p => p.id);
   
@@ -59,7 +60,13 @@ const Index = () => {
     ? candidates.filter(candidate => candidate.positionId === selectedPosition.id)
     : candidates.filter(candidate => activeJobPositionIds.includes(candidate.positionId));
     
-  console.log('🔍 Candidatos filtrados:', positionCandidates.length, 'de', candidates.length, showClosed ? '(todas as vagas)' : '(apenas vagas ativas)');
+  console.log('🔍 Candidatos filtrados:', positionCandidates.length, 'de', candidates.length, showClosedPositions ? '(todas as vagas)' : '(apenas vagas ativas)');
+  
+  // Handler para alternar exibição de vagas inativas
+  const handleToggleClosedPositions = (checked: boolean) => {
+    setShowClosedPositions(checked);
+    localStorage.setItem('showClosedPositions', String(checked));
+  };
   
   // Filter columns to only show candidates for selected position or active positions
   const filteredColumns = columns.map(column => ({
@@ -183,8 +190,8 @@ const Index = () => {
 
       <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
 
-        {/* Job Position Selector */}
-        <div className="mb-4 sm:mb-6">
+        {/* Job Position Selector with Filter Toggle */}
+        <div className="mb-4 sm:mb-6 space-y-3">
           <JobPositionSelector
             positions={jobPositions}
             selectedPosition={selectedPosition}
@@ -195,6 +202,26 @@ const Index = () => {
             onPositionDelete={handleDeleteJobPosition}
             onPositionUpdate={handlePositionUpdate}
           />
+          
+          {/* Toggle para exibir candidatos de vagas inativas */}
+          <div className="flex items-center gap-2 px-1">
+            <Switch
+              id="show-closed-positions"
+              checked={showClosedPositions}
+              onCheckedChange={handleToggleClosedPositions}
+            />
+            <Label 
+              htmlFor="show-closed-positions" 
+              className="text-sm text-muted-foreground cursor-pointer flex items-center gap-1.5"
+            >
+              {showClosedPositions ? (
+                <Eye className="h-4 w-4" />
+              ) : (
+                <EyeOff className="h-4 w-4" />
+              )}
+              {showClosedPositions ? 'Exibindo candidatos de vagas inativas' : 'Mostrar candidatos de vagas inativas'}
+            </Label>
+          </div>
         </div>
 
 
