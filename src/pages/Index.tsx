@@ -59,10 +59,15 @@ const Index = () => {
   }, [showClosedPositions, jobPositions]);
   
   const positionCandidates = useMemo(() => {
-    return selectedPosition 
-      ? candidates.filter(candidate => candidate.positionId === selectedPosition.id)
-      : candidates.filter(candidate => activeJobPositionIds.includes(candidate.positionId));
-  }, [selectedPosition, candidates, activeJobPositionIds]);
+    if (selectedPosition) {
+      return candidates.filter(candidate => candidate.positionId === selectedPosition.id);
+    }
+    // Quando showClosedPositions está ativo, incluir também candidatos sem posição (positionId vazio/null)
+    return candidates.filter(candidate => 
+      activeJobPositionIds.includes(candidate.positionId) || 
+      (showClosedPositions && (!candidate.positionId || candidate.positionId === ''))
+    );
+  }, [selectedPosition, candidates, activeJobPositionIds, showClosedPositions]);
     
   console.log('🔍 Candidatos filtrados:', positionCandidates.length, 'de', candidates.length, showClosedPositions ? '(todas as vagas)' : '(apenas vagas ativas)');
   
@@ -78,9 +83,12 @@ const Index = () => {
       ...column,
       candidates: selectedPosition 
         ? column.candidates.filter(candidate => candidate.positionId === selectedPosition.id)
-        : column.candidates.filter(candidate => activeJobPositionIds.includes(candidate.positionId))
+        : column.candidates.filter(candidate => 
+            activeJobPositionIds.includes(candidate.positionId) || 
+            (showClosedPositions && (!candidate.positionId || candidate.positionId === ''))
+          )
     }));
-  }, [columns, selectedPosition, activeJobPositionIds]);
+  }, [columns, selectedPosition, activeJobPositionIds, showClosedPositions]);
   
   // Calcular counts filtrados para colunas terminais
   // Os terminalCounts do hook são o total no banco, mas precisamos filtrar por posição
