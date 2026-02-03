@@ -287,7 +287,9 @@ export function KanbanBoard({
                 {/* Mobile Columns List */}
                 <KanbanColumnsList 
                   columns={filteredColumns} 
-                  onColumnClick={scrollToColumn} 
+                  onColumnClick={scrollToColumn}
+                  terminalCounts={terminalCounts}
+                  isTerminalStage={isTerminalStage}
                 />
 
                 {/* View Toggle */}
@@ -502,7 +504,9 @@ export function KanbanBoard({
               <KanbanMinimap 
                 columns={filteredColumns} 
                 activeColumnId={activeColumnId}
-                onColumnClick={scrollToColumn} 
+                onColumnClick={scrollToColumn}
+                terminalCounts={terminalCounts}
+                isTerminalStage={isTerminalStage}
               />
             </div>
           </div>

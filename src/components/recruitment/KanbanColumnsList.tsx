@@ -3,11 +3,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { List, ChevronRight } from 'lucide-react';
-import { KanbanColumn } from '@/types/recruitment';
+import { KanbanColumn, CandidateStage } from '@/types/recruitment';
 
 interface KanbanColumnsListProps {
   columns: KanbanColumn[];
   onColumnClick: (columnId: string) => void;
+  terminalCounts?: Record<CandidateStage, number>;
+  isTerminalStage?: (stage: CandidateStage) => boolean;
 }
 
 const getColumnColor = (columnId: string) => {
@@ -31,7 +33,20 @@ const getColumnColor = (columnId: string) => {
   }
 };
 
-export function KanbanColumnsList({ columns, onColumnClick }: KanbanColumnsListProps) {
+export function KanbanColumnsList({ 
+  columns, 
+  onColumnClick,
+  terminalCounts = {} as Record<CandidateStage, number>,
+  isTerminalStage
+}: KanbanColumnsListProps) {
+  // Função helper para obter o contador correto
+  const getColumnCount = (column: KanbanColumn): number => {
+    if (isTerminalStage && isTerminalStage(column.id)) {
+      return terminalCounts[column.id] || 0;
+    }
+    return column.candidates.length;
+  };
+
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -49,6 +64,9 @@ export function KanbanColumnsList({ columns, onColumnClick }: KanbanColumnsListP
           <div className="space-y-2">
             {columns.map((column) => {
               const columnColor = getColumnColor(column.id);
+              const count = getColumnCount(column);
+              const isTerminal = isTerminalStage && isTerminalStage(column.id);
+              const loadedCount = column.candidates.length;
               
               return (
                 <div
@@ -68,7 +86,7 @@ export function KanbanColumnsList({ columns, onColumnClick }: KanbanColumnsListP
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant="secondary" className="text-xs">
-                        {column.candidates.length}
+                        {isTerminal ? `${loadedCount}/${count}` : count}
                       </Badge>
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </div>
