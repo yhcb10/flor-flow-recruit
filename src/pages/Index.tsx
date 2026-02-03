@@ -30,7 +30,21 @@ const Index = () => {
   });
   
   const [showNewPositionModal, setShowNewPositionModal] = useState(false);
-  const { columns, candidates, loading, moveCandidateToStage, updateCandidate, addCandidate, deleteCandidate, stats } = useRecruitmentKanban();
+  const { 
+    columns, 
+    candidates, 
+    loading, 
+    moveCandidateToStage, 
+    updateCandidate, 
+    addCandidate, 
+    deleteCandidate, 
+    stats,
+    terminalCounts,
+    terminalLoadingStates,
+    loadMoreFromTerminalColumn,
+    hasMoreInTerminal,
+    isTerminalStage
+  } = useRecruitmentKanban();
   
   console.log('📊 Total candidatos no Index:', candidates.length);
   console.log('📍 Posição selecionada:', selectedPosition?.title || 'Todas as Vagas');
@@ -229,6 +243,11 @@ const Index = () => {
                 onCandidateDelete={deleteCandidate}
                 selectedPosition={selectedPosition}
                 availablePositions={jobPositions}
+                terminalCounts={terminalCounts}
+                terminalLoadingStates={terminalLoadingStates}
+                onLoadMore={loadMoreFromTerminalColumn}
+                hasMoreInTerminal={hasMoreInTerminal}
+                isTerminalStage={isTerminalStage}
               />
             )}
           </TabsContent>

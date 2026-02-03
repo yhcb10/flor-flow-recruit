@@ -119,3 +119,16 @@ export interface RecruitmentStats {
   conversionRates: Record<string, number>;
   aiAccuracyRate: number;
 }
+
+// Constantes para colunas terminais (lazy loading)
+export const TERMINAL_STAGES: CandidateStage[] = ['nao_aprovado', 'aprovado', 'banco_talentos'];
+
+// Tipo para estado de carregamento de colunas terminais
+export type TerminalLoadingState = 'idle' | 'loading' | 'loaded' | 'error';
+
+export interface TerminalColumnState {
+  count: number;
+  loaded: number;
+  loading: boolean;
+  hasMore: boolean;
+}
