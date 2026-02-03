@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { KanbanBoard } from '@/components/recruitment/KanbanBoard';
 import { RecruitmentDashboard } from '@/components/recruitment/RecruitmentDashboard';
@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { useRecruitmentKanban } from '@/hooks/useRecruitmentKanban';
 import { useJobPositions } from '@/hooks/useJobPositions';
 import { useAuth } from '@/hooks/useAuth';
-import { JobPosition } from '@/types/recruitment';
+import { JobPosition, CandidateStage } from '@/types/recruitment';
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff } from 'lucide-react';
 import flowNobreLogo from '/lovable-uploads/67eb7c82-39ed-418b-a2e4-7372542bb87d.png';
@@ -52,13 +52,17 @@ const Index = () => {
   console.log('📍 Posição selecionada:', selectedPosition?.title || 'Todas as Vagas');
   
   // Filter candidates by selected position and only active job positions (controlled by toggle)
-  const activeJobPositionIds = showClosedPositions 
-    ? jobPositions.map(p => p.id)
-    : jobPositions.filter(p => p.status === 'active').map(p => p.id);
+  const activeJobPositionIds = useMemo(() => {
+    return showClosedPositions 
+      ? jobPositions.map(p => p.id)
+      : jobPositions.filter(p => p.status === 'active').map(p => p.id);
+  }, [showClosedPositions, jobPositions]);
   
-  const positionCandidates = selectedPosition 
-    ? candidates.filter(candidate => candidate.positionId === selectedPosition.id)
-    : candidates.filter(candidate => activeJobPositionIds.includes(candidate.positionId));
+  const positionCandidates = useMemo(() => {
+    return selectedPosition 
+      ? candidates.filter(candidate => candidate.positionId === selectedPosition.id)
+      : candidates.filter(candidate => activeJobPositionIds.includes(candidate.positionId));
+  }, [selectedPosition, candidates, activeJobPositionIds]);
     
   console.log('🔍 Candidatos filtrados:', positionCandidates.length, 'de', candidates.length, showClosedPositions ? '(todas as vagas)' : '(apenas vagas ativas)');
   
@@ -69,12 +73,36 @@ const Index = () => {
   };
   
   // Filter columns to only show candidates for selected position or active positions
-  const filteredColumns = columns.map(column => ({
-    ...column,
-    candidates: selectedPosition 
-      ? column.candidates.filter(candidate => candidate.positionId === selectedPosition.id)
-      : column.candidates.filter(candidate => activeJobPositionIds.includes(candidate.positionId))
-  }));
+  const filteredColumns = useMemo(() => {
+    return columns.map(column => ({
+      ...column,
+      candidates: selectedPosition 
+        ? column.candidates.filter(candidate => candidate.positionId === selectedPosition.id)
+        : column.candidates.filter(candidate => activeJobPositionIds.includes(candidate.positionId))
+    }));
+  }, [columns, selectedPosition, activeJobPositionIds]);
+  
+  // Calcular counts filtrados para colunas terminais
+  // Os terminalCounts do hook são o total no banco, mas precisamos filtrar por posição
+  const filteredTerminalCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    
+    // Para cada coluna, calcular o count baseado nos candidatos filtrados
+    filteredColumns.forEach(column => {
+      if (isTerminalStage(column.id)) {
+        counts[column.id] = column.candidates.length;
+      }
+    });
+    
+    // Se não temos filtro de posição e showClosedPositions está ativo, usar os counts originais
+    // Caso contrário, usar os counts calculados (que só refletem candidatos já carregados)
+    if (!selectedPosition && showClosedPositions) {
+      return terminalCounts;
+    }
+    
+    // Se temos filtro, usamos os counts filtrados dos candidatos já carregados
+    return counts as Record<CandidateStage, number>;
+  }, [filteredColumns, selectedPosition, showClosedPositions, terminalCounts, isTerminalStage]);
   
   // Calculate stats for selected position only
   const positionStats = {
@@ -270,7 +298,7 @@ const Index = () => {
                 onCandidateDelete={deleteCandidate}
                 selectedPosition={selectedPosition}
                 availablePositions={jobPositions}
-                terminalCounts={terminalCounts}
+                terminalCounts={filteredTerminalCounts}
                 terminalLoadingStates={terminalLoadingStates}
                 onLoadMore={loadMoreFromTerminalColumn}
                 hasMoreInTerminal={hasMoreInTerminal}
