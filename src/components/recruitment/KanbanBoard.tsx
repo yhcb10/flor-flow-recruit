@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Plus, Filter, Search, X, LayoutGrid, Grid3X3, GripVertical, RotateCcw } from 'lucide-react';
+import { Plus, Filter, Search, X, LayoutGrid, Grid3X3, GripVertical, RotateCcw, Loader2, ChevronDown } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -17,7 +17,7 @@ import { TalentPoolReasonModal } from './TalentPoolReasonModal';
 import { KanbanMinimap } from './KanbanMinimap';
 import { KanbanColumnsList } from './KanbanColumnsList';
 import { useKanbanNavigation } from '@/hooks/useKanbanNavigation';
-import { Candidate, CandidateStage, KanbanColumn, JobPosition } from '@/types/recruitment';
+import { Candidate, CandidateStage, KanbanColumn, JobPosition, TerminalLoadingState } from '@/types/recruitment';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -31,6 +31,12 @@ interface KanbanBoardProps {
   onCandidateDelete?: (candidateId: string) => void;
   selectedPosition?: JobPosition | null;
   availablePositions?: JobPosition[];
+  // Novas props para lazy loading de colunas terminais
+  terminalCounts?: Record<CandidateStage, number>;
+  terminalLoadingStates?: Record<CandidateStage, TerminalLoadingState>;
+  onLoadMore?: (stage: CandidateStage, pageSize?: number) => Promise<boolean>;
+  hasMoreInTerminal?: (stage: CandidateStage) => boolean;
+  isTerminalStage?: (stage: CandidateStage) => boolean;
 }
 
 export function KanbanBoard({ 
@@ -41,7 +47,12 @@ export function KanbanBoard({
   onCandidateAdd, 
   onCandidateDelete, 
   selectedPosition,
-  availablePositions = []
+  availablePositions = [],
+  terminalCounts = {} as Record<CandidateStage, number>,
+  terminalLoadingStates = {} as Record<CandidateStage, TerminalLoadingState>,
+  onLoadMore,
+  hasMoreInTerminal,
+  isTerminalStage
 }: KanbanBoardProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
@@ -543,9 +554,23 @@ export function KanbanBoard({
                               </Button>
                             )}
 
-                            <Badge variant="secondary" className="text-xs">
-                              {column.candidates.length}
-                            </Badge>
+                            {/* Badge com contador - diferente para colunas terminais */}
+                            {isTerminalStage && isTerminalStage(column.id) ? (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge variant="secondary" className="text-xs">
+                                    {column.candidates.length} / {terminalCounts[column.id] || 0}
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{column.candidates.length} carregados de {terminalCounts[column.id] || 0} total</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            ) : (
+                              <Badge variant="secondary" className="text-xs">
+                                {column.candidates.length}
+                              </Badge>
+                            )}
                           </div>
                         </div>
                         <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">{column.description}</p>
@@ -563,6 +588,34 @@ export function KanbanBoard({
                                 snapshot.isDraggingOver && "bg-primary/5"
                               )}
                             >
+                              {/* Mostrar mensagem para carregar candidatos em colunas terminais vazias */}
+                              {isTerminalStage && isTerminalStage(column.id) && column.candidates.length === 0 && (terminalCounts[column.id] || 0) > 0 && (
+                                <div className="flex flex-col items-center justify-center py-8 text-center">
+                                  <p className="text-sm text-muted-foreground mb-3">
+                                    {terminalCounts[column.id]} candidatos nesta coluna
+                                  </p>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => onLoadMore && onLoadMore(column.id)}
+                                    disabled={terminalLoadingStates[column.id] === 'loading'}
+                                    className="gap-2"
+                                  >
+                                    {terminalLoadingStates[column.id] === 'loading' ? (
+                                      <>
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        Carregando...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <ChevronDown className="h-4 w-4" />
+                                        Carregar candidatos
+                                      </>
+                                    )}
+                                  </Button>
+                                </div>
+                              )}
+
                               {column.candidates.map((candidate, index) => (
                                 <Draggable key={candidate.id} draggableId={candidate.id} index={index}>
                                   {(provided, snapshot) => (
@@ -597,6 +650,31 @@ export function KanbanBoard({
                                 </Draggable>
                               ))}
                               {provided.placeholder}
+
+                              {/* Botão "Carregar mais" para colunas terminais */}
+                              {isTerminalStage && isTerminalStage(column.id) && hasMoreInTerminal && hasMoreInTerminal(column.id) && column.candidates.length > 0 && (
+                                <div className="flex justify-center pt-2 pb-4">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => onLoadMore && onLoadMore(column.id)}
+                                    disabled={terminalLoadingStates[column.id] === 'loading'}
+                                    className="gap-2 text-muted-foreground hover:text-foreground"
+                                  >
+                                    {terminalLoadingStates[column.id] === 'loading' ? (
+                                      <>
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        Carregando...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <ChevronDown className="h-4 w-4" />
+                                        Carregar mais ({(terminalCounts[column.id] || 0) - column.candidates.length} restantes)
+                                      </>
+                                    )}
+                                  </Button>
+                                </div>
+                              )}
                             </div>
                           )}
                         </Droppable>
