@@ -692,22 +692,45 @@ export function useRecruitmentKanban() {
     checkAndApplyAIAutomation(updatedCandidate);
   };
 
-  const checkAndApplyAIAutomation = (candidate: Candidate) => {
-    // Only apply automation for candidates in 'analise_ia' stage with AI analysis
-    if (candidate.stage === 'analise_ia' && candidate.aiAnalysis) {
-      const score = candidate.aiAnalysis.score;
+  // Função refatorada para atualizar diretamente no Supabase - elimina race condition
+  const checkAndApplyAIAutomation = async (candidate: Candidate) => {
+    // Apenas aplicar automação para candidatos na etapa 'analise_ia' com análise IA
+    if (candidate.stage !== 'analise_ia' || !candidate.aiAnalysis) {
+      return;
+    }
+    
+    const score = candidate.aiAnalysis.score;
+    console.log('🤖 Automação IA - Candidato:', candidate.name, 'Nota:', score);
+    
+    // Determinar nova etapa baseada na nota
+    const newStage = score >= 6.5 ? 'selecao_pre_entrevista' : 'nao_aprovado';
+    const rejectionReason = score < 6.5 ? 'Pontuação IA abaixo do mínimo (6.5)' : undefined;
+    
+    console.log(score >= 6.5 ? '✅ Auto-aprovando candidato' : '❌ Auto-reprovando candidato');
+    
+    try {
+      // Atualizar diretamente no Supabase - o realtime sincroniza o state
+      const updateData: any = {
+        stage: newStage,
+        updated_at: new Date().toISOString()
+      };
       
-      console.log('🤖 Automação IA - Candidato:', candidate.name, 'Nota:', score, 'Stage:', candidate.stage);
+      if (rejectionReason) {
+        updateData.rejection_reason = rejectionReason;
+      }
       
-      setTimeout(() => {
-        if (score >= 6.5) {
-          console.log('✅ Auto-aprovando candidato com nota >= 6.5');
-          moveCandidateToStage(candidate.id, 'selecao_pre_entrevista');
-        } else {
-          console.log('❌ Auto-reprovando candidato com nota < 6.5');
-          moveCandidateToStage(candidate.id, 'nao_aprovado', 'Pontuação IA abaixo do mínimo (6.5)');
-        }
-      }, 1000);
+      const { error } = await supabase
+        .from('candidates')
+        .update(updateData)
+        .eq('id', candidate.id);
+      
+      if (error) {
+        console.error('Erro ao aplicar automação IA:', error);
+      } else {
+        console.log('✅ Automação IA aplicada com sucesso para:', candidate.name);
+      }
+    } catch (error) {
+      console.error('Erro ao aplicar automação IA:', error);
     }
   };
 
